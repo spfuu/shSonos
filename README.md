@@ -30,7 +30,6 @@ Install:
 2.5 (optional) edit sonos_server.py to edit host and port (default: localhost:9999)
 
 
-
 3. for raspberry pi user, please follow these instruction prior to point 2:
 
 	sudo apt-get install curl
