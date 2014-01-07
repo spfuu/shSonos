@@ -12,7 +12,7 @@ Install:
 
 (setup.py coming soon)
 
-1. copy the entire files to your preffered location (writeable)
+1. copy the entire files to your preferred location (writeable)
 2. (optional) if you want to start shShonos as background service, edit sonos_server.sh
 	2.1 edit DIR variable to /your/path/location
 	2.2 edit DAEMON_USER (optional)
@@ -190,10 +190,8 @@ You can perform '-h' on any command to see the available options (help descripti
   			<info></info>
 		</result>
 
-Yes i know, not perfect. A help message is not an exception. This is on of the first things i want to redesign.
+Yes i know, not perfect. A help message is not an exception. This is one of the first things i want to redesign.
 	
-
-
 Any exception is thrown in the following xml syntax:
 
 	<result type="exception">
