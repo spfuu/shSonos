@@ -17,17 +17,17 @@ Install:
 
 2. (optional) if you want to start shShonos as background service, edit sonos_server.sh
 
-2.1 edit DIR variable to /your/path/location
+2a edit DIR variable to /your/path/location
 
-2.2 edit DAEMON_USER (optional)
+2b edit DAEMON_USER (optional)
 
-2.3 copy file to /etc/init.d if you want to autostart shShonos on system start
+2c copy file to /etc/init.d if you want to autostart shShonos on system start
 
-2.3 chmod +x /path/to/sonos_server.sh
+2d chmod +x /path/to/sonos_server.sh
 
-2.4 ./path/to/sonos_server start
+2e ./path/to/sonos_server start
 
-2.5 (optional) edit sonos_server.py to edit host and port (default: localhost:9999)
+2f (optional) edit sonos_server.py to edit host and port (default: localhost:9999)
 
 
 3. for raspberry pi user, please follow these instruction prior to point 2:
