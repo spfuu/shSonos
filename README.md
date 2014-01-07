@@ -27,7 +27,8 @@ Install:
 
 2.4 ./path/to/sonos_server start
 
-2.5 (optional) eit sonos_server.py to edit host and port (default: localhost:9999)
+2.5 (optional) edit sonos_server.py to edit host and port (default: localhost:9999)
+
 
 
 3. for raspberry pi user, please follow these instruction prior to point 2:
