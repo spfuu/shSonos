@@ -9,47 +9,51 @@ python3 (with libraries requests, lxml installed)
 
 
 Install:
+--------------------------------
 
 (setup.py coming soon)
 
-1. copy the entire files to your preferred location (writeable)
+	1. copy the entire files to your preferred location (writeable)
 
 
-2. (optional) if you want to start shShonos as background service, edit sonos_server.sh
+	2. (optional) if you want to start shShonos as background service, edit sonos_server.sh
 
-2a edit DIR variable to /your/path/location
+		* edit DIR variable to /your/path/location
 
-2b edit DAEMON_USER (optional)
+		* edit DAEMON_USER (optional)
 
-2c copy file to /etc/init.d if you want to autostart shShonos on system start
+		* copy file to /etc/init.d if you want to autostart shShonos on system start
 
-2d chmod +x /path/to/sonos_server.sh
+		* chmod +x /path/to/sonos_server.sh
 
-2e ./path/to/sonos_server start
+		* ./path/to/sonos_server start
 
-2f (optional) edit sonos_server.py to edit host and port (default: localhost:9999)
+		* (optional) edit sonos_server.py to edit host and port (default: localhost:9999)
 
 
-3. for raspberry pi user, please follow these instruction prior to point 2:
+	3. for raspberry pi user, please follow these instruction prior to point 2:
 
-	sudo apt-get install curl
-	sudo apt-get install libxml2-dev libxslt1-dev
-	curl http://python-distribute.org/distribute_setup.py | python3
-	curl https://raw.github.com/pypa/pip/master/contrib/get-pip.py | python3
-	pip install requests
-	pip install lxml
+		sudo apt-get install curl
+		sudo apt-get install libxml2-dev libxslt1-dev
+		curl http://python-distribute.org/distribute_setup.py | python3
+		curl https://raw.github.com/pypa/pip/master/contrib/get-pip.py | python3
+		pip install requests
+		pip install lxml
 
 	BE PATIENT! The whole process tooks about 50-60min on the raspberry due to the low system
 	performance.
 
-4. testing:
+Testing:
+--------------------------------
+
 	Because of the server-client design, you're not bound to python to communicate 
 	with the sonos server instance. For simplicity, you can use the included sonos_client.py.
 
 	chmod +x /path/to/sonos_client.py
  	
 
-first implemented commands (more coming soon):
+First implemented commands (more coming soon):
+--------------------------------
 
 	refresh quick
 
@@ -170,12 +174,13 @@ first implemented commands (more coming soon):
 		</result>
 
 Full command examples:
+--------------------------------
 
 	sonos_client.py refresh all
 	sonos_client.py list single uid RINCON_1234567890 refresh
 	sonos_client.py speaker volume set 15 RINCON_1234567890
 
-More commands coming soon!
+	More commands coming soon!
 
 
 You can perform '-h' on any command to see the available options (help description will be added later)
@@ -211,6 +216,7 @@ Any exception is thrown in the following xml syntax:
 
 
 TO DO:
+--------------------------------
 
 	* full SoCo command implementation
 	* documentation
