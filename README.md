@@ -1,11 +1,14 @@
-shSonos    - sonos control server -
-
-shSonos is a simple sonos control server, mainly based on the brillaint SoCo project (https://github.com/SoCo/SoCo). 
-It implements a tcp socket server, wich is controlled through simple commands.
+Overview
+-------------------------------
+	
+	shSonos is a simple (python) sonos control server (, mainly based on the brillaint SoCo project 			https://github.com/SoCo/SoCo). 
+	It implements a tcp socket server, wich is controlled through simple commands.
+ 
  
 Requirements:
+--------------------------------
 
-python3 (with libraries requests, lxml installed)
+	python3 (with libraries requests, lxml installed)
 
 
 Install:
