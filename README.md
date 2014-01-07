@@ -183,8 +183,9 @@ Full command examples:
 	More commands coming soon!
 
 
-You can perform '-h' on any command to see the available options (help description will be added later)
+	You can perform '-h' on any command to see the available options (help description will be added later)
 
+	
 	sonos_client.py speaker mute -h
 	
 		*server response:
@@ -204,15 +205,18 @@ You can perform '-h' on any command to see the available options (help descripti
   			<info></info>
 		</result>
 
-Yes i know, not perfect. A help message is not an exception. This is one of the first things i want to redesign.
+	Yes, i know, not perfect. A help message is not an exception. This is one of the first things i want to 		redesign.
+
+Exceptions:
+--------------------------------
 	
-Any exception is thrown in the following xml syntax:
+	Any exception is thrown in the following xml syntax:
 
 	<result type="exception">
-  		<exception>HTTPConnectionPool(host='192.168.178.40', port=1400): Max retries exceeded with url: /status/zp (Caused by &lt;class 'socket.error'&gt;: [Errno 113] No route to host)</exception>
+  		<exception>HTTPConnectionPool(host='192.168.178.40', port=1400): Max retries exceeded with url: /status				/zp (Caused by &lt;class 'socket.error'&gt;: [Errno 113] No route to host)
+  		</exception>
   		<info></info>
 	</result
-
 
 
 TO DO:
