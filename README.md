@@ -8,7 +8,9 @@ It implements a tcp socket server, wich is controlled through simple commands.
 Requirements:
 --------------------------------
 
-	python3 (with libraries requests, lxml installed)
+server:	python3 (with libraries requests, lxml installed)
+
+client-side: nothing special, just send your commands over tcp
 
 
 Install:
