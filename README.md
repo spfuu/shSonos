@@ -45,7 +45,7 @@ Install:
 		pip install requests
 		pip install lxml
 
-	BE PATIENT! The whole process tooks about 50-60min on the raspberry due to the low system
+	BE PATIENT! The whole process takes up to 50-60min on the raspberry due to the low system
 	performance.
 
 Testing:
