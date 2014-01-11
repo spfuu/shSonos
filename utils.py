@@ -108,8 +108,6 @@ def really_utf8(in_string):
 
 
 def camel_to_underscore(string):
-
-
     """ Convert camelcase to lowercase and underscore
     Recipy from http://stackoverflow.com/a/1176023
     """
