@@ -2,6 +2,7 @@ This is the subproject 'plugin.sonos' for the Smarthome.py framework (https://gi
 The plugin is designed to control the sonos speakers in connection with the sonos server.
 
 1. Installation
+-----------------------------
 
   Login to your Raspberry Pi
   
@@ -14,7 +15,8 @@ The plugin is designed to control the sonos speakers in connection with the sono
   Done
 
 
-Integration in Smarthome.py
+2. Integration in Smarthome.py
+------------------------------
 
   Go to /usr/smarthome/items
   
@@ -29,3 +31,13 @@ Integration in Smarthome.py
                 type = bool
                 sonos_recv = <sonos_uid> mute
                 sonos_send = <sonos_uid> mute {}
+
+  To get your sonos speaker id, use (while sonos server running)
+    
+    a. the python script in the server.sonos project:
+      
+      sonos_client.py refresh all
+      sonos_client.py list all complete
+      
+      
+        
