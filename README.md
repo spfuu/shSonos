@@ -35,6 +35,8 @@ Install:
 
 		* chmod +x /path/to/sonos_server.sh
 
+		* chmod +x /path/to/sonos_server.py
+		
 		* ./path/to/sonos_server start
 
 		* (optional) edit sonos_server.py to edit host and port (default: localhost:9999)
