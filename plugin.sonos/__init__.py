@@ -51,8 +51,7 @@ class Sonos(lib.connection.Client):
             if uid:
                 item.conf[attr] = item.conf[attr].replace('<sonos_uid>', uid)
             else:
-                logger.warning(
-                    "sonos: could not resolve sonos_uid for {0} from parent item {1}".format(item, parent_item))
+                logger.warning("sonos: could not resolve sonos_uid".format(item))
 
         return item.conf[attr]
 
@@ -72,7 +71,6 @@ class Sonos(lib.connection.Client):
                     self._val[cmd]['items'].append(item)
 
         if 'sonos_send' in item.conf:
-            logger.debug("SONOS SEND SONOS SEND SONOS SEND SONOS SEND")
             cmd = self.resolve_cmd(item, 'sonos_send')
 
             if cmd is None:
