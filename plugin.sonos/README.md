@@ -20,11 +20,12 @@ The plugin is designed to control the sonos speakers in connection with the sono
 
   Go to /usr/smarthome/etc and edit plugins.conf and add ths entry:
   
-  *****************************************************************************
+  
   [sonos]
+  
         class_name = Sonos
         class_path = plugins.sono
-  *****************************************************************************
+  
 
 
   Go to /usr/smarthome/items
@@ -33,7 +34,7 @@ The plugin is designed to control the sonos speakers in connection with the sono
   
   Edit file with this sample of mine:
   
-  *****************************************************************************
+  
     [sonos]
         sonos_uid = RINCON_000E58D5892E11230 #your sonos speaker id here
 
@@ -41,7 +42,7 @@ The plugin is designed to control the sonos speakers in connection with the sono
                 type = bool
                 sonos_recv = <sonos_uid> mute
                 sonos_send = <sonos_uid> mute {}
-  *****************************************************************************  
+  
   
     To get your sonos speaker id, use (while sonos server running) the python script in the server.sonos project:
       
@@ -59,12 +60,12 @@ The plugin is designed to control the sonos speakers in connection with the sono
             <hardware_version>1.8.3.7-2</hardware_version>
             <id>1</id>
             <ip>192.168.178.40</ip>
-            <mac_address>00:0E:58:C3:89:2E</mac_address>
+            <mac_address>00:0E:58:C4:80:2E</mac_address>
             <model>ZPS1</model>
-            <serial_number>00-0E-58-C3-89-2E:7</serial_number>
+            <serial_number>00-0E-58-C4-80-2E:7</serial_number>
             <software_version>24.0-71060</software_version>
             <status>1</status>
-            <uid>RINCON_000E58C3892E01400</uid>
+            <uid></uid>RINCON_000E58D5892E11230
             <zone_icon>x-rincon-roomicon:living</zone_icon>
             <zone_name>Wohnzimmer</zone_name>
           </speaker>
@@ -72,4 +73,31 @@ The plugin is designed to control the sonos speakers in connection with the sono
         <info></info>
       </result>      
         
+    
+    To run this plugin with a logic, here is my example:
+    
+    Go to /usr/smarthome/logics and create a self-named file (e.g. sonos.py)
+    Edit this file and place your logic here:
+    
+    
+    #!/usr/bin/env python
+    #
+
+    if sh.ow.ibutton():
+        sh.sonos.mute(1)
+    else:
+        sh.sonos.mute(0)
+
+    
+    Last step: go to /usr/smarthome/etc and edit logics.conf
+    Add a section for your logic:
+    
+    # logic
+    [sonos_logic]
+        filename = sonos.py
+        watch_item = ow.ibutton
+    
+    
+    
+    In this small example, the sonos speaker with uid RINCON_000E58D5892E11230 is muted when the iButton is connected       to an iButton Probe.
     
