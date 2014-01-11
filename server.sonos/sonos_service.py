@@ -3,9 +3,12 @@
 from __future__ import unicode_literals
 from collections import namedtuple
 from types import MethodType
-import exceptions
-import requests
 from xml.sax.saxutils import escape
+
+import requests
+
+import exceptions
+
 
 __author__ = 'pfischi'
 

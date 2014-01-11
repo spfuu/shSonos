@@ -1,7 +1,8 @@
 import argparse
+import shlex
+
 from core import SoCo
 from sonos_database import VwDeviceColumns
-import shlex
 import utils
 from sonos_service import SonosService
 from xml_formatter import xml_format_speaker_data, xml_format_exception, xml_format_status

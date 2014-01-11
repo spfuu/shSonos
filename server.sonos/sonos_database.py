@@ -1,7 +1,9 @@
 __author__ = 'pfischi'
 
-from sonos_service import SonosSpeaker
 import sqlite3
+
+from sonos_service import SonosSpeaker
+
 
 class VwDeviceColumns():
         id = 'id'
