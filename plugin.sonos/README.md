@@ -21,15 +21,15 @@ The plugin is designed to control the sonos speakers in connection with the sono
   Go to /usr/smarthome/etc and edit plugins.conf and add ths entry:
   
   
-  [sonos]
+    [sonos]
   
-        class_name = Sonos
-        class_path = plugins.sono
+      class_name = Sonos
+      class_path = plugins.sono
   
 
 
   Go to /usr/smarthome/items
-  
+    
   Create a file named sonos.conf
   
   Edit file with this sample of mine:
@@ -44,15 +44,18 @@ The plugin is designed to control the sonos speakers in connection with the sono
                 sonos_send = <sonos_uid> mute {}
   
   
-    To get your sonos speaker id, use (while sonos server running) the python script in the server.sonos project:
+  To get your sonos speaker id, use (while sonos server running) the python script in the server.sonos project:
       
-    !!! The server can only handle one connection, so make sure, no other client is connected (e.g. Smarthome.py).
-    !!! It will result in a client loop and no server response 
+  !!! The server can only handle one connection, so make sure, no other client is connected (e.g. Smarthome.py).
+  !!! It will result in a client loop and no server response 
       
+  
     sonos_client.py refresh all
     sonos_client.py list all complete
       
-    response:
+  
+  
+  response:
       
       <result status="True" type="data">
         <data>
@@ -74,10 +77,10 @@ The plugin is designed to control the sonos speakers in connection with the sono
       </result>      
         
     
-    To run this plugin with a logic, here is my example:
+  To run this plugin with a logic, here is my example:
     
-    Go to /usr/smarthome/logics and create a self-named file (e.g. sonos.py)
-    Edit this file and place your logic here:
+  Go to /usr/smarthome/logics and create a self-named file (e.g. sonos.py)
+  Edit this file and place your logic here:
     
     
     #!/usr/bin/env python
@@ -89,8 +92,8 @@ The plugin is designed to control the sonos speakers in connection with the sono
         sh.sonos.mute(0)
 
     
-    Last step: go to /usr/smarthome/etc and edit logics.conf
-    Add a section for your logic:
+  Last step: go to /usr/smarthome/etc and edit logics.conf
+  Add a section for your logic:
     
     # logic
     [sonos_logic]
@@ -99,5 +102,5 @@ The plugin is designed to control the sonos speakers in connection with the sono
     
     
     
-    In this small example, the sonos speaker with uid RINCON_000E58D5892E11230 is muted when the iButton is connected       to an iButton Probe.
+  In this small example, the sonos speaker with uid RINCON_000E58D5892E11230 is muted when the iButton is connected       to an iButton Probe.
     
