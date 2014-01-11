@@ -20,7 +20,7 @@ import requests
 from sonos_service import DeviceProperties, ContentDirectory
 from sonos_service import RenderingControl, AVTransport
 
-from utils import really_utf8, camel_to_underscore
+from utils import really_unicode, really_utf8, camel_to_underscore
 
 LOGGER = logging.getLogger(__name__)
 
