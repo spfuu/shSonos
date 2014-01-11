@@ -1,8 +1,7 @@
 import argparse
-import shlex
-
 from core import SoCo
 from sonos_database import VwDeviceColumns
+import shlex
 import utils
 from sonos_service import SonosService
 from xml_formatter import xml_format_speaker_data, xml_format_exception, xml_format_status
@@ -84,7 +83,7 @@ class Command():
         sub_speaker = par_speaker.add_subparsers(title='speaker actions', dest='speaker')
 
         p_speaker_mute = sub_speaker.add_parser('mute')
-        p_speaker_mute.add_argument('action', choices={'on', 'off', 'get'},
+        p_speaker_mute.add_argument('action', choices={0, 1}, type=int,
                                     help='Get or set the speaker\' mute status.')
         p_speaker_mute.add_argument('device_uid', help='A device uid for a sonos speaker within the sqlite database.')
         p_speaker_mute.add_argument('refresh', nargs='?', type=bool, default=False,
@@ -300,16 +299,16 @@ class Command():
             soco = self.get_soco(device_uid, refresh)
 
             if soco:
-                if action == 'off':
+                if action == 0:
                     soco.mute = False
-                    return xml_format_status(True, '', dict(mute=soco.mute))
+                    return xml_format_status(True, device_uid, '', dict(mute=soco.mute))
 
-                if action == 'on':
+                if action == 1:
                     soco.mute = True
 
-                return xml_format_status(True, '', dict(mute=soco.mute))
+                return xml_format_status(True, device_uid, '', dict(mute=soco.mute))
 
-            return xml_format_status(False, 'No speaker found with uid \'{}\'. Speaker offline?'.format(device_uid))
+            return xml_format_status(False, device_uid, 'No speaker found with uid \'{}\'. Speaker offline?'.format(device_uid))
 
         except Exception as err:
             return xml_format_exception(err)
@@ -326,14 +325,14 @@ class Command():
             if soco:
                 if action == 'off':
                     soco.status_light = False
-                    return xml_format_status(True, '', dict(statuslight=soco.status_light))
+                    return xml_format_status(True, device_uid, '', dict(statuslight=soco.status_light))
 
                 if action == 'on':
                     soco.status_light = True
 
-                return xml_format_status(True, '', dict(statuslight=soco.status_light))
+                return xml_format_status(True, device_uid, '', dict(statuslight=soco.status_light))
 
-            return xml_format_status(False, 'No speaker found with uid \'{}\'. Speaker offline?'.format(device_uid))
+            return xml_format_status(False, device_uid, 'No speaker found with uid \'{}\'. Speaker offline?'.format(device_uid))
 
         except Exception as err:
             return xml_format_exception(err)
@@ -352,14 +351,14 @@ class Command():
                 if action == 'set':
 
                     if not device_volume:
-                        return xml_format_status(False, 'No speaker volume has been set.')
+                        return xml_format_status(False, device_uid, 'No speaker volume has been set.')
 
                     soco.volume = device_volume
-                    return xml_format_status(True, '', dict(volume=soco.volume))
+                    return xml_format_status(True, device_uid, '', dict(volume=soco.volume))
 
-                return xml_format_status(True, '', dict(volume=soco.volume))
+                return xml_format_status(True, device_uid, '', dict(volume=soco.volume))
 
-            return xml_format_status(False, 'No speaker found with uid \'{}\'. Speaker offline?'.format(device_uid))
+            return xml_format_status(False, device_uid, 'No speaker found with uid \'{}\'. Speaker offline?'.format(device_uid))
 
         except Exception as err:
             return xml_format_exception(err)
