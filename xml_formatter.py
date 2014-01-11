@@ -9,9 +9,8 @@ class NamedXmlElements():
     info = 'info'
     data = 'data'
 
-
-def xml_format_status(status, info='', device_properties={}):
-    root = etree.Element('result', type=NamedXmlElements.data, status=str(status))
+def xml_format_status(status, uid, info='', device_properties={}):
+    root = etree.Element('result', type=NamedXmlElements.data, status=str(status), uid=str(uid))
 
     data_element = etree.SubElement(root, NamedXmlElements.data)
 
