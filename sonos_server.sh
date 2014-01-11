@@ -11,7 +11,7 @@
 # Description: starts / stops / restart the sonos server service
 ### END INIT INFO
 
-DIR=~/PycharmProjects/shSonos
+DIR=/usr/smarthome/plugins/sonos/server
 DAEMON=$DIR/sonos_server.py
 DAEMON_NAME=sonosserver
 DATABASE=$DIR/sonos.db
