@@ -23,7 +23,6 @@ class SonosTCPHandler(socketserver.StreamRequestHandler):
         self.database = SonosDatabase(database)
 
         while True:
-		
             self.data = self.rfile.readline().strip().lower()
             #self.data = self.request.recv(1024).strip().lower()
 
