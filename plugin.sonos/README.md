@@ -14,4 +14,18 @@ The plugin is designed to control the sonos speakers in connection with the sono
   Done
 
 
-2. 
+Integration in Smarthome.py
+
+  Go to /usr/smarthome/items
+  
+  Create a file named sonos.conf
+  
+  Edit file with this sample of mine:
+  
+    [sonos]
+        sonos_uid = RINCON_000E58D5892E11230 #your sonos speaker id here
+
+        [[mute]]
+                type = bool
+                sonos_recv = <sonos_uid> mute
+                sonos_send = <sonos_uid> mute {}
