@@ -1,16 +1,20 @@
 Overview
 -------------------------------
 	
-shSonos is a simple (python) sonos control server, mainly based on the brillaint SoCo project https://github.com/SoCo/SoCo). 
+The shSonos project is primary a simple (python) sonos control server, mainly based on the brillaint SoCo project https://github.com/SoCo/SoCo). 
 It implements a tcp socket server, wich is controlled through simple commands.
  
+In addtion , i decided to write a plugin for the fantastic "Smarthome.py Project" to control sonos speakers in a smart home. (https://github.com/mknx/smarthome/)
+
  
 Requirements:
 --------------------------------
 
 server:	python3 (with libraries requests, lxml installed)
 
-client-side: nothing special, just send your commands over tcp
+client-side: nothing special, just send your commands over tcp or use the plugin to control the speakers within
+smarthome.py
+
 
 
 Install:
