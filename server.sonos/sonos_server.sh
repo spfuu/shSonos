@@ -18,7 +18,7 @@ DATABASE=$DIR/sonos.db
 
 
 # Root generally not recommended but necessary if you are using the Raspberry Pi GPIO from Python.
-DAEMON_USER=root
+DAEMON_USER=admin
 
 # The process ID of the script when it runs is stored here:
 PIDFILE=/var/run/$DAEMON_NAME.pid
@@ -26,6 +26,8 @@ PIDFILE=/var/run/$DAEMON_NAME.pid
 . /lib/lsb/init-functions
 
 do_start () {
+touch $PIDFILE
+chown $DAEMON_USER $PIDFILE
 log_daemon_msg "Starting system $DAEMON_NAME daemon"
 start-stop-daemon -v --start --pidfile $PIDFILE --make-pidfile --user $DAEMON_USER --background --startas $DAEMON -- -d=$DATABASE
 log_end_msg $?
