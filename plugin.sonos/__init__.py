@@ -23,6 +23,12 @@ import logging
 import lib.connection
 from xml.dom import minidom
 
+#for remote debugging only
+
+import sys
+sys.path.append('/usr/smarthome/plugins/sonos/pycharm-debug-py3k.egg')
+import pydevd
+
 logger = logging.getLogger('Sonos')
 
 RESPDELIMITER = b'</result>'
@@ -35,6 +41,7 @@ class Sonos(lib.connection.Client):
         self.terminator = RESPDELIMITER
         self.command = SonosCommand()
         self._val = {}
+
 
     def run(self):
         self.alive = True
@@ -56,8 +63,11 @@ class Sonos(lib.connection.Client):
         return item.conf[attr]
 
     def parse_item(self, item):
+
         if 'sonos_recv' in item.conf:
             cmd = self.resolve_cmd(item, 'sonos_recv')
+
+            pydevd.settrace('192.168.178.44', port=12000, stdoutToServer=True, stderrToServer=True)
 
             if cmd is None:
                 return None
