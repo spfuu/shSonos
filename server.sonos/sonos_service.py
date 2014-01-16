@@ -1,23 +1,22 @@
 # -*- coding: utf-8 -*-
-
 from __future__ import unicode_literals
-from collections import namedtuple
-from types import MethodType
-from xml.sax.saxutils import escape
-
-import requests
-
-import exceptions
-
 
 __author__ = 'pfischi'
 
+from collections import namedtuple
+import threading
+from types import MethodType
+from xml.sax.saxutils import escape
+import requests
+from core import SoCo
+import exceptions
 from utils import really_unicode, really_utf8, prettify
 import socket
 import select
 import definitions
 import re
 import logging
+from time import sleep
 
 try:
     import xml.etree.cElementTree as XML
@@ -27,7 +26,6 @@ except ImportError:
 log = logging.getLogger(__name__)
 Argument = namedtuple('Argument', 'name, vartype')
 Action = namedtuple('Action', 'name, in_args, out_args')
-
 
 class SonosSpeaker():
     def __init__(self):
@@ -49,9 +47,28 @@ class SonosSpeaker():
 
 class SonosService():
     def __init__(self):
+
+        self.speakers = []
         self._sock = socket.socket(
             socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         self._sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
+        threading.Thread(target=self.get_speakers_periodically).start()
+
+    def get_speakers_periodically(self):
+        while 1:
+            self.speakers = self.get_speakers()
+
+            if self.speakers:
+                for speaker in self.speakers:
+                    self.get_speaker_info(speaker)
+            sleep(10)
+
+    def get_soco(self, uid):
+        for speaker in self.speakers:
+            if speaker.uid == uid:
+                return SoCo(speaker.ip)
+
+        return None
 
     def get_speakers(self):
         """ Get a list of ips for Sonos devices that can be controlled """
@@ -80,14 +97,13 @@ class SonosService():
                 # be returned
                 if (model and model != "BR100"):
                     speaker = SonosSpeaker()
-                    speaker.uid = uid
+                    speaker.uid = uid.lower()
                     speaker.ip = addr[0]
                     speaker.model = model
                     speakers.append(speaker)
             else:
                 break
         return speakers
-
 
     def get_speaker_info(self, speaker):
 
@@ -104,12 +120,13 @@ class SonosService():
         if dom.findtext('.//ZoneName') is not None:
             speaker.zone_name = dom.findtext('.//ZoneName')
             speaker.zone_icon = dom.findtext('.//ZoneIcon')
-            speaker.uid = dom.findtext('.//LocalUID')
+            speaker.uid = dom.findtext('.//LocalUID').lower()
             speaker.serial_number = dom.findtext('.//SerialNumber')
             speaker.software_version = dom.findtext('.//SoftwareVersion')
             speaker.hardware_version = dom.findtext('.//HardwareVersion')
             speaker.mac_address = dom.findtext('.//MACAddress')
             return speaker
+
 
 class Service(object):
     """ An class representing a UPnP service. The base class for all Sonos
