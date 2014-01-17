@@ -18,10 +18,12 @@
 # You should have received a copy of the GNU General Public License
 # along with SmartHome.py. If not, see <http://www.gnu.org/licenses/>.
 #########################################################################
+import http
 
 import logging
 import lib.connection
 import lib.tools
+import urllib
 from xml.dom import minidom
 
 #for remote debugging only
@@ -51,16 +53,19 @@ class UDPDispatcher(lib.connection.Server):
         except Exception as e:
             logger.exception("{}: {}".format(self._name, e))
             return
+
         self.parser(ip, self.dest, data.decode().strip())
 
 class Sonos():
 
-    def __init__(self, smarthome, host='0.0.0.0', port='9999'):
+    def __init__(self, smarthome, host='0.0.0.0', port='9999', broker_url=None):
 
         pydevd.settrace('192.168.178.44', port=12000, stdoutToServer=True, stderrToServer=True)
 
-        self.tools = lib.tools.Tools()
-        self.tools.fetch_url('http://192.168.178.31:12900/subscribe/9999')
+        if broker_url:
+            self._broker_url = broker_url
+
+        self.send_cmd('client/subscribe/{}'.format(port))
         self._sh = smarthome
         self.terminator = RESPDELIMITER
         self.command = SonosCommand()
@@ -68,11 +73,9 @@ class Sonos():
 
         UDPDispatcher(self.parse_input, host, port)
 
-
     def parse_input(self, source, dest, data):
-        logger.debug("source: {}    dest: {}      data: {}".format(source, dest, data))
-
         try:
+
             dom = minidom.parseString(data).documentElement
             uid = self.command.get_uid_from_response(dom)
 
@@ -80,7 +83,12 @@ class Sonos():
 
             if value:
                 self.update_items_with_data(["{} mute".format(uid), int(value)])
+                return
 
+            value = self.command.get_bool_result(dom, 'led')
+            if value:
+                self.update_items_with_data(["{} led".format(uid), int(value)])
+                return
 
         except Exception as err:
             logger.debug(err)
@@ -97,7 +105,7 @@ class Sonos():
         if '<sonos_uid>' in item.conf[attr]:
             parent_item = item.return_parent()
             if (parent_item is not None) and ('sonos_uid' in parent_item.conf):
-                item.conf[attr] = item.conf[attr].replace('<sonos_uid>', parent_item.conf['sonos_uid'])
+                item.conf[attr] = item.conf[attr].replace('<sonos_uid>', parent_item.conf['sonos_uid'].lower())
             else:
                 logger.warning("sonos: could not resolve sonos_uid".format(item))
         return item.conf[attr]
@@ -106,8 +114,6 @@ class Sonos():
 
         if 'sonos_recv' in item.conf:
             cmd = self.resolve_cmd(item, 'sonos_recv')
-
-#            pydevd.settrace('192.168.178.44', port=12000, stdoutToServer=True, stderrToServer=True)
 
             if cmd is None:
                 return None
@@ -148,18 +154,19 @@ class Sonos():
 
                 command = self.split_command(cmd)
 
-                #command[0] = uid
-                #command[1] = command to execute
+                #command[0] = speaker / zone? / group?
+                #command[1] = uid
+                #command[2..n] = command to execute
 
-                if command[1] == 'mute':
+                if command[2] == 'mute':
                     if isinstance(value, bool):
-                        cmd = self.command.mute(command[0], int(value))
-                if command[1] == 'led':
+                        cmd = self.command.mute(command[1], int(value))
+                if command[2] == 'led':
                     if isinstance(value, bool):
-                        cmd = self.command.led(command[0], int(value))
-                if command[1] == 'volume':
+                        cmd = self.command.led(command[1], int(value))
+                if command[2] == 'volume':
                     if isinstance(value, int):
-                        cmd = self.command.volume(command[0], int(value))
+                        cmd = self.command.volume(command[1], int(value))
 
                 if cmd:
                     self.send_cmd(cmd)
@@ -169,17 +176,31 @@ class Sonos():
 
     @staticmethod
     def split_command(cmd):
-        return cmd.lower().split()
+        return cmd.lower().split('/')
 
     def send_cmd(self, cmd):
+
+        try:
+            conn = http.client.HTTPConnection(self._broker_url)
+
+            conn.request("GET", cmd)
+            response = conn.getresponse()
+            if response.status == 200:
+                logger.info("Sonos: Message %s %s successfully sent - %s %s" %
+                            (self._broker_url, cmd, response.status, response.reason))
+            else:
+                logger.warning("Sonos: Could not send message %s %s - %s %s" %
+                               (self._broker_url, cmd, response.status, response.reason))
+            conn.close()
+            del(conn)
+
+        except Exception as e:
+            logger.warning(
+                "Could not send sonos notification: {0}. Error: {1}".format(cmd, e))
+
         logger.debug("Sending request: {0}".format(cmd))
 
-        # if connection is closed we don't wait for sh.con to reopen it
-        # instead we reconnect immediatly
-        if not self.connected:
-            self.connect()
 
-   #     self.send(cmd)
 
     def update_items_with_data(self, data):
         cmd = ' '.join(data_str for data_str in data[:-1])
@@ -188,28 +209,27 @@ class Sonos():
                 if isinstance(item(), str):
                     data[-1] = int(data[-1]) + item()
                 logger.debug("data[-1]: {}".format(data[-1]))
-                item(data[-1], 'Sonos', self.address)
+                item(data[-1], 'Sonos', '')
 
 class SonosCommand():
-    def mute(self, uid, value):
-        return self.normalize("speaker mute {} {}".format(int(value), uid))
-
-    def led(self, uid, value):
-        return self.normalize("speaker statuslight {} {}".format(int(value), uid))
-
-    def volume(self, uid, value):
-        return self.normalize("speaker volume {} {}".format(value, uid))
+    @staticmethod
+    def mute(uid, value):
+        return "speaker/{}/mute/set/{}".format(uid, int(value))
 
     @staticmethod
-    def normalize(cmd):
-        return bytes("{}\r\n".format(cmd), encoding='utf-8')
+    def led(uid, value):
+        return "speaker/{}/led/set/{}".format(uid, int(value))
+
+    @staticmethod
+    def volume(uid, value):
+        return "speaker/{}/volume/set/{}".format(uid, value)
 
     @staticmethod
     def get_uid_from_response(dom):
         try:
-            return dom.attributes["uid"].value
+            return dom.attributes["uid"].value.lower()
         except:
-            return None
+           return None
 
     @staticmethod
     def get_bool_result(dom, result_string):

@@ -1060,7 +1060,6 @@ class SoCo(object):  # pylint: disable=R0904
 
         return result
 
-
 # definition section
 
 PLAYER_SEARCH = """M-SEARCH * HTTP/1.1

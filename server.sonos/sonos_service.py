@@ -17,6 +17,7 @@ import definitions
 import re
 import logging
 from time import sleep
+from http.client import HTTPConnection
 
 try:
     import xml.etree.cElementTree as XML
@@ -26,6 +27,7 @@ except ImportError:
 log = logging.getLogger(__name__)
 Argument = namedtuple('Argument', 'name, vartype')
 Action = namedtuple('Action', 'name, in_args, out_args')
+
 
 class SonosSpeaker():
     def __init__(self):
@@ -40,28 +42,77 @@ class SonosSpeaker():
         self.mac_address = ''
         self.id = None
         self.status = 0
+        self.subscrition = ''
 
     def __dir__(self):
-            return ['uid', 'ip', 'model', 'zone_name', 'zone_icon', 'serial_number', 'software_version',
-                    'hardware_version', 'mac_address', 'id', 'status']
+        return ['uid', 'ip', 'model', 'zone_name', 'zone_icon', 'serial_number', 'software_version',
+                'hardware_version', 'mac_address', 'id', 'status']
+
 
 class SonosService():
-    def __init__(self):
+    def __init__(self, host, port):
 
-        self.speakers = []
+        self.host = host
+        self.port = port
+        self.speakers = {}
+
         self._sock = socket.socket(
             socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         self._sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
         threading.Thread(target=self.get_speakers_periodically).start()
 
     def get_speakers_periodically(self):
-        while 1:
-            self.speakers = self.get_speakers()
 
-            if self.speakers:
-                for speaker in self.speakers:
-                    self.get_speaker_info(speaker)
-            sleep(10)
+        callback = '/MediaRenderer/RenderingControl/Event'
+        sleep_scan = 20 #in seconds
+        max_sleep_count = 30 #new devices will always be deep scanned, old speaker every 10 loops
+        deep_scan_count = 0
+
+        while 1:
+
+            #find all (new and old speaker)
+            new_speakers = self.get_speakers()
+
+            if not new_speakers:
+                #no speakers found, delete our list
+                self.speakers = {}
+                deep_scan_count = 0
+            else:
+                "find any newly added speaker"
+
+                new_uids = set(new_speakers) - set(self.speakers)
+
+                #do a deep scn for all new devices
+                for uid in new_uids:
+                    print('new id: {}'.format(uid))
+                    #add the new speaker to our main list
+                    speaker = self.get_speaker_info(new_speakers[uid])
+                    self.speakers[speaker.uid] = speaker
+
+                    self.subscribe_speaker_event(speaker, callback, self.host,
+                                                 self.port, sleep_scan * max_sleep_count * 2)
+
+                #find all offline speaker
+                offline_uids = set(self.speakers) - set(new_speakers)
+
+                for u in offline_uids:
+                    print("offline: {}".format(u))
+
+                if deep_scan_count == max_sleep_count:
+                    print("Performing deep scan for speakers ...")
+                    for uid, speaker in self.speakers.items():
+                        speaker = self.get_speaker_info(self.speakers[speaker.uid])
+
+                        self.subscribe_speaker_event(speaker, callback, self.host,
+                                                     self.port, sleep_scan * max_sleep_count * 2)
+
+                        self.speakers[speaker.uid] = speaker
+                    deep_scan_count = 0
+                else:
+                    deep_scan_count = deep_scan_count + 1
+                    print("deep scan count: {}".format(deep_scan_count))
+
+            sleep(sleep_scan)
 
     def get_soco(self, uid):
         for speaker in self.speakers:
@@ -72,7 +123,7 @@ class SonosService():
 
     def get_speakers(self):
         """ Get a list of ips for Sonos devices that can be controlled """
-        speakers = []
+        speakers = {}
         self._sock.sendto(really_utf8(definitions.PLAYER_SEARCH), (definitions.MCAST_GRP, definitions.MCAST_PORT))
 
         while True:
@@ -100,7 +151,7 @@ class SonosService():
                     speaker.uid = uid.lower()
                     speaker.ip = addr[0]
                     speaker.model = model
-                    speakers.append(speaker)
+                    speakers[speaker.uid] = speaker
             else:
                 break
         return speakers
@@ -127,6 +178,20 @@ class SonosService():
             speaker.mac_address = dom.findtext('.//MACAddress')
             return speaker
 
+    @staticmethod
+    def subscribe_speaker_event(speaker, callback, host, port, timeout):
+
+        print("speaker {} (ip {}): registering callback '{}' to: {}:{}".format(speaker.uid, speaker.ip, callback, host,
+                                                                               port))
+
+        headers = {'CALLBACK': '<http://{}:{}>'.format(host, port), 'NT': 'upnp:event',
+                   'TIMEOUT': 'Second-{}'.format(timeout)}
+        conn = HTTPConnection("{}:1400".format(speaker.ip))
+        conn.request("SUBSCRIBE", "{}".format(callback), "", headers)
+
+        response = conn.getresponse()
+        speaker.subscription = response.headers['SID']
+        conn.close()
 
 class Service(object):
     """ An class representing a UPnP service. The base class for all Sonos
@@ -258,7 +323,7 @@ class Service(object):
             args = []
         l = ["<{name}>{value}</{name}>".format(
             name=name, value=escape(str(value), {'"': "&quot;"}))
-            for name, value in args]
+             for name, value in args]
         xml = "".join(l)
         return xml
 

@@ -9,12 +9,10 @@ from xml_formatter import xml_format_status
 
 
 class Command():
-
     def __init__(self, service):
         self.sonos_service = service
         self.true_vars = ['true', '1', 't', 'y', 'yes']
         self.udp_broker = UdpBroker()
-
 
     def do_work(self, client_ip, path):
 
@@ -24,19 +22,22 @@ class Command():
             command = path.lower()
             command = re.sub("^/|/$", '', command).split('/')
 
+            if command[0].lower() == 'speaker':
+                " input is : speaker/uid/property/action/value ---> we're changing uid with property to get better handling with slices"
+
+                c1 = command[1]
+                c2 = command[2]
+
+                command[1] = c2
+                command[2] = c1
+
             if command:
-                try:
-                    do_work = getattr(self, command[0])
-                    return do_work(client_ip, command[1:])
-
-                except:
-                    pass
+                do_work = getattr(self, "{}_{}".format(command[0], command[1]))
+                return do_work(client_ip, command[2:])
         except:
-            pass
+            return False, response
 
-        return False, response
-
-    def subscribe(self, ip, arguments):
+    def client_subscribe(self, ip, arguments):
         try:
             port = int(arguments[0])
             self.udp_broker.subscribe_client(ip, port)
@@ -44,7 +45,7 @@ class Command():
         except:
             return False, "Couldn't subscribe client {}:{}".format(ip, port)
 
-    def unsubscribe(self, ip, arguments):
+    def client_unsubscribe(self, ip, arguments):
         try:
             port = int(arguments[0])
             self.udp_broker.unsubscribe_client(ip, port)
@@ -52,7 +53,36 @@ class Command():
         except:
             return False, "Couldn't unsubscribe client {}:{}".format(ip, port)
 
-    def mute(self, ip, arguments):
+    def speaker_mute(self, ip, arguments):
+        print(arguments)
+        uid = arguments[0].lower()
+        action = arguments[1]
+
+        soco = self.sonos_service.get_soco(uid)
+
+        if not soco:
+            raise Exception("Couldn't find speaker with uid '{}'!".format(uid))
+
+        if action == 'set':
+            try:
+                value = arguments[2]
+                if value in self.true_vars:
+                    soco.mute = True
+                else:
+                    soco.mute = False
+
+                self.udp_broker.udp_send(xml_format_status(True, uid, '', dict(mute=soco.mute)))
+                return True, "Successfully send mute command for speaker with uid '{}'.".format(uid)
+
+            except:
+                raise Exception("Couldn't set mute status for speaker with uid '{}'!".format(uid))
+
+        if action == 'get':
+            self.udp_broker.udp_send(xml_format_status(True, uid, '', dict(mute=soco.mute)))
+            return True, "Successfully send mute command for speaker with uid '{}'.".format(uid)
+
+
+    def speaker_led(self, ip, arguments):
         try:
             uid = arguments[0].lower()
             action = arguments[1]
@@ -66,19 +96,19 @@ class Command():
                 try:
                     value = arguments[2]
                     if value in self.true_vars:
-                        soco.mute = True
+                        soco.status_light = True
                     else:
-                        soco.mute = False
+                        soco.status_light = False
 
-                    self.udp_broker.udp_send(xml_format_status(True, uid, '', dict(mute=soco.mute)))
-                    return True, "Successfully send mute command for speaker with uid '{}'.".format(uid)
+                    self.udp_broker.udp_send(xml_format_status(True, uid, '', dict(led=soco.status_light)))
+                    return True, "Successfully send led command for speaker with uid '{}'.".format(uid)
 
                 except:
-                    raise Exception("Couldn't set mute status for speaker with uid '{}'!".format(uid))
+                    raise Exception("Couldn't set led status for speaker with uid '{}'!".format(uid))
 
             if action == 'get':
-                self.udp_broker.udp_send(xml_format_status(True, uid, '', dict(mute=soco.mute)))
-                return True, "Successfully send mute command for speaker with uid '{}'.".format(uid)
+                self.udp_broker.udp_send(xml_format_status(True, uid, '', dict(led=soco.status_light)))
+                return True, "Successfully send led command for speaker with uid '{}'.".format(uid)
 
         except Exception as err:
             return False, err

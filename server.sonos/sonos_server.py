@@ -32,43 +32,25 @@ class SonosHttpHandler(BaseHTTPRequestHandler):
 
 
     def do_NOTIFY(self):
+        self.send_response(200, "OK")
         content_len = int(self.headers['content-length'])
         post_body = self.rfile.read(content_len).decode('utf-8')
-        print((self.prettify(post_body)))
-        self.send_response(200, 'OK')
+        print(post_body)
 
-    def prettify(self, unicode_text):
-
-        reparsed = xml.dom.minidom.parseString(unicode_text)
-        reparsed = reparsed.toprettyxml(indent="  ", newl="\n")
-
-        dom = minidom.parseString(reparsed).documentElement
-
-        node = dom.getElementsByTagName('LastChange')
-
-        try:
-            node = node[0].childNodes[0].nodeValue
-
-            reparsed = xml.dom.minidom.parseString(node)
-            reparsed = reparsed.toprettyxml(indent="  ", newl="\n")
-        except:
-           pass
-
-        return reparsed
 
 class ThreadedHTTPServer(socketserver.ThreadingMixIn, HTTPServer):
     """Handle requests in a separate thread."""
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--database', help='Path to sqlite database', dest='database', default='sonos.db')
 parser.add_argument('--port', help='Http server port', type=int, dest='port', default=12900)
-parser.add_argument('--host', help='Http server host', dest='host', default='localhost')
+parser.add_argument('--host', help='Http server host', dest='host', default='0.0.0.0')
+parser.add_argument('--localip', help='IP of this server in the local network', dest='localip', required=True)
 
 args = parser.parse_args()
-database = args.database
 port = args.port
 host = args.host
-sonos_service = SonosService()
+localip = args.localip
+sonos_service = SonosService(localip, port)
 command = Command(sonos_service)
 
 
