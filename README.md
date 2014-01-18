@@ -74,7 +74,8 @@ Testing:
 	
 	http://<sonos_server_ip:port>/client/unsubscribe/<udp_port>
 	
-	After subscription, your client will receive all status updates of all sonos speakers in the network, whether 		they were triggerd by you or other clients (iPad, Android) 
+	After subscription, your client will receive all status updates of all sonos speakers in the network, 
+	whether	they were triggerd by you or other clients (iPad, Android) 
 	
 	Most of the commands need a speaker uid. Just type 
 	
@@ -108,6 +109,7 @@ First implemented commands (more coming soon):
 			http://<sonos_server:port>/speaker/<sonos_uid>/mute/get
 			
 		response (udp)
+			speaker/<sonos_uid>/mute/<value>
 	
 	led
 		set:
@@ -115,8 +117,11 @@ First implemented commands (more coming soon):
 			http://<sonos_server:port>/speaker/<sonos_uid>/led/set/<value:0|1>
 		get:
 			http://<sonos_server:port>/speaker/<sonos_uid>/led/get
+		
+		response (no response, no sonos event for led statuslight change?)
 			
 	list
+		get:
 	
 			http://<sonos_server:port>/client/list
 		
@@ -138,7 +143,6 @@ TO DO:
 	* full SoCo command implementation
 	* documentation
 	* setup.py
-	* smarthome.py plugin
 	* and many more
  
 
