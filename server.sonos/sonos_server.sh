@@ -14,7 +14,7 @@
 DIR=/usr/smarthome/plugins/sonos/server
 DAEMON=$DIR/sonos_server.py
 DAEMON_NAME=sonosserver
-DATABASE=$DIR/sonos.db
+$LOCALIP=''
 
 
 # Root generally not recommended but necessary if you are using the Raspberry Pi GPIO from Python.
@@ -29,7 +29,7 @@ do_start () {
 touch $PIDFILE
 chown $DAEMON_USER $PIDFILE
 log_daemon_msg "Starting system $DAEMON_NAME daemon"
-start-stop-daemon -v --start --pidfile $PIDFILE --make-pidfile --user $DAEMON_USER --background --startas $DAEMON -- -d=$DATABASE
+start-stop-daemon -v --start --pidfile $PIDFILE --make-pidfile --user $DAEMON_USER --background --startas $DAEMON -- --localip=$LOCALIP
 log_end_msg $?
 }
 do_stop () {

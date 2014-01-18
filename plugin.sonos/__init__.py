@@ -23,22 +23,18 @@ import http
 import logging
 import lib.connection
 import lib.tools
-import urllib
-from xml.dom import minidom
 
 #for remote debugging only
-import sys
-sys.path.append('/usr/smarthome/plugins/sonos/pycharm-debug-py3k.egg')
-import pydevd
+#import sys
+#sys.path.append('/usr/smarthome/plugins/sonos/pycharm-debug-py3k.egg')
+#import pydevd
 
 logger = logging.getLogger('Sonos')
 
-RESPDELIMITER = b'</result>'
 
 class UDPDispatcher(lib.connection.Server):
 
     def __init__(self, parser, ip, port):
-
         lib.connection.Server.__init__(self, ip, port, proto='UDP')
         self.dest = 'udp:' + ip + ':' + port
         self.parser = parser
@@ -60,14 +56,13 @@ class Sonos():
 
     def __init__(self, smarthome, host='0.0.0.0', port='9999', broker_url=None):
 
-        pydevd.settrace('192.168.178.44', port=12000, stdoutToServer=True, stderrToServer=True)
+#     pydevd.settrace('192.168.178.44', port=12000, stdoutToServer=True, stderrToServer=True)
 
         if broker_url:
             self._broker_url = broker_url
 
         self.send_cmd('client/subscribe/{}'.format(port))
         self._sh = smarthome
-        self.terminator = RESPDELIMITER
         self.command = SonosCommand()
         self._val = {}
 
@@ -75,20 +70,10 @@ class Sonos():
 
     def parse_input(self, source, dest, data):
         try:
-
-            dom = minidom.parseString(data).documentElement
-            uid = self.command.get_uid_from_response(dom)
-
-            value = self.command.get_bool_result(dom, 'mute')
-
-            if value:
-                self.update_items_with_data(["{} mute".format(uid), int(value)])
-                return
-
-            value = self.command.get_bool_result(dom, 'led')
-            if value:
-                self.update_items_with_data(["{} led".format(uid), int(value)])
-                return
+           values = data.split('\n')
+           for value in values:
+                logger.debug(value)
+                self.update_items_with_data(value)
 
         except Exception as err:
             logger.debug(err)
@@ -203,13 +188,16 @@ class Sonos():
 
 
     def update_items_with_data(self, data):
-        cmd = ' '.join(data_str for data_str in data[:-1])
-        if cmd in self._val:
-            for item in self._val[cmd]['items']:
+
+        #trim the last occurence of '/': everything right-hand-side is our value
+        cmd = data.rsplit('/', 1)
+
+        if cmd[0] in self._val:
+            for item in self._val[cmd[0]]['items']:
                 if isinstance(item(), str):
-                    data[-1] = int(data[-1]) + item()
-                logger.debug("data[-1]: {}".format(data[-1]))
-                item(data[-1], 'Sonos', '')
+                    cmd[1] = int(cmd[1]) + item()
+                logger.debug("data: {}".format(cmd[1]))
+                item(cmd[1], 'Sonos', '')
 
 class SonosCommand():
     @staticmethod

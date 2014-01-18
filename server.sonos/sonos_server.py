@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-
 import sys
 import socketserver
 import argparse
-import xml
-from xml.dom import minidom
 from sonos_commands import Command
 from sonos_service import SonosService
 
@@ -32,11 +29,16 @@ class SonosHttpHandler(BaseHTTPRequestHandler):
 
 
     def do_NOTIFY(self):
+
         self.send_response(200, "OK")
+
+        #get subscription id and find the connected speaker uid
+        sid = self.headers['SID']
         content_len = int(self.headers['content-length'])
         post_body = self.rfile.read(content_len).decode('utf-8')
-        print(post_body)
 
+        print(post_body)
+        sonos_service.response_parser(sid, post_body)
 
 class ThreadedHTTPServer(socketserver.ThreadingMixIn, HTTPServer):
     """Handle requests in a separate thread."""

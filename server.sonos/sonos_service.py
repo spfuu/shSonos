@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+from xml.dom import minidom
+from udp_broker import UdpBroker
 
 __author__ = 'pfischi'
 
@@ -28,6 +30,10 @@ log = logging.getLogger(__name__)
 Argument = namedtuple('Argument', 'name, vartype')
 Action = namedtuple('Action', 'name, in_args, out_args')
 
+#import sys
+#sys.path.append('/usr/smarthome/plugins/sonos/server/pycharm-debug-py3k.egg')
+#import pydevd
+
 
 class SonosSpeaker():
     def __init__(self):
@@ -52,6 +58,7 @@ class SonosSpeaker():
 class SonosService():
     def __init__(self, host, port):
 
+        self.udp_broker = UdpBroker()
         self.host = host
         self.port = port
         self.speakers = {}
@@ -63,13 +70,14 @@ class SonosService():
 
     def get_speakers_periodically(self):
 
-        callback = '/MediaRenderer/RenderingControl/Event'
-        sleep_scan = 20 #in seconds
-        max_sleep_count = 30 #new devices will always be deep scanned, old speaker every 10 loops
+        events = ['/MediaRenderer/RenderingControl/Event', '/DeviceProperties/Event']
+        sleep_scan = 10 #in seconds
+        max_sleep_count = 10 #new devices will always be deep scanned, old speaker every 10 loops
         deep_scan_count = 0
 
         while 1:
 
+            print('scan devices ...')
             #find all (new and old speaker)
             new_speakers = self.get_speakers()
 
@@ -79,47 +87,46 @@ class SonosService():
                 deep_scan_count = 0
             else:
                 "find any newly added speaker"
-
                 new_uids = set(new_speakers) - set(self.speakers)
 
-                #do a deep scn for all new devices
-                for uid in new_uids:
-                    print('new speaker: {} -- adding to list'.format(uid))
-                    #add the new speaker to our main list
-                    speaker = self.get_speaker_info(new_speakers[uid])
+            #do a deep scn for all new devices
+            for uid in new_uids:
+                print('new speaker: {} -- adding to list'.format(uid))
+                #add the new speaker to our main list
+                speaker = self.get_speaker_info(new_speakers[uid])
+                self.speakers[speaker.uid] = speaker
+
+                for event in events:
+                    self.subscribe_speaker_event(speaker, event, self.host, self.port, sleep_scan * max_sleep_count * 2)
+
+            #find all offline speaker
+            offline_uids = set(self.speakers) - set(new_speakers)
+
+            for u in offline_uids:
+                print("offline speaker: {} -- removing from list".format(u))
+
+            if deep_scan_count == max_sleep_count:
+                print("Performing deep scan for speakers ...")
+
+                for uid, speaker in self.speakers.items():
+                    deep_scan_count = 0
+                    speaker = self.get_speaker_info(self.speakers[speaker.uid])
+                    #re-subscribe
+
+                    for event in events:
+                        self.unsubscribe_speaker_event(speaker, event, speaker.subscription, self.host, self.port)
+                        self.subscribe_speaker_event(speaker, event, self.host, self.port,
+                                                     sleep_scan * max_sleep_count * 2)
                     self.speakers[speaker.uid] = speaker
 
-                    self.subscribe_speaker_event(speaker, callback, self.host,
-                                                 self.port, sleep_scan * max_sleep_count * 2)
-
-
-                #find all offline speaker
-                offline_uids = set(self.speakers) - set(new_speakers)
-
-                for u in offline_uids:
-                    print("offline speaker: {} -- removing from list".format(u))
-
-                if deep_scan_count == max_sleep_count:
-                    print("Performing deep scan for speakers ...")
-                    for uid, speaker in self.speakers.items():
-                        speaker = self.get_speaker_info(self.speakers[speaker.uid])
-
-                        #re-subscribe
-                        self.unsubscribe_speaker_event(speaker, callback, speaker.subscription, self.host, self.port)
-
-                        self.subscribe_speaker_event(speaker, callback, self.host,
-                                                     self.port, sleep_scan * max_sleep_count * 2)
-
-                        self.speakers[speaker.uid] = speaker
-                    deep_scan_count = 0
+            deep_scan_count += 1
 
             sleep(sleep_scan)
 
     def get_soco(self, uid):
-        for speaker in self.speakers:
-            if speaker.uid == uid:
-                return SoCo(speaker.ip)
-
+        speaker = self.speakers[uid.lower()]
+        if speaker:
+            return SoCo(speaker.ip)
         return None
 
     def get_speakers(self):
@@ -180,33 +187,123 @@ class SonosService():
             return speaker
 
     @staticmethod
-    def subscribe_speaker_event(speaker, callback, host, port, timeout):
+    def subscribe_speaker_event(speaker, event, host, port, timeout):
 
-        print("speaker {} (ip {}): registering callback '{}' to: {}:{}".format(speaker.uid, speaker.ip, callback, host,
-                                                                               port))
+        print("speaker {} (ip {}): registering event '{}' to: {}:{}".format(speaker.uid, speaker.ip, event, host,
+                                                                            port))
 
         headers = {'CALLBACK': '<http://{}:{}>'.format(host, port), 'NT': 'upnp:event',
                    'TIMEOUT': 'Second-{}'.format(timeout)}
         conn = HTTPConnection("{}:1400".format(speaker.ip))
-        conn.request("SUBSCRIBE", "{}".format(callback), "", headers)
+        conn.request("SUBSCRIBE", "{}".format(event), "", headers)
 
         response = conn.getresponse()
         speaker.subscription = response.headers['SID']
         conn.close()
 
     @staticmethod
-    def unsubscribe_speaker_event(speaker, callback, sid, host, port):
+    def unsubscribe_speaker_event(speaker, event, sid, host, port):
 
-        print("speaker {} (ip {}): un-registering callback '{}' from: {}:{}".format(speaker.uid, speaker.ip, callback,
-                                                                                    host, port))
+        print("speaker {} (ip {}): un-registering event '{}' from: {}:{}".format(speaker.uid, speaker.ip, event,
+                                                                                 host, port))
 
         headers = {'SID': '{}'.format(sid)}
         conn = HTTPConnection("{}:1400".format(speaker.ip))
-        conn.request("UNSUBSCRIBE", "{}".format(callback), "", headers)
+        conn.request("UNSUBSCRIBE", "{}".format(event), "", headers)
 
         response = conn.getresponse()
         print(response)
         conn.close()
+
+    def response_parser(self, sid, data):
+
+        """
+        <event xmlns="urn:schemas-upnp-org:metadata-1-0/rcs/">
+	        <instanceid val="0">
+		        <volume channel="master" val="27"/>
+		        <volume channel="lf" val="100"/>
+		        <volume channel="rf" val="100"/>
+		        <mute channel="master" val="0"/>
+		        <mute channel="lf" val="0"/>
+		        <mute channel="rf" val="0"/>
+		        <bass val="0"/><treble val="0"/>
+		        <loudness channel="master" val="1"/>
+		        <outputfixed val="0"/><headphoneconnected val="0"/>
+		        <speakersize val="5"/><subgain val="0"/>
+		        <subcrossover val="0"/>
+		        <subpolarity val="0"/>
+		        <subenabled val="1"/>
+		        <presetnamelist val="factorydefaults"/>
+	        </instanceid>
+        </event>"""
+
+        try:
+
+            response_list = []
+            sid_uid = None
+
+            for uid, speaker in self.speakers.items():
+                if speaker.subscription == sid:
+                    sid_uid = uid
+                    break
+
+            if not sid_uid:
+                print("No uid found for subscription '{}'".format(sid))
+                return None
+
+            print("speaker '{} found for subscription '{}".format(sid_uid, sid))
+
+            dom = minidom.parseString(data).documentElement
+
+            #           pydevd.settrace('192.168.178.44', port=12000, stdoutToServer=True, stderrToServer=True)
+
+            node = dom.getElementsByTagName(
+                'LastChange')  #response for subscription '/MediaRenderer/RenderingControl/Event'
+            if node:
+                #<LastChange>
+                #   ..... nodeValue = embedded xml node
+                #</LstChange>
+                response_list.extend(self.response_lastchange(sid_uid, node[0].firstChild.nodeValue))
+
+            #udp wants a string
+            data = ''
+            for entry in response_list:
+                data = "{}\n{}".format(data, entry)
+
+            self.udp_broker.udp_send(data)
+
+        except Exception as err:
+            print(err)
+            return None
+
+    def response_lastchange(self, uid, node_data):
+
+        dom = minidom.parseString(node_data).documentElement
+        #changed value in smarthome.py response syntax, change this to your preference
+        #e.g. speaker/<uid>/volume/<value>
+        changed_values = []
+        #       pydevd.settrace('192.168.178.44', port=12000, stdoutToServer=True, stderrToServer=True)
+
+        #getting master volume for speaker <volume channel="master" val="27"/><
+        volume_nodes = dom.getElementsByTagName('Volume')
+
+        for volume_node in volume_nodes:
+            if volume_node.hasAttribute("channel"):
+                if volume_node.getAttribute('channel').lower() == 'master':
+                    volume = volume_node.getAttribute('val')
+
+                    changed_values.append("speaker/{}/volume/{}".format(uid, volume))
+
+        volume_nodes = dom.getElementsByTagName('Mute')
+
+        for volume_node in volume_nodes:
+            if volume_node.hasAttribute("channel"):
+                if volume_node.getAttribute('channel').lower() == 'master':
+                    volume = volume_node.getAttribute('val')
+
+                    changed_values.append("speaker/{}/mute/{}".format(uid, volume))
+
+        return changed_values
 
 
 class Service(object):
