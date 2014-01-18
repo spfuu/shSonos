@@ -1,55 +1,62 @@
 #!/usr/bin/env python3
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
+import sys
 import socketserver
 import argparse
 from sonos_commands import Command
-from sonos_database import SonosDatabase
-from utils import really_unicode
+from sonos_service import SonosService
+
+#sys.path.append('/usr/smarthome/plugins/sonos/server/pycharm-debug-py3k.egg')
+#import pydevd
+
+class SonosHttpHandler(BaseHTTPRequestHandler):
+
+    def do_GET(self):
+        result, response = command.do_work(self.client_address[0], self.path)
+
+        status = 'Error'
+        if result:
+            self.send_response(200, 'OK')
+            status = 'Success'
+        else:
+            self.send_response(400, 'Bad request')
+
+        self.send_header("Content-type", "text/html")
+        self.end_headers()
+        self.wfile.write("<html><head><title>{}</title></head>".format(status).encode('utf-8'))
+        self.wfile.write("<body><p>{}</p></body>".format(response).encode('utf-8'))
 
 
-class SonosTCPHandler(socketserver.StreamRequestHandler):
+    def do_NOTIFY(self):
 
-    def handle(self):
+        self.send_response(200, "OK")
 
-        # self.request is the TCP socket connected to the client
-        """
-        The RequestHandler class for our server.
+        #get subscription id and find the connected speaker uid
+        sid = self.headers['SID']
+        content_len = int(self.headers['content-length'])
+        post_body = self.rfile.read(content_len).decode('utf-8')
 
-        It is instantiated once per connection to the server, and must
-        override the handle() method to implement communication to the
-        client.
-        """
+        print(post_body)
+        sonos_service.response_parser(sid, post_body)
 
-        self.database = SonosDatabase(database)
-
-        while True:
-            self.data = self.rfile.readline().strip().lower()
-            #self.data = self.request.recv(1024).strip().lower()
-
-            if not self.data:
-                break
-
-            print(self.data)
-
-            command = really_unicode(self.data)
-            s_command = Command(command, self.database)
-            self.request.sendall(s_command.do_work())
-
+class ThreadedHTTPServer(socketserver.ThreadingMixIn, HTTPServer):
+    """Handle requests in a separate thread."""
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-d', help='Path to sqlite database', required='True', dest='database')
+parser.add_argument('--port', help='Http server port', type=int, dest='port', default=12900)
+parser.add_argument('--host', help='Http server host', dest='host', default='0.0.0.0')
+parser.add_argument('--localip', help='IP of this server in the local network', dest='localip', required=True)
 
 args = parser.parse_args()
-database = args.database
+port = args.port
+host = args.host
+localip = args.localip
+sonos_service = SonosService(localip, port)
+command = Command(sonos_service)
 
 
 if __name__ == "__main__":
-    HOST, PORT = "localhost", 9999
-
-    # Create the server, binding to localhost on port 9999
-    server = socketserver.TCPServer((HOST, PORT), SonosTCPHandler)
-
-    # Activate the server; this will keep running until you
-    # interrupt the program with Ctrl-C
-    server.serve_forever()
-
+    http_server = ThreadedHTTPServer((host, port), SonosHttpHandler)
+    print('Starting http server, use <Ctrl-C> to stop')
+    http_server.serve_forever()
