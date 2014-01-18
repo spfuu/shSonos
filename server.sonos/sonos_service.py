@@ -84,7 +84,7 @@ class SonosService():
 
                 #do a deep scn for all new devices
                 for uid in new_uids:
-                    print('new id: {}'.format(uid))
+                    print('new speaker: {} -- adding to list'.format(uid))
                     #add the new speaker to our main list
                     speaker = self.get_speaker_info(new_speakers[uid])
                     self.speakers[speaker.uid] = speaker
@@ -92,25 +92,26 @@ class SonosService():
                     self.subscribe_speaker_event(speaker, callback, self.host,
                                                  self.port, sleep_scan * max_sleep_count * 2)
 
+
                 #find all offline speaker
                 offline_uids = set(self.speakers) - set(new_speakers)
 
                 for u in offline_uids:
-                    print("offline: {}".format(u))
+                    print("offline speaker: {} -- removing from list".format(u))
 
                 if deep_scan_count == max_sleep_count:
                     print("Performing deep scan for speakers ...")
                     for uid, speaker in self.speakers.items():
                         speaker = self.get_speaker_info(self.speakers[speaker.uid])
 
+                        #re-subscribe
+                        self.unsubscribe_speaker_event(speaker, callback, speaker.subscription, self.host, self.port)
+
                         self.subscribe_speaker_event(speaker, callback, self.host,
                                                      self.port, sleep_scan * max_sleep_count * 2)
 
                         self.speakers[speaker.uid] = speaker
                     deep_scan_count = 0
-                else:
-                    deep_scan_count = deep_scan_count + 1
-                    print("deep scan count: {}".format(deep_scan_count))
 
             sleep(sleep_scan)
 
@@ -192,6 +193,21 @@ class SonosService():
         response = conn.getresponse()
         speaker.subscription = response.headers['SID']
         conn.close()
+
+    @staticmethod
+    def unsubscribe_speaker_event(speaker, callback, sid, host, port):
+
+        print("speaker {} (ip {}): un-registering callback '{}' from: {}:{}".format(speaker.uid, speaker.ip, callback,
+                                                                                    host, port))
+
+        headers = {'SID': '{}'.format(sid)}
+        conn = HTTPConnection("{}:1400".format(speaker.ip))
+        conn.request("UNSUBSCRIBE", "{}".format(callback), "", headers)
+
+        response = conn.getresponse()
+        print(response)
+        conn.close()
+
 
 class Service(object):
     """ An class representing a UPnP service. The base class for all Sonos
