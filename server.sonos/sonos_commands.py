@@ -52,6 +52,25 @@ class Command():
         except:
             return False, "Couldn't unsubscribe client {}:{}".format(ip, port)
 
+    def client_list(self, ip, arguments):
+        try:
+            speakers = self.sonos_service.get_speakers()
+
+            data = ''
+
+            for uid, speaker in speakers.items():
+                data += "<p>uid   : {}</p>".format(speaker.uid)
+                data += "<p>ip    : {}</p>".format(speaker.ip)
+                data += "<p>model : {}</p>".format(speaker.model)
+                data += "<p>-------------------------------------------</p><p></p><p></p>"
+
+            if not data:
+                data = "no speakers online!"
+
+            return True, data
+        except:
+            return False, "Couldn't list speakers"
+
     def speaker_mute(self, ip, arguments):
         print(arguments)
         uid = arguments[0].lower()

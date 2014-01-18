@@ -143,7 +143,6 @@ TO DO:
 	* full SoCo command implementation
 	* documentation
 	* setup.py
-	* smarthome.py plugin
 	* and many more
  
 
