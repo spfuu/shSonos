@@ -30,6 +30,8 @@ Install:
 		* edit DIR variable to /your/path/location
 
 		* edit DAEMON_USER (optional)
+		
+		* edit LOCALIP and set it to the server's local network ip (e.g. 192.168.0.70)
 
 		* copy file to /etc/init.d if you want to autostart shShonos on system start
 
@@ -39,13 +41,13 @@ Install:
 		
 		* ./path/to/sonos_server start
 
-		* (optional) edit sonos_server.py to edit host and port (default: localhost:9999)
+		* (optional) edit sonos_server.py to edit host and port for the http server
+		  (default: 0.0.0.0:9999)
 
 
 	3. for raspberry pi user, please follow these instruction prior to point 2:
 
 		sudo apt-get install curl
-		sudo apt-get install libxml2-dev libxslt1-dev
 		curl http://python-distribute.org/distribute_setup.py | python3
 		curl https://raw.github.com/pypa/pip/master/contrib/get-pip.py | python3
 		pip install requests
@@ -66,11 +68,11 @@ Testing:
 	
 	To susbscribe your client for this messages, simply type in following command in your browser:
 	
-	http://<sonos_server_ip>/client/subscribe/<udp_port>    (udp port is your client port)
+	http://<sonos_server_ip:port>/client/subscribe/<udp_port>    (udp port is your client port)
 	
 	To unsubscribe:
 	
-	http://<sonos_server_ip>/client/unsubscribe/<udp_port>
+	http://<sonos_server_ip:port>/client/unsubscribe/<udp_port>
 	
 	After subscription, your client will receive all status updates of all sonos speakers in the network, whether 		they were triggerd by you or other clients (iPad, Android) 
 	
@@ -83,11 +85,11 @@ First implemented commands (more coming soon):
 	
 		set:
 		
-			http://<sonos_server>/speaker/<sonos_uid>/volume/set/<value:0-100>
+			http://<sonos_server:port>/speaker/<sonos_uid>/volume/set/<value:0-100>
 		
 		get:
 		
-			http://<sonos_server>/speaker/<sonos_uid>/volume/get
+			http://<sonos_server:port>/speaker/<sonos_uid>/volume/get
 
 		response (udp):
 		
@@ -95,19 +97,19 @@ First implemented commands (more coming soon):
 		
 	mute
 		set:
-			http://<sonos_server>/speaker/<sonos_uid>/mute/set/<value:0|1>
+			http://<sonos_server:port>/speaker/<sonos_uid>/mute/set/<value:0|1>
 			
 		get:
-			http://<sonos_server>/speaker/<sonos_uid>/mute/get
+			http://<sonos_server:port>/speaker/<sonos_uid>/mute/get
 			
 		response (udp)
 	
 	led
 		set:
 				
-			http://<sonos_server>/speaker/<sonos_uid>/led/set/<value:0|1>
+			http://<sonos_server:port>/speaker/<sonos_uid>/led/set/<value:0|1>
 		get:
-			http://<sonos_server>/speaker/<sonos_uid>/led/get
+			http://<sonos_server:port>/speaker/<sonos_uid>/led/get
 			
 			
 			
