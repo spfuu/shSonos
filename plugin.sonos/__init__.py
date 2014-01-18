@@ -24,8 +24,7 @@ import logging
 import lib.connection
 import lib.tools
 
-#for remote debugging only
-#import sys
+#for remote debugging only##import sys
 #sys.path.append('/usr/smarthome/plugins/sonos/pycharm-debug-py3k.egg')
 #import pydevd
 
@@ -45,7 +44,7 @@ class UDPDispatcher(lib.connection.Server):
             data, addr = self.socket.recvfrom(4096)
             ip = addr[0]
             addr = "{}:{}".format(addr[0], addr[1])
-            logger.debug("{}: incoming connection from {} to {}".format(self._name, addr, self.address))
+            logger.debug("{}: incoming connection from {}".format(self._name, addr))
         except Exception as e:
             logger.exception("{}: {}".format(self._name, e))
             return
@@ -56,7 +55,7 @@ class Sonos():
 
     def __init__(self, smarthome, host='0.0.0.0', port='9999', broker_url=None):
 
-#     pydevd.settrace('192.168.178.44', port=12000, stdoutToServer=True, stderrToServer=True)
+        #pydevd.settrace('192.168.178.44', port=12000, stdoutToServer=True, stderrToServer=True)
 
         if broker_url:
             self._broker_url = broker_url
