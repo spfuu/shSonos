@@ -48,7 +48,6 @@ class SonosSpeaker():
         self.mac_address = ''
         self.id = None
         self.status = 0
-        self.subscrition = ''
 
     def __dir__(self):
         return ['uid', 'ip', 'model', 'zone_name', 'zone_icon', 'serial_number', 'software_version',
@@ -238,24 +237,30 @@ class SonosService():
         </event>"""
 
         try:
-
             response_list = []
-            sid_uid = None
 
-            for uid, speaker in self.speakers.items():
-                if speaker.subscription == sid:
-                    sid_uid = uid
-                    break
+            #uuid:RINCON_000E58C3892E01400_sub0000000264 --> split uuid: and _sub.....
 
-            if not sid_uid:
-                print("No uid found for subscription '{}'".format(sid))
-                return None
+            uid = sid.lower().rsplit('_sub', 1)
 
-            print("speaker '{} found for subscription '{}".format(sid_uid, sid))
+            if not uid:
+                print("No speaker found for subscription '{}".format(sid))
+                return
+
+            uid = uid[0]
+            uid = uid.rsplit('uuid:', 1)
+
+            if not uid:
+                print("No speaker found for subscription '{}".format(sid))
+                return
+
+            uid = uid[1]
+
+            print("speaker '{} found for subscription '{}".format(uid, sid))
 
             dom = minidom.parseString(data).documentElement
 
-            #           pydevd.settrace('192.168.178.44', port=12000, stdoutToServer=True, stderrToServer=True)
+            #pydevd.settrace('192.168.178.44', port=12000, stdoutToServer=True, stderrToServer=True)
 
             node = dom.getElementsByTagName(
                 'LastChange')  #response for subscription '/MediaRenderer/RenderingControl/Event'
@@ -263,7 +268,7 @@ class SonosService():
                 #<LastChange>
                 #   ..... nodeValue = embedded xml node
                 #</LstChange>
-                response_list.extend(self.response_lastchange(sid_uid, node[0].firstChild.nodeValue))
+                response_list.extend(self.response_lastchange(uid, node[0].firstChild.nodeValue))
 
             #udp wants a string
             data = ''
