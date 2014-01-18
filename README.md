@@ -12,7 +12,7 @@ Requirements:
 
 server:	python3 (with libraries requests)
 
-client-side: nothing special, just send your commands over tcp or use the plugin to control the speakers within
+client-side: nothing special, just send your commands over http or use the plugin to control the speakers within
 smarthome.py
 
 
