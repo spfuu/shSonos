@@ -29,7 +29,7 @@ do_start () {
 touch $PIDFILE
 chown $DAEMON_USER $PIDFILE
 log_daemon_msg "Starting system $DAEMON_NAME daemon"
-start-stop-daemon -v --start --pidfile $PIDFILE --make-pidfile --user $DAEMON_USER --background --startas $DAEMON -- --localip=$LOCALIP
+start-stop-daemon -v --start --pidfile $PIDFILE --make-pidfile --user $DAEMON_USER --background --startas $DAEMON -- --localip $LOCALIP
 log_end_msg $?
 }
 do_stop () {
