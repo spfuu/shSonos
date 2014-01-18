@@ -129,6 +129,35 @@ class Command():
         except Exception as err:
             return False, err
 
+    def speaker_volume(self, ip, arguments):
+        try:
+            uid = arguments[0].lower()
+            action = arguments[1]
+
+            soco = self.sonos_service.get_soco(uid)
+
+            if not soco:
+                raise Exception("Couldn't find speaker with uid '{}'!".format(uid))
+
+            if action == 'set':
+                try:
+                    value = arguments[2]
+                    check_volume_range(value)
+                    soco.volume = value
+
+                except:
+                    raise Exception("Couldn't set volume for speaker with uid '{}'!".format(uid))
+
+            try:
+                self.sonos_service.udp_broker.udp_send("speaker/{}/volume/{}".format(uid, int(soco.volume)))
+                return True, "Successfully send volume command for speaker with uid '{}'.".format(uid)
+            except Exception:
+                raise Exception("Couldn't get volume for speaker with uid '{}'!".format(uid))
+
+        except Exception as err:
+            return False, err
+
+
 def check_volume_range(volume):
     value = int(volume)
 

@@ -14,7 +14,7 @@
 DIR=/usr/smarthome/plugins/sonos/server
 DAEMON=$DIR/sonos_server.py
 DAEMON_NAME=sonosserver
-LOCALIP=
+LOCALIP=192.168.178.31
 
 
 # Root generally not recommended but necessary if you are using the Raspberry Pi GPIO from Python.
