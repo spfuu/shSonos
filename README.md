@@ -76,7 +76,12 @@ Testing:
 	
 	After subscription, your client will receive all status updates of all sonos speakers in the network, whether 		they were triggerd by you or other clients (iPad, Android) 
 	
+	Most of the commands need a speaker uid. Just type 
 	
+		http://<sonos_server_ip:port>/client/list
+		
+	to get a short overview of your sonos speakers in the network and to retrieve the uid.
+		
 
 First implemented commands (more coming soon):
 -----------------------------------------------
@@ -111,7 +116,21 @@ First implemented commands (more coming soon):
 		get:
 			http://<sonos_server:port>/speaker/<sonos_uid>/led/get
 			
+	list
+	
+			http://<sonos_server:port>/client/list
+		
+		response (http)
 			
+			<html code ....
+				uid : rincon_000e58c3892e01400
+
+				ip : 192.168.178.40
+
+				model : ZPS1
+				.
+				.
+			... htmlcode>			
 			
 TO DO:
 --------------------------------
