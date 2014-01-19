@@ -217,8 +217,6 @@ class SonosService():
 
     def response_parser(self, sid, data):
 
-        #events = ['/MediaRenderer/RenderingControl/Event', '/MediaRenderer/AVTransport/Event']
-
         parse_methods = {'urn:schemas-upnp-org:metadata-1-0/avt/': self.parse_mediarenderer_avtransport_event,
                          'urn:schemas-upnp-org:metadata-1-0/rcs/': self.parse_mediarenderer_renderingontrol_event}
 
@@ -266,14 +264,11 @@ class SonosService():
                 if dom.hasAttribute("xmlns"):
                     xmlns_schema = dom.getAttribute('xmlns').lower()
 
-                    print(xmlns_schema)
                     if xmlns_schema in parse_methods:
                         response_list.extend(parse_methods[xmlns_schema](uid, dom))
 
                 if not dom:
                     return None
-
-                #response_list.extend(self.response_lastchange(uid, node[0].firstChild.nodeValue))
 
             #udp wants a string
             data = ''
@@ -287,17 +282,31 @@ class SonosService():
             print(err)
             return None
 
-    @staticmethod
-    def parse_mediarenderer_avtransport_event(uid, dom):
+
+    def parse_mediarenderer_avtransport_event(self, uid, dom):
 
         #changed value in smarthome.py response syntax, change this to your preference
         #e.g. speaker/<uid>/volume/<value>
 
         changed_values = []
-        volume_nodes = dom.getElementsByTagName('TransportState')
-        if volume_nodes:
-            transport_state = volume_nodes[0].getAttribute('val')
-            print(transport_state) #PLAYING, PAUSED_PLAYBACK, STOPPED
+
+        current_track_node = dom.getElementsByTagName('CurrentTrackMetaData')
+        if current_track_node:
+            if current_track_node[0].hasAttribute('val'):
+                didl_node = current_track_node[0].getAttribute('val')
+                didl_node = prettify(really_unicode(didl_node))
+
+                print(didl_node)
+
+                dom = minidom.parseString(didl_node).documentElement
+
+                if dom:
+                    changed_values.extend(self.parse_track_metadata(uid, dom))
+
+
+        transportstate_node = dom.getElementsByTagName('TransportState')
+        if transportstate_node:
+            transport_state = transportstate_node[0].getAttribute('val')
 
             if transport_state:
                 if transport_state.lower() == "stopped":
@@ -313,14 +322,21 @@ class SonosService():
                     changed_values.append("speaker/{}/play/1".format(uid))
                     changed_values.append("speaker/{}/pause/0".format(uid))
 
-        return changed_values
 
+        return changed_values
 
     @staticmethod
     def parse_mediarenderer_renderingontrol_event(uid, dom):
 
         #changed value in smarthome.py response syntax, change this to your preference
         #e.g. speaker/<uid>/volume/<value>
+        """
+
+
+        @param uid:
+        @param dom:
+        @rtype : list
+        """
         changed_values = []
 
         #getting master volume for speaker <volume channel="master" val="27"/><
@@ -341,6 +357,38 @@ class SonosService():
                     volume = volume_node.getAttribute('val')
 
                     changed_values.append("speaker/{}/mute/{}".format(uid, volume))
+
+        return changed_values
+
+    @staticmethod
+    def parse_track_metadata(uid, dom):
+        changed_values = []
+
+        ignore_title_string = ('ZPSTR_BUFFERING', 'ZPSTR_BUFFERING', 'ZPSTR_CONNECTING', 'x-sonosapi-stream')
+        #EnqueuedTransportURIMetaData
+
+        try:
+            #title listening radio
+            stream_content_node = dom.getElementsByTagName('r:streamContent')
+            if stream_content_node:
+                if stream_content_node[0].firstChild:
+                    content = stream_content_node[0].firstChild.nodeValue
+                    if content:
+                        if not content.startswith(ignore_title_string):
+                            changed_values.append("speaker/{}/track/{}".format(uid, content))
+
+            #mp3, etc
+            title_content_node = dom.getElementsByTagName('dc:title')
+            if title_content_node:
+                if title_content_node[0].firstChild:
+                    title = title_content_node[0].firstChild.nodeValue
+                    if title:
+                        #ignoring following string, no relevant info
+                        if not title.startswith(ignore_title_string):
+                            changed_values.append("speaker/{}/track/{}".format(uid, title))
+
+        except Exception as err:
+            print(err)
 
         return changed_values
 
