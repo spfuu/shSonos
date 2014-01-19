@@ -69,7 +69,7 @@ class SonosService():
 
     def get_speakers_periodically(self):
 
-        events = ['/MediaRenderer/RenderingControl/Event', '/DeviceProperties/Event']
+        events = ['/MediaRenderer/RenderingControl/Event', '/MediaRenderer/AVTransport/Event']
         sleep_scan = 10 #in seconds
         max_sleep_count = 10 #new devices will always be deep scanned, old speaker every 10 loops
         deep_scan_count = 0
@@ -163,7 +163,8 @@ class SonosService():
                 break
         return speakers
 
-    def get_speaker_info(self, speaker):
+    @staticmethod
+    def get_speaker_info(speaker):
 
         """ Get information about the Sonos speaker.
         Returns:
@@ -216,25 +217,10 @@ class SonosService():
 
     def response_parser(self, sid, data):
 
-        """
-        <event xmlns="urn:schemas-upnp-org:metadata-1-0/rcs/">
-	        <instanceid val="0">
-		        <volume channel="master" val="27"/>
-		        <volume channel="lf" val="100"/>
-		        <volume channel="rf" val="100"/>
-		        <mute channel="master" val="0"/>
-		        <mute channel="lf" val="0"/>
-		        <mute channel="rf" val="0"/>
-		        <bass val="0"/><treble val="0"/>
-		        <loudness channel="master" val="1"/>
-		        <outputfixed val="0"/><headphoneconnected val="0"/>
-		        <speakersize val="5"/><subgain val="0"/>
-		        <subcrossover val="0"/>
-		        <subpolarity val="0"/>
-		        <subenabled val="1"/>
-		        <presetnamelist val="factorydefaults"/>
-	        </instanceid>
-        </event>"""
+        #events = ['/MediaRenderer/RenderingControl/Event', '/MediaRenderer/AVTransport/Event']
+
+        parse_methods = {'urn:schemas-upnp-org:metadata-1-0/avt/': self.parse_mediarenderer_avtransport_event,
+                         'urn:schemas-upnp-org:metadata-1-0/rcs/': self.parse_mediarenderer_renderingontrol_event}
 
         try:
             response_list = []
@@ -262,32 +248,80 @@ class SonosService():
 
             #pydevd.settrace('192.168.178.44', port=12000, stdoutToServer=True, stderrToServer=True)
 
-            node = dom.getElementsByTagName(
-                'LastChange')  #response for subscription '/MediaRenderer/RenderingControl/Event'
+            node = dom.getElementsByTagName('LastChange')
             if node:
                 #<LastChange>
-                #   ..... nodeValue = embedded xml node
+                #   <Event>
+                #   .....
+                #   </Event>
                 #</LstChange>
-                response_list.extend(self.response_lastchange(uid, node[0].firstChild.nodeValue))
+
+                #fetching Event node
+                event_string = really_unicode(node[0].firstChild.nodeValue)
+                print(prettify(event_string))
+
+                dom = minidom.parseString(event_string).documentElement
+
+                #define, which method is invoked based on attribute xlmns
+                if dom.hasAttribute("xmlns"):
+                    xmlns_schema = dom.getAttribute('xmlns').lower()
+
+                    print(xmlns_schema)
+                    if xmlns_schema in parse_methods:
+                        response_list.extend(parse_methods[xmlns_schema](uid, dom))
+
+                if not dom:
+                    return None
+
+                #response_list.extend(self.response_lastchange(uid, node[0].firstChild.nodeValue))
 
             #udp wants a string
             data = ''
             for entry in response_list:
                 data = "{}\n{}".format(data, entry)
 
+            print(data)
             self.udp_broker.udp_send(data)
 
         except Exception as err:
             print(err)
             return None
 
-    def response_lastchange(self, uid, node_data):
+    @staticmethod
+    def parse_mediarenderer_avtransport_event(uid, dom):
 
-        dom = minidom.parseString(node_data).documentElement
+        #changed value in smarthome.py response syntax, change this to your preference
+        #e.g. speaker/<uid>/volume/<value>
+
+        changed_values = []
+        volume_nodes = dom.getElementsByTagName('TransportState')
+        if volume_nodes:
+            transport_state = volume_nodes[0].getAttribute('val')
+            print(transport_state) #PLAYING, PAUSED_PLAYBACK, STOPPED
+
+            if transport_state:
+                if transport_state.lower() == "stopped":
+                    changed_values.append("speaker/{}/stop/1".format(uid))
+                    changed_values.append("speaker/{}/play/0".format(uid))
+                    changed_values.append("speaker/{}/pause/0".format(uid))
+                if transport_state.lower() == "paused_playback":
+                    changed_values.append("speaker/{}/stop/0".format(uid))
+                    changed_values.append("speaker/{}/play/0".format(uid))
+                    changed_values.append("speaker/{}/pause/1".format(uid))
+                if transport_state.lower() == "playing":
+                    changed_values.append("speaker/{}/stop/0".format(uid))
+                    changed_values.append("speaker/{}/play/1".format(uid))
+                    changed_values.append("speaker/{}/pause/0".format(uid))
+
+        return changed_values
+
+
+    @staticmethod
+    def parse_mediarenderer_renderingontrol_event(uid, dom):
+
         #changed value in smarthome.py response syntax, change this to your preference
         #e.g. speaker/<uid>/volume/<value>
         changed_values = []
-        #       pydevd.settrace('192.168.178.44', port=12000, stdoutToServer=True, stderrToServer=True)
 
         #getting master volume for speaker <volume channel="master" val="27"/><
         volume_nodes = dom.getElementsByTagName('Volume')
