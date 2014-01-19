@@ -14,68 +14,6 @@ except ImportError:
     StringType = bytes
     UnicodeType = str
 
-
-class ArgumentParser(argparse.ArgumentParser):
-    def _get_action_from_name(self, name):
-        """Given a name, get the Action instance registered with this parser.
-        If only it were made available in the ArgumentError object. It is
-        passed as it's first arg...
-        """
-        container = self._actions
-        if name is None:
-            return None
-        for action in container:
-            if '/'.join(action.option_strings) == name:
-                return action
-            elif action.metavar == name:
-                return action
-            elif action.dest == name:
-                return action
-
-    def error(self, message):
-        usage = self.format_usage()
-        raise Exception('%s%s' % (usage, message))
-
-    def exit(self, status=0, message=None):
-        sys.exit(self.format_help())
-
-    def get_argparse_help_recursively(self, actions, help_dictionary):
-
-        subparsers_actions = [action for action in actions if isinstance(action, argparse._SubParsersAction)]
-
-        for subparsers_action in subparsers_actions:
-        # get all subparsers and print help
-            for choice, subparser in subparsers_action.choices.items():
-                help_dictionary[choice] = subparser.format_help()
-                if subparser._actions:
-                    self.get_argparse_help_recursively(subparser._actions, help_dictionary)
-
-    def get_help_from_subparser_option(self, args):
-
-        help_dictionary = {}
-        self.get_argparse_help_recursively(self._actions, help_dictionary)
-
-        if args:
-
-            error_suboption = ''
-
-            # find key with None-Value, this is the option, where the argparse error has occurred
-            for k, v in vars(args).items():
-                if not v:
-                    error_suboption = k
-                    break
-
-            if error_suboption and help_dictionary[error_suboption]:
-                return help_dictionary[error_suboption]
-
-            #if not found, print the entire help
-
-            help = ''
-            for k, v in help_dictionary.items():
-                help += v
-            return help
-
-
 def really_unicode(in_string):
     """
     Ensures s is returned as a unicode string and not just a string through
