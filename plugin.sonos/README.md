@@ -52,6 +52,25 @@ The plugin is designed to control the sonos speakers in connection with the sono
           type = num
           sonos_recv = speaker/<sonos_uid>/volume
           sonos_send = speaker/<sonos_uid>/volume/set/{}
+
+      [[stop]]
+        type = bool
+        sonos_recv = speaker/<sonos_uid>/stop
+        sonos_send = speaker/<sonos_uid>/stop/set/{}
+
+      [[play]]
+        type = bool
+        sonos_recv = speaker/<sonos_uid>/play
+        sonos_send = speaker/<sonos_uid>/play/set/{}
+
+      [[pause]]
+        type = bool
+        sonos_recv = speaker/<sonos_uid>/pause
+        sonos_send = speaker/<sonos_uid>/pause/set/{}
+
+      [[track]]
+        type = str
+        sonos_recv = speaker/<sonos_uid>/track
     
   
   To get your sonos speaker id, type this command in your browser (while sonos server running):
