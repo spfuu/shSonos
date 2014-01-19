@@ -73,18 +73,69 @@ class Command():
     def speaker_stop(self, ip, arguments):
         try:
             uid = arguments[0].lower()
+            action = arguments[1]
+            soco = self.sonos_service.get_soco(uid)
+
+            if not soco:
+                raise Exception("Couldn't find speaker with uid '{}'!".format(uid))
+
+            if action == 'set':
+                try:
+                    value = arguments[2]
+                    if value in self.true_vars:
+                        soco.stop()
+                    else:
+                        soco.play()
+
+                except:
+                    raise Exception("Couldn't set stop status for speaker with uid '{}'!".format(uid))
+
+        except Exception as err:
+            return False, err
+
+    def speaker_play(self, ip, arguments):
+        try:
+            uid = arguments[0].lower()
+            action = arguments[1]
+            soco = self.sonos_service.get_soco(uid)
+
+            if not soco:
+                raise Exception("Couldn't find speaker with uid '{}'!".format(uid))
+
+            if action == 'set':
+                try:
+                    value = arguments[2]
+                    if value in self.true_vars:
+                        soco.play()
+                    else:
+                        soco.stop()
+
+                except:
+                    raise Exception("Couldn't set play status for speaker with uid '{}'!".format(uid))
+
+        except Exception as err:
+            return False, err
+
+    def speaker_pause(self, ip, arguments):
+        try:
+            uid = arguments[0].lower()
+            action = arguments[1]
 
             soco = self.sonos_service.get_soco(uid)
 
             if not soco:
                 raise Exception("Couldn't find speaker with uid '{}'!".format(uid))
 
-            try:
-                soco.stop()
-                return True, "Successfully stop speaker with uid '{}'.".format(uid)
+            if action == 'set':
+                try:
+                    value = arguments[2]
+                    if value in self.true_vars:
+                        soco.pause()
+                    else:
+                        soco.play()
 
-            except:
-                raise Exception("Couldn't stop speaker with uid '{}'!".format(uid))
+                except:
+                    raise Exception("Couldn't set pause status for speaker with uid '{}'!".format(uid))
 
         except Exception as err:
             return False, err
