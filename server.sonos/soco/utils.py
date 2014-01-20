@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-import argparse
-import sys
+
 
 """ Provides general utility functions to be used across modules """
 
@@ -13,6 +11,7 @@ try:
 except ImportError:
     StringType = bytes
     UnicodeType = str
+
 
 def really_unicode(in_string):
     """
@@ -44,12 +43,16 @@ def really_utf8(in_string):
     return really_unicode(in_string).encode('utf-8')
 
 
+FIRST_CAP_RE = re.compile('(.)([A-Z][a-z]+)')
+ALL_CAP_RE = re.compile('([a-z0-9])([A-Z])')
+
+
 def camel_to_underscore(string):
     """ Convert camelcase to lowercase and underscore
     Recipy from http://stackoverflow.com/a/1176023
     """
-    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', string)
-    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+    string = FIRST_CAP_RE.sub(r"\1_\2", string)
+    return ALL_CAP_RE.sub(r"\1_\2", string).lower()
 
 
 def prettify(unicode_text):
@@ -58,7 +61,6 @@ def prettify(unicode_text):
 
     """
     import xml.dom.minidom
-
     reparsed = xml.dom.minidom.parseString(unicode_text.encode('utf-8'))
     return reparsed.toprettyxml(indent="  ", newl="\n")
 

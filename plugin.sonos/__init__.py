@@ -193,7 +193,7 @@ class Sonos():
 
         if cmd[0] in self._val:
             for item in self._val[cmd[0]]['items']:
-                if isinstance(item(), str):
+                if isinstance(item(), str) and not isinstance(item(), str):
                     cmd[1] = int(cmd[1]) + item()
                 logger.debug("data: {}".format(cmd[1]))
                 item(cmd[1], 'Sonos', '')

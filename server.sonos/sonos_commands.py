@@ -7,7 +7,6 @@ import sys
 
 
 class Command():
-
     def __init__(self, service):
         self.sonos_service = service
         self.true_vars = ['true', '1', 't', 'y', 'yes']
@@ -71,32 +70,105 @@ class Command():
         except:
             return False, "Couldn't list speakers"
 
-    def speaker_mute(self, ip, arguments):
-        print(arguments)
-        uid = arguments[0].lower()
-        action = arguments[1]
-
-        soco = self.sonos_service.get_soco(uid)
-
-        if not soco:
-            raise Exception("Couldn't find speaker with uid '{}'!".format(uid))
-
-        if action == 'set':
-            try:
-                value = arguments[2]
-                if value in self.true_vars:
-                    soco.mute = True
-                else:
-                    soco.mute = False
-
-            except:
-                raise Exception("Couldn't set mute status for speaker with uid '{}'!".format(uid))
-
+    def speaker_stop(self, ip, arguments):
         try:
-            self.sonos_service.udp_broker.udp_send("speaker/{}/mute/{}".format(uid, int(soco.mute)))
-            return True, "Successfully send mute command for speaker with uid '{}'.".format(uid)
-        except:
-            raise Exception("Couldn't get mute status for speaker with uid '{}'!".format(uid))
+            uid = arguments[0].lower()
+            action = arguments[1]
+            soco = self.sonos_service.get_soco(uid)
+
+            if not soco:
+                raise Exception("Couldn't find speaker with uid '{}'!".format(uid))
+
+            if action == 'set':
+                try:
+                    value = arguments[2]
+                    if value in self.true_vars:
+                        soco.stop()
+                    else:
+                        soco.play()
+
+                except:
+                    raise Exception("Couldn't set stop status for speaker with uid '{}'!".format(uid))
+
+        except Exception as err:
+            return False, err
+
+    def speaker_play(self, ip, arguments):
+        try:
+            uid = arguments[0].lower()
+            action = arguments[1]
+            soco = self.sonos_service.get_soco(uid)
+
+            if not soco:
+                raise Exception("Couldn't find speaker with uid '{}'!".format(uid))
+
+            if action == 'set':
+                try:
+                    value = arguments[2]
+                    if value in self.true_vars:
+                        soco.play()
+                    else:
+                        soco.stop()
+
+                except:
+                    raise Exception("Couldn't set play status for speaker with uid '{}'!".format(uid))
+
+        except Exception as err:
+            return False, err
+
+    def speaker_pause(self, ip, arguments):
+        try:
+            uid = arguments[0].lower()
+            action = arguments[1]
+
+            soco = self.sonos_service.get_soco(uid)
+
+            if not soco:
+                raise Exception("Couldn't find speaker with uid '{}'!".format(uid))
+
+            if action == 'set':
+                try:
+                    value = arguments[2]
+                    if value in self.true_vars:
+                        soco.pause()
+                    else:
+                        soco.play()
+
+                except:
+                    raise Exception("Couldn't set pause status for speaker with uid '{}'!".format(uid))
+
+        except Exception as err:
+            return False, err
+
+    def speaker_mute(self, ip, arguments):
+        try:
+            uid = arguments[0].lower()
+            action = arguments[1]
+
+            soco = self.sonos_service.get_soco(uid)
+
+            if not soco:
+                raise Exception("Couldn't find speaker with uid '{}'!".format(uid))
+
+            if action == 'set':
+                try:
+                    value = arguments[2]
+                    if value in self.true_vars:
+                        soco.mute = True
+                    else:
+                        soco.mute = False
+
+                except:
+                    raise Exception("Couldn't set mute status for speaker with uid '{}'!".format(uid))
+
+            try:
+                self.sonos_service.udp_broker.udp_send("speaker/{}/mute/{}".format(uid, int(soco.mute)))
+                return True, "Successfully send mute command for speaker with uid '{}'.".format(uid)
+            except:
+                raise Exception("Couldn't get mute status for speaker with uid '{}'!".format(uid))
+
+        except Exception as err:
+            return False, err
 
 
     def speaker_led(self, ip, arguments):

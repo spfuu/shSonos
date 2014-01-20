@@ -4,22 +4,70 @@
 the main entry to the SoCo functionality
 """
 
-from __future__ import unicode_literals
+
 
 try:
     import xml.etree.cElementTree as XML
 except ImportError:
     import xml.etree.ElementTree as XML
 
+import select
+import socket
 import logging
 import traceback
 import re
+import xml.sax.saxutils
 import requests
-import sonos_service
 
-from utils import really_utf8, camel_to_underscore
+from .services import DeviceProperties, ContentDirectory
+from .services import RenderingControl, AVTransport
+from .exceptions import CannotCreateDIDLMetadata
+from .data_structures import get_ml_item, QueueableItem
+from .utils import really_unicode, really_utf8, camel_to_underscore
 
 LOGGER = logging.getLogger(__name__)
+
+
+class SonosDiscovery(object):  # pylint: disable=R0903
+    """A simple class for discovering Sonos speakers.
+
+    Public functions:
+    get_speaker_ips -- Get a list of IPs of all zoneplayers.
+
+    """
+
+    def __init__(self):
+        self._sock = socket.socket(
+            socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        self._sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
+
+    def get_speaker_ips(self):
+        """ Get a list of ips for Sonos devices that can be controlled """
+        speakers = []
+        self._sock.sendto(really_utf8(PLAYER_SEARCH), (MCAST_GRP, MCAST_PORT))
+
+        while True:
+            response, _, _ = select.select([self._sock], [], [], 1)
+            if response:
+                data, addr = self._sock.recvfrom(2048)
+                # Look for the model in parentheses in a line like this
+                # SERVER: Linux UPnP/1.0 Sonos/22.0-65180 (ZPS5)
+                search = re.search(br'SERVER.*\((.*)\)', data)
+                try:
+                    model = really_unicode(search.group(1))
+                except AttributeError:
+                    model = None
+
+                # BR100 = Sonos Bridge,        ZPS3 = Zone Player 3
+                # ZP120 = Zone Player Amp 120, ZPS5 = Zone Player 5
+                # ZP90  = Sonos Connect,       ZPS1 = Zone Player 1
+                # If it's the bridge, then it's not a speaker and shouldn't
+                # be returned
+                if (model and model != "BR100"):
+                    speakers.append(addr[0])
+            else:
+                break
+        return speakers
 
 
 class SoCo(object):  # pylint: disable=R0904
@@ -36,6 +84,7 @@ class SoCo(object):  # pylint: disable=R0904
         next -- Go to the next track.
         previous -- Go back to the previous track.
         switch_to_line_in -- Switch the speaker's input to line-in.
+        switch_to_tv -- Switch the speaker's input to TV.
         get_current_track_info -- Get information about the currently playing
                                   track.
         get_speaker_info -- Get information about the Sonos speaker.
@@ -90,10 +139,10 @@ class SoCo(object):  # pylint: disable=R0904
         #: The speaker's ip address
         self.speaker_ip = speaker_ip
         self.speaker_info = {}  # Stores information about the current speaker
-        self.deviceProperties = sonos_service.DeviceProperties(self)
-        self.contentDirectory = sonos_service.ContentDirectory(self)
-        self.renderingControl = sonos_service.RenderingControl(self)
-        self.avTransport = sonos_service.AVTransport(self)
+        self.deviceProperties = DeviceProperties(self)
+        self.contentDirectory = ContentDirectory(self)
+        self.renderingControl = RenderingControl(self)
+        self.avTransport = AVTransport(self)
 
     @property
     def player_name(self):
@@ -107,7 +156,7 @@ class SoCo(object):  # pylint: disable=R0904
             ('DesiredZoneName', playername),
             ('DesiredIcon', ''),
             ('DesiredConfiguration', '')
-        ])
+            ])
 
     @property
     def play_mode(self):
@@ -121,7 +170,7 @@ class SoCo(object):  # pylint: disable=R0904
         """
         result = self.avTransport.GetTransportSettings([
             ('InstanceID', 0),
-        ])
+            ])
         return result['PlayMode']
 
     @play_mode.setter
@@ -134,7 +183,7 @@ class SoCo(object):  # pylint: disable=R0904
         self.avTransport.SetPlayMode([
             ('InstanceID', 0),
             ('NewPlayMode', playmode)
-        ])
+            ])
 
     def play_from_queue(self, queue_index):
         """ Play an item from the queue. The track number is required as an
@@ -157,14 +206,14 @@ class SoCo(object):  # pylint: disable=R0904
             ('InstanceID', 0),
             ('CurrentURI', uri),
             ('CurrentURIMetaData', '')
-        ])
+            ])
 
         # second, set the track number with a seek command
         self.avTransport.Seek([
             ('InstanceID', 0),
             ('Unit', 'TRACK_NR'),
             ('Target', queue_index + 1)
-        ])
+            ])
 
         # finally, just play what's set
         return self.play()
@@ -181,7 +230,7 @@ class SoCo(object):  # pylint: disable=R0904
         self.avTransport.Play([
             ('InstanceID', 0),
             ('Speed', 1)
-        ])
+            ])
 
     def play_uri(self, uri='', meta=''):
         """ Play a given stream. Pauses the queue.
@@ -201,8 +250,8 @@ class SoCo(object):  # pylint: disable=R0904
             ('InstanceID', 0),
             ('CurrentURI', uri),
             ('CurrentURIMetaData', meta)
-        ])
-        # The track is enqueued, now play it.
+            ])
+            # The track is enqueued, now play it.
         return self.play()
 
     def pause(self):
@@ -217,7 +266,7 @@ class SoCo(object):  # pylint: disable=R0904
         self.avTransport.Pause([
             ('InstanceID', 0),
             ('Speed', 1)
-        ])
+            ])
 
     def stop(self):
         """ Stop the currently playing track.
@@ -231,7 +280,7 @@ class SoCo(object):  # pylint: disable=R0904
         self.avTransport.Stop([
             ('InstanceID', 0),
             ('Speed', 1)
-        ])
+            ])
 
     def seek(self, timestamp):
         """ Seeks to a given timestamp in the current track, specified in the
@@ -250,9 +299,9 @@ class SoCo(object):  # pylint: disable=R0904
             ('InstanceID', 0),
             ('Unit', 'REL_TIME'),
             ('Target', timestamp)
-        ])
+            ])
 
-    def next(self):
+    def __next__(self):
         """ Go to the next track.
 
         Returns:
@@ -270,7 +319,7 @@ class SoCo(object):  # pylint: disable=R0904
         self.avTransport.Next([
             ('InstanceID', 0),
             ('Speed', 1)
-        ])
+            ])
 
     def previous(self):
         """ Go back to the previously played track.
@@ -289,7 +338,7 @@ class SoCo(object):  # pylint: disable=R0904
         self.avTransport.Previous([
             ('InstanceID', 0),
             ('Speed', 1)
-        ])
+            ])
 
     @property
     def mute(self):
@@ -298,7 +347,7 @@ class SoCo(object):  # pylint: disable=R0904
         response = self.renderingControl.GetMute([
             ('InstanceID', 0),
             ('Channel', 'Master')
-        ])
+            ])
         mute_state = response['CurrentMute']
         return True if int(mute_state) else False
 
@@ -309,7 +358,7 @@ class SoCo(object):  # pylint: disable=R0904
             ('InstanceID', 0),
             ('Channel', 'Master'),
             ('DesiredMute', mute_value)
-        ])
+            ])
 
     @property
     def volume(self):
@@ -318,7 +367,7 @@ class SoCo(object):  # pylint: disable=R0904
         response = self.renderingControl.GetVolume([
             ('InstanceID', 0),
             ('Channel', 'Master'),
-        ])
+            ])
         volume = response['CurrentVolume']
         return int(volume)
 
@@ -330,7 +379,7 @@ class SoCo(object):  # pylint: disable=R0904
             ('InstanceID', 0),
             ('Channel', 'Master'),
             ('DesiredVolume', volume)
-        ])
+            ])
 
     @property
     def bass(self):
@@ -339,7 +388,7 @@ class SoCo(object):  # pylint: disable=R0904
         response = self.renderingControl.GetBass([
             ('InstanceID', 0),
             ('Channel', 'Master'),
-        ])
+            ])
         bass = response['CurrentBass']
         return int(bass)
 
@@ -350,7 +399,7 @@ class SoCo(object):  # pylint: disable=R0904
         self.renderingControl.SetBass([
             ('InstanceID', 0),
             ('DesiredBass', bass)
-        ])
+            ])
 
     @property
     def treble(self):
@@ -359,7 +408,7 @@ class SoCo(object):  # pylint: disable=R0904
         response = self.renderingControl.GetTreble([
             ('InstanceID', 0),
             ('Channel', 'Master'),
-        ])
+            ])
         treble = response['CurrentTreble']
         return int(treble)
 
@@ -370,7 +419,7 @@ class SoCo(object):  # pylint: disable=R0904
         self.renderingControl.SetTreble([
             ('InstanceID', 0),
             ('DesiredTreble', treble)
-        ])
+            ])
 
     @property
     def loudness(self):
@@ -384,7 +433,7 @@ class SoCo(object):  # pylint: disable=R0904
         response = self.renderingControl.GetLoudness([
             ('InstanceID', 0),
             ('Channel', 'Master'),
-        ])
+            ])
         loudness = response["CurrentLoudness"]
         return True if int(loudness) else False
 
@@ -395,7 +444,7 @@ class SoCo(object):  # pylint: disable=R0904
             ('InstanceID', 0),
             ('Channel', 'Master'),
             ('DesiredLoudness', loudness_value)
-        ])
+            ])
 
     def partymode(self):
         """ Put all the speakers in the network in the same group, a.k.a Party
@@ -445,7 +494,7 @@ class SoCo(object):  # pylint: disable=R0904
             ('InstanceID', 0),
             ('CurrentURI', 'x-rincon:{}'.format(master_uid)),
             ('CurrentURIMetaData', '')
-        ])
+            ])
 
     def unjoin(self):
         """ Remove this speaker from a group.
@@ -464,7 +513,7 @@ class SoCo(object):  # pylint: disable=R0904
         self.avTransport.BecomeCoordinatorOfStandaloneGroup([
             ('InstanceID', 0),
             ('Speed', '1')
-        ])
+            ])
 
     def switch_to_line_in(self):
         """ Switch the speaker's input to line-in.
@@ -485,7 +534,28 @@ class SoCo(object):  # pylint: disable=R0904
             ('InstanceID', 0),
             ('CurrentURI', 'x-rincon-stream:{}'.format(speaker_uid)),
             ('CurrentURIMetaData', '')
-        ])
+            ])
+
+    def switch_to_tv(self):
+        """ Switch the speaker's input to TV.
+
+        Returns:
+        True if the Sonos speaker successfully switched to TV.
+
+        If an error occurs, we'll attempt to parse the error and return a UPnP
+        error code. If that fails, the raw response sent back from the Sonos
+        speaker will be returned.
+
+        Raises SoCoException (or a subclass) upon errors.
+
+        """
+        speaker_info = self.get_speaker_info()
+        speaker_uid = speaker_info['uid']
+        self.avTransport.SetAVTransportURI([
+            ('InstanceID', 0),
+            ('CurrentURI', 'x-sonos-htastream:{}:spdif'.format(speaker_uid)),
+            ('CurrentURIMetaData', '')
+            ])
 
     @property
     def status_light(self):
@@ -502,7 +572,7 @@ class SoCo(object):  # pylint: disable=R0904
         led_state = 'On' if led_on else 'Off'
         self.deviceProperties.SetLEDState([
             ('DesiredLEDState', led_state),
-        ])
+            ])
 
     def get_current_track_info(self):
         """ Get information about the currently playing track.
@@ -522,7 +592,7 @@ class SoCo(object):  # pylint: disable=R0904
         response = self.avTransport.GetPositionInfo([
             ('InstanceID', 0),
             ('Channel', 'Master')
-        ])
+            ])
 
         track = {'title': '', 'artist': '', 'album': '', 'album_art': '',
                  'position': ''}
@@ -578,8 +648,8 @@ class SoCo(object):  # pylint: disable=R0904
                 if url.startswith(('http:', 'https:')):
                     track['album_art'] = url
                 else:
-                    track['album_art'] = 'http://' + self.speaker_ip + ':1400' \
-                                         + url
+                    track['album_art'] = 'http://' + self.speaker_ip + ':1400'\
+                        + url
 
         return track
 
@@ -641,7 +711,7 @@ class SoCo(object):  # pylint: disable=R0904
 
         zone_dict = self.topology[zone_name]
         zone_group = zone_dict['group']
-        for zone_value in self.topology.values():
+        for zone_value in list(self.topology.values()):
             if zone_value['group'] == zone_group and zone_value['coordinator']:
                 return zone_value['ip']
 
@@ -717,11 +787,19 @@ class SoCo(object):  # pylint: disable=R0904
         """
         response = self.avTransport.GetTransportInfo([
             ('InstanceID', 0),
-        ])
+            ])
 
-        playstate = {'current_transport_status': response['CurrentTransportStatus'],
-                     'current_transport_state': response['CurrentTransportState'],
-                     'current_transport_speed': response['CurrentSpeed']}
+        playstate = {
+            'current_transport_status': '',
+            'current_transport_state': '',
+            'current_transport_speed': ''
+        }
+
+        playstate['current_transport_state'] = \
+            response['CurrentTransportState']
+        playstate['current_transport_status'] = \
+            response['CurrentTransportStatus']
+        playstate['current_transport_speed'] = response['CurrentSpeed']
 
         return playstate
 
@@ -749,7 +827,7 @@ class SoCo(object):  # pylint: disable=R0904
             ('StartingIndex', start),
             ('RequestedCount', max_items),
             ('SortCriteria', '')
-        ])
+            ])
         result = response['Result']
         if not result:
             return queue
@@ -758,12 +836,23 @@ class SoCo(object):  # pylint: disable=R0904
             for element in result_dom.findall(
                     './/{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}item'):
                 try:
-                    item = {'title': element.findtext(
-                        '{http://purl.org/dc/elements/1.1/}title'), 'artist': element.findtext(
-                        '{http://purl.org/dc/elements/1.1/}creator'), 'album': element.findtext(
-                        '{urn:schemas-upnp-org:metadata-1-0/upnp/}album'), 'album_art': element.findtext(
-                        '{urn:schemas-upnp-org:metadata-1-0/upnp/}albumArtURI'), 'uri': element.findtext(
-                        '{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}res')}
+                    item = {'title': None,
+                            'artist': None,
+                            'album': None,
+                            'album_art': None,
+                            'uri': None
+                            }
+
+                    item['title'] = element.findtext(
+                        '{http://purl.org/dc/elements/1.1/}title')
+                    item['artist'] = element.findtext(
+                        '{http://purl.org/dc/elements/1.1/}creator')
+                    item['album'] = element.findtext(
+                        '{urn:schemas-upnp-org:metadata-1-0/upnp/}album')
+                    item['album_art'] = element.findtext(
+                        '{urn:schemas-upnp-org:metadata-1-0/upnp/}albumArtURI')
+                    item['uri'] = element.findtext(
+                        '{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}res')
 
                     queue.append(item)
                 except:  # pylint: disable=W0702
@@ -828,7 +917,9 @@ class SoCo(object):  # pylint: disable=R0904
 
     def get_playlists(self, start=0, max_items=100):
         """ Convinience method for: get_music_library_information('playlists')
-        Refer to the docstring for that method
+        Refer to the docstring for that method. NOTE: The playlists that are
+        referred to here are the playlist (files) imported from the music
+        library, they are not the Sonos playlists.
 
         """
         out = self.get_music_library_information('playlists', start, max_items)
@@ -840,9 +931,9 @@ class SoCo(object):  # pylint: disable=R0904
 
         Arguments:
         search      The kind of information to retrieve. Can be one of:
-                    'folders', 'artists', 'album_artists', 'albums', 'genres',
-                    'composers', 'tracks' and 'playlists', where playlists are
-                    the imported file based playlists from the music library
+                    'artists', 'album_artists', 'albums', 'genres', 'composers'
+                    'tracks', 'share' and 'playlists', where playlists are the
+                    imported file based playlists from the music library
         start       starting number of returned matches
         max_items   maximum number of returned matches. NOTE: The maximum
                     may be restricted by the unit, presumably due to transfer
@@ -851,13 +942,13 @@ class SoCo(object):  # pylint: disable=R0904
 
         Returns a dictionary with metadata for the search, with the keys
         'number_returned', 'update_id', 'total_matches' and an 'item' list with
-        the search results. The search results are dicts that with the
-        following exceptions all has the following keys 'title', 'res',
-        'class', 'parent_id', 'restricted', 'id', 'protocol_info'. The
-        exceptions are; that the playlists item in the folder search has no res
-        item; the album and track items has an extra 'creator' field and the
-        track items has additional 'album', 'album_art_uri' and
-        'original_track_number' fields.
+        the search results. The search results are instances of one of the
+        subclasses of MusicLibraryItem depending on the search class. See the
+        docs for those class for the details on the available information.
+
+        NOTE: The playlists that are returned with the 'playlists' search, are
+        the playlists imported from (files in) the music library, they are not
+        the Sonos playlists.
 
         Raises SoCoException (or a subclass) upon errors.
 
@@ -867,11 +958,11 @@ class SoCo(object):  # pylint: disable=R0904
         project.
 
         """
-        search_translation = {'folders': 'A:', 'artists': 'A:ARTIST',
+        search_translation = {'artists': 'A:ARTIST',
                               'album_artists': 'A:ALBUMARTIST',
                               'albums': 'A:ALBUM', 'genres': 'A:GENRE',
                               'composers': 'A:COMPOSER', 'tracks': 'A:TRACKS',
-                              'playlists': 'A:PLAYLISTS'}
+                              'playlists': 'A:PLAYLISTS', 'share': 'S:'}
         search = search_translation[search_type]
         response = self.contentDirectory.Browse([
             ('ObjectID', search),
@@ -880,74 +971,48 @@ class SoCo(object):  # pylint: disable=R0904
             ('StartingIndex', start),
             ('RequestedCount', max_items),
             ('SortCriteria', '')
-        ])
+            ])
+
+        dom = XML.fromstring(really_utf8(response['Result']))
 
         # Get result information
         out = {'item_list': [], 'search_type': search_type}
         for tag in ['NumberReturned', 'TotalMatches', 'UpdateID']:
-            out[camel_to_underscore(tag)] = response[tag]
-            # Parse the results
-        result_xml = XML.fromstring(really_utf8(response['Result']))
-        # Information for the tags to parse, [name, ns]
-        tag_info = [['title', 'dc'], ['class', 'upnp']]
-        if search_type == 'tracks':
-            tag_info += [['albumArtURI', 'upnp'], ['creator', 'dc'],
-                         ['album', 'upnp'], ['originalTrackNumber', 'upnp']]
-        elif search_type == 'albums':
-            tag_info.append(['creator', 'dc'])
-        for container in result_xml:
-            item = self.__parse_container(container, tag_info)
+            out[camel_to_underscore(tag)] = int(response[tag])
+
+        # Parse the results
+        for container in dom:
+            item = get_ml_item(container)
             # Append the item to the list
             out['item_list'].append(item)
 
         return out
 
-    @staticmethod
-    def __parse_container(container, tag_info):
-        """ Parse a container xml object """
-        # Get container attributes and add a few defaults
-        item = {'id': container.attrib['id'],
-                'parent_id': container.attrib['parentID'],
-                'restricted': (container.attrib['restricted'] == 'true'),
-                'res': None, 'protocol_info': None}
+    def add_to_queue(self, queueable_item):
+        """ Adds a queueable item to the queue """
+        # Check if teh required attributes are there
+        for attribute in ['didl_metadata', 'uri']:
+            if not hasattr(queueable_item, attribute):
+                message = 'queueable_item has no attribute {}'.\
+                    format(attribute)
+                raise AttributeError(message)
+        # Get the metadata
+        try:
+            metadata = XML.tostring(queueable_item.didl_metadata)
+        except CannotCreateDIDLMetadata as exception:
+            message = ('The queueable item could not be enqueued, because it '
+                       'raised a CannotCreateDIDLMetadata exception with the '
+                       'following message:\n{0}').format(exception.message)
+            raise ValueError(message)
+        metadata = xml.sax.saxutils.escape(metadata).encode('utf-8')
 
-        # Get information from tags in container
-        for name, namespace in tag_info:
-            keyname = camel_to_underscore(name)
-            item[keyname] = None  # Default value
-            found_text = container.findtext('.' + NS[namespace] + name)
-            if found_text is not None:
-                item[keyname] = found_text
-
-        # Turn track numbers into integers, if they are there
-        if item.get('original_track_number') is not None:
-            item['original_track_number'] = int(item['original_track_number'])
-
-        # The res tag is special and not there for folders searches
-        res = container.find('.' + NS[''] + 'res')
-        if res is not None:
-            item['res'] = res.text
-            item['protocol_info'] = res.attrib['protocolInfo']
-
-        return item
-
-    def add_to_queue(self, uri):
-        """ Adds a given track to the queue.
-
-        Returns:
-        If the Sonos speaker successfully added the track, returns the queue
-        position of the track added.
-
-        Raises SoCoException (or a subclass) upon errors.
-
-        """
         response = self.avTransport.AddURIToQueue([
             ('InstanceID', 0),
-            ('EnqueuedURI', uri),
-            ('EnqueuedURIMetaData', ''),
+            ('EnqueuedURI', queueable_item.uri),
+            ('EnqueuedURIMetaData', metadata),
             ('DesiredFirstTrackNumberEnqueued', 0),
             ('EnqueueAsNext', 1)
-        ])
+            ])
         qnumber = response['FirstTrackNumberEnqueued']
         return int(qnumber)
 
@@ -969,7 +1034,7 @@ class SoCo(object):  # pylint: disable=R0904
             ('InstanceID', 0),
             ('ObjectID', objid),
             ('UpdateID', updid),
-        ])
+            ])
 
     def clear_queue(self):
         """ Removes all tracks from the queue.
@@ -982,7 +1047,7 @@ class SoCo(object):  # pylint: disable=R0904
         """
         self.avTransport.RemoveAllTracksFromQueue([
             ('InstanceID', 0),
-        ])
+            ])
 
     def get_favorite_radio_shows(self, start=0, max_items=100):
         """ Get favorite radio shows from Sonos' Radio app.
@@ -1036,7 +1101,7 @@ class SoCo(object):  # pylint: disable=R0904
             ('StartingIndex', start),
             ('RequestedCount', max_items),
             ('SortCriteria', '')
-        ])
+            ])
         result = {}
         favorites = []
         results_xml = response['Result']
@@ -1059,6 +1124,7 @@ class SoCo(object):  # pylint: disable=R0904
         result['favorites'] = favorites
 
         return result
+
 
 # definition section
 

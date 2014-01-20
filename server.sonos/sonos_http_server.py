@@ -5,7 +5,7 @@ import sys
 import socketserver
 import argparse
 from sonos_commands import Command
-from sonos_service import SonosService
+from sonos_service import SonosServerService
 
 #sys.path.append('/usr/smarthome/plugins/sonos/server/pycharm-debug-py3k.egg')
 #import pydevd
@@ -52,7 +52,7 @@ args = parser.parse_args()
 port = args.port
 host = args.host
 localip = args.localip
-sonos_service = SonosService(localip, port)
+sonos_service = SonosServerService(localip, port)
 command = Command(sonos_service)
 
 
