@@ -59,10 +59,11 @@ class SonosSpeaker():
         self.mute = 0
         self.led = 1
         self.streamtype = "No streamtype"
-        self.stop = 0
-        self.play = 0
-        self.pause = 0
+        self.stop = False
+        self.play = False
+        self.pause = False
         self.track = "No track title"
+        self.artist = "No track artist"
 
     def __dir__(self):
         return ['uid', 'ip', 'model', 'zone_name', 'zone_icon', 'serial_number', 'software_version',
@@ -384,7 +385,8 @@ class SonosServerService():
         ignore_title_string = ('ZPSTR_BUFFERING', 'ZPSTR_BUFFERING', 'ZPSTR_CONNECTING', 'x-sonosapi-stream')
         #EnqueuedTransportURIMetaData
 
-        title_found = False
+        title = ''
+        artist = ''
 
         try:
             #title listening radio
@@ -393,23 +395,41 @@ class SonosServerService():
                 stream_content = stream_content_element.text
                 if stream_content:
                     if not stream_content.startswith(ignore_title_string):
-                        sonos_service.sonos_speakers[uid].track =stream_content
-                        changed_values.append(udp_broker.UdpResponse.track(uid))
-                        title_found = True
+                        #if radio, in most cases the following format is used: artist - title
+                        #if stream_content is not null, radio is assumed
+                        split_title = stream_content.split('-')
 
-            #mp3, etc
+                        if split_title:
+                            artist = split_title[0].strip()
+                            title = split_title[1].strip()
+                        else:
+                            title = stream_content
+            print(title)
+
+
+            #mp3, etc -> overrides stream content
             title_element = dom.find('.//dc:title', namespaces)
             if title_element is not None:
-                title = title_element.text
-                if title:
-                    if not title.startswith(ignore_title_string):
-                        sonos_service.sonos_speakers[uid].track = title
-                        changed_values.append(udp_broker.UdpResponse.track(uid))
-                        title_found = True
+                assumed_title = title_element.text
+                if assumed_title:
+                    if not assumed_title.startswith(ignore_title_string):
+                        title = assumed_title
 
-            if not title_found:
-                sonos_service.sonos_speakers[uid].track = "No track title"
-                changed_values.append(udp_broker.UdpResponse.track(uid))
+            artist_element = dom.find('.//dc:creator', namespaces)
+            if artist_element is not None:
+                assumed_artist = artist_element.text
+                if assumed_artist:
+                    artist = assumed_artist
+
+            if not artist:
+                artist = "No artist"
+            if not title:
+                title = "No track title"
+
+            sonos_service.sonos_speakers[uid].artist = artist
+            sonos_service.sonos_speakers[uid].track = title
+            changed_values.append(udp_broker.UdpResponse.artist(uid))
+            changed_values.append(udp_broker.UdpResponse.track(uid))
 
         except Exception as err:
             print(err)
