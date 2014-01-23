@@ -63,11 +63,13 @@ Testing:
 	with the sonos server instance. Open your browser and control your speaker. This project is focused on
 	house automation, therefore there is no web interface.
 
-	Most of the commands return a simple "200 - OK" or "400 Bad Request". The return values will be send over udp 
-	to all subscribed clients. To receive these messages, you must have an UDP port open on your client.
+	Most of the commands return a simple "200 - OK" or "400 Bad Request". The return values
+	will be send over udp to all subscribed clients. To receive these messages, you must have an UDP port
+	open on your client.
 	
 	To susbscribe your client for this messages, simply type in following command in your browser:
-	
+	(this step is not necessary for smarthome.py-plugin user, it's done automatically)
+
 	http://<sonos_server_ip:port>/client/subscribe/<udp_port>    (udp port is your client port)
 	
 	To unsubscribe:
