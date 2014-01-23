@@ -95,34 +95,96 @@ First implemented commands (more coming soon):
 		
 		get:
 		
-			http://<sonos_server:port>/speaker/<sonos_uid>/volume/get
+			http://<sonos_server:port>/speaker/<sonos_uid>/volume
 
 		response (udp):
 		
-			speaker/<sonos_uid>/volume/<value>
+			speaker/<sonos_uid>/volume/<value>          (0|1)
 		
 	mute
 		set:
 			http://<sonos_server:port>/speaker/<sonos_uid>/mute/set/<value:0|1>
 			
 		get:
-			http://<sonos_server:port>/speaker/<sonos_uid>/mute/get
+			http://<sonos_server:port>/speaker/<sonos_uid>/mute
 			
 		response (udp)
-			speaker/<sonos_uid>/mute/<value>
+			speaker/<sonos_uid>/mute/<value>            (0|1)
 	
 	led
 		set:
 				
 			http://<sonos_server:port>/speaker/<sonos_uid>/led/set/<value:0|1>
 		get:
-			http://<sonos_server:port>/speaker/<sonos_uid>/led/get
+			http://<sonos_server:port>/speaker/<sonos_uid>/led
 		
-		response (no response, no sonos event for led statuslight change?)
-			
+		response (udp)
+		    speaker/<sonos_uid>/led/<value>             (0|1)
+
+	play
+
+	    set:
+			http://<sonos_server:port>/speaker/<sonos_uid>/play/set/<value:0|1>
+
+		get:
+			http://<sonos_server:port>/speaker/<sonos_uid>/play
+
+		response (udp)
+			speaker/<sonos_uid>/play/<value>            (0|1)
+
+    pause
+
+        set:
+			http://<sonos_server:port>/speaker/<sonos_uid>/pause/set/<value:0|1>
+
+		get:
+			http://<sonos_server:port>/speaker/<sonos_uid>/pause
+
+		response (udp)
+			speaker/<sonos_uid>/pause/<value>           (0|1)
+
+    stop
+
+        set:
+			http://<sonos_server:port>/speaker/<sonos_uid>/stop/set/<value:0|1>
+
+		get:
+			http://<sonos_server:port>/speaker/<sonos_uid>/stop
+
+		response (udp)
+			speaker/<sonos_uid>/stop/<value>            (0|1)
+
+
+    artist
+
+		get:
+			http://<sonos_server:port>/speaker/<sonos_uid>/artist
+
+		response (udp)
+			speaker/<sonos_uid>/artist/<value>
+
+    track
+
+   		get:
+			http://<sonos_server:port>/speaker/<sonos_uid>/track
+
+		response (udp)
+			speaker/<sonos_uid>/track/<value>
+
+
+    streamtype
+
+   		get:
+			http://<sonos_server:port>/speaker/<sonos_uid>/streamtype
+
+		response (udp)
+			speaker/<sonos_uid>/streamtype/<value>      (radio|music)
+
+
+
 	list
 		get:
-	
+
 			http://<sonos_server:port>/client/list
 		
 		response (http)
