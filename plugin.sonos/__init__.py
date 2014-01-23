@@ -59,11 +59,11 @@ class Sonos():
 
         if broker_url:
             self._broker_url = broker_url
-
-        self.send_cmd('client/subscribe/{}'.format(port))
+        self.port = port
         self._sh = smarthome
         self.command = SonosCommand()
         self._val = {}
+        self._init_cmds = []
 
         UDPDispatcher(self.parse_input, host, port)
 
@@ -81,6 +81,11 @@ class Sonos():
         self.alive = True
         # if you want to create child threads, do not make them daemon = True!
         # They will not shutdown properly. (It's a python bug)
+
+        self.send_cmd('client/subscribe/{}'.format(self.port))
+
+        for cmd in self._init_cmds:
+            self.send_cmd(cmd)
 
     def stop(self):
         self.alive = False
@@ -110,6 +115,22 @@ class Sonos():
                 if not item in self._val[cmd]['items']:
                     self._val[cmd]['items'].append(item)
 
+            if 'sonos_init' in item.conf:
+                cmd = self.resolve_cmd(item, 'sonos_init')
+                if cmd is None:
+                    return None
+
+                logger.debug("sonos: {0} is initialized by {1}".format(item, cmd))
+
+                if not cmd in self._val:
+                    self._val[cmd] = {'items': [item], 'logics': []}
+                else:
+                    if not item in self._val[cmd]['items']:
+                        self._val[cmd]['items'].append(item)
+
+                if not cmd in self._init_cmds:
+                    self._init_cmds.append(cmd)
+
         if 'sonos_send' in item.conf:
             cmd = self.resolve_cmd(item, 'sonos_send')
 
@@ -120,7 +141,6 @@ class Sonos():
             return self.update_item
 
         return None
-
 
     #nothing yet
     def parse_logic(self, logic):
@@ -148,6 +168,15 @@ class Sonos():
                 if command[2] == 'led':
                     if isinstance(value, bool):
                         cmd = self.command.led(command[1], int(value))
+                if command[2] == 'play':
+                    if isinstance(value, bool):
+                        cmd = self.command.play(command[1], int(value))
+                if command[2] == 'pause':
+                    if isinstance(value, bool):
+                        cmd = self.command.pause(command[1], int(value))
+                if command[2] == 'stop':
+                    if isinstance(value, bool):
+                        cmd = self.command.stop(command[1], int(value))
                 if command[2] == 'volume':
                     if isinstance(value, int):
                         cmd = self.command.volume(command[1], int(value))
@@ -193,8 +222,6 @@ class Sonos():
 
         if cmd[0] in self._val:
             for item in self._val[cmd[0]]['items']:
-                if isinstance(item(), str) and not isinstance(item(), str):
-                    cmd[1] = int(cmd[1]) + item()
                 logger.debug("data: {}".format(cmd[1]))
                 item(cmd[1], 'Sonos', '')
 
@@ -202,6 +229,18 @@ class SonosCommand():
     @staticmethod
     def mute(uid, value):
         return "speaker/{}/mute/set/{}".format(uid, int(value))
+
+    @staticmethod
+    def play(uid, value):
+        return "speaker/{}/play/set/{}".format(uid, int(value))
+
+    @staticmethod
+    def pause(uid, value):
+        return "speaker/{}/pause/set/{}".format(uid, int(value))
+
+    @staticmethod
+    def stop(uid, value):
+        return "speaker/{}/stop/set/{}".format(uid, int(value))
 
     @staticmethod
     def led(uid, value):
