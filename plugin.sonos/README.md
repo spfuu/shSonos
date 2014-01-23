@@ -36,45 +36,67 @@ The plugin is designed to control the sonos speakers in connection with the sono
   
   
     [sonos]
-      sonos_uid = RINCON_000E68D3892A21401            # replace uid your speaker's uid
+        sonos_uid = RINCON_000E5123456789             #replace uid with your sonos speaker uid
 
-      [[mute]]
-          type = bool
-          sonos_recv = speaker/<sonos_uid>/mute
-          sonos_send = speaker/<sonos_uid>/mute/set/{}
-  
-      [[led]]
-          type = bool
-          sonos_recv = speaker/<sonos_uid>/led
-          sonos_send = speaker/<sonos_uid>/led/set/{}
-  
-      [[volume]]
-          type = num
-          sonos_recv = speaker/<sonos_uid>/volume
-          sonos_send = speaker/<sonos_uid>/volume/set/{}
+        [[mute]]
+            type = bool
+            enforce_updates = True
+            sonos_recv = speaker/<sonos_uid>/mute
+            sonos_send = speaker/<sonos_uid>/mute/set/{}
+            sonos_init = speaker/<sonos_uid>/mute
 
-      [[stop]]
-        type = bool
-        sonos_recv = speaker/<sonos_uid>/stop
-        sonos_send = speaker/<sonos_uid>/stop/set/{}
+        [[led]]
+            type = bool
+            enforce_updates = True
+            sonos_recv = speaker/<sonos_uid>/led
+            sonos_send = speaker/<sonos_uid>/led/set/{}
+            sonos_init = speaker/<sonos_uid>/led
 
-      [[play]]
-        type = bool
-        sonos_recv = speaker/<sonos_uid>/play
-        sonos_send = speaker/<sonos_uid>/play/set/{}
+        [[volume]]
+            type = num
+            enforce_updates = True
+            sonos_recv = speaker/<sonos_uid>/volume
+            sonos_send = speaker/<sonos_uid>/volume/set/{}
+            sonos_init = speaker/<sonos_uid>/volume
 
-      [[pause]]
-        type = bool
-        sonos_recv = speaker/<sonos_uid>/pause
-        sonos_send = speaker/<sonos_uid>/pause/set/{}
+        [[stop]]
+            type = bool
+            enforce_updates = True
+            sonos_recv = speaker/<sonos_uid>/stop
+            sonos_send = speaker/<sonos_uid>/stop/set/{}
+            sonos_init = speaker/<sonos_uid>/stop
 
-      [[track]]
-        type = str
-        sonos_recv = speaker/<sonos_uid>/track
+        [[play]]
+            type = bool
+            enforce_updates = True
+            sonos_recv = speaker/<sonos_uid>/play
+            sonos_send = speaker/<sonos_uid>/play/set/{}
+            sonos_init = speaker/<sonos_uid>/play
 
-      [[streamtype]]
-        type = str
-        sonos_recv = speaker/<sonos_uid>/streamtype     radio|media
+        [[pause]]
+            type = bool
+            enforce_updates = True
+            sonos_recv = speaker/<sonos_uid>/pause
+            sonos_send = speaker/<sonos_uid>/pause/set/{}
+            sonos_init = speaker/<sonos_uid>/pause
+
+        [[track]]
+            type = str
+            enforce_updates = True
+            sonos_recv = speaker/<sonos_uid>/track
+            sonos_init = speaker/<sonos_uid>/track
+
+        [[artist]]
+            type = str
+            enforce_updates = True
+            sonos_recv = speaker/<sonos_uid>/artist
+            sonos_init = speaker/<sonos_uid>/artist
+
+        [[streamtype]]
+            type = str
+            enforce_updates = True
+            sonos_recv = speaker/<sonos_uid>/streamtype
+            sonos_init = speaker/<sonos_uid>/streamtype     (radio|music)
 
   
   To get your sonos speaker id, type this command in your browser (while sonos server running):
