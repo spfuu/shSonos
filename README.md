@@ -47,6 +47,7 @@ Install:
 
 	3. for raspberry pi user, please follow these instruction prior to point 2:
 
+        sudo apt-get update
 		sudo apt-get install curl
 		sudo curl http://python-distribute.org/distribute_setup.py | python3
 		sudo curl https://raw.github.com/pypa/pip/master/contrib/get-pip.py | python3
