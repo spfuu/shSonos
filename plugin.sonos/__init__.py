@@ -59,8 +59,7 @@ class Sonos():
 
         if broker_url:
             self._broker_url = broker_url
-
-        self.send_cmd('client/subscribe/{}'.format(port))
+        self.port = port
         self._sh = smarthome
         self.command = SonosCommand()
         self._val = {}
@@ -82,6 +81,8 @@ class Sonos():
         self.alive = True
         # if you want to create child threads, do not make them daemon = True!
         # They will not shutdown properly. (It's a python bug)
+
+        self.send_cmd('client/subscribe/{}'.format(self.port))
 
         for cmd in self._init_cmds:
             self.send_cmd(cmd)
@@ -221,8 +222,6 @@ class Sonos():
 
         if cmd[0] in self._val:
             for item in self._val[cmd[0]]['items']:
-                if isinstance(item(), str) and not isinstance(item(), str):
-                    cmd[1] = int(cmd[1]) + item()
                 logger.debug("data: {}".format(cmd[1]))
                 item(cmd[1], 'Sonos', '')
 
