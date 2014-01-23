@@ -144,9 +144,9 @@ class Command():
                 except:
                     raise Exception("Couldn't set play status for speaker with uid '{}'!".format(uid))
             try:
-                data = "%s\r\n" % udp_broker.UdpResponse.stop(uid)
-                data += "%s\r\n" % udp_broker.UdpResponse.play(uid)
-                data += "%s\r\n" % udp_broker.UdpResponse.pause(uid)
+                data = "%s\n" % udp_broker.UdpResponse.stop(uid)
+                data += "%s\n" % udp_broker.UdpResponse.play(uid)
+                data += "%s\n" % udp_broker.UdpResponse.pause(uid)
                 udp_broker.UdpBroker.udp_send(data)
 
                 return True, "Successfully send play status for speaker with uid '{}'.".format(uid)
@@ -320,14 +320,13 @@ class Command():
             if not soco:
                 raise Exception("Couldn't find speaker with uid '{}'!".format(uid))
 
-            if action == 'set':
-                try:
-                    #" 'title' 'artist' 'album' 'album_art'  'position' 'playlist_position' 'duration' 'TrackDuration' 'uri' 'position'"
+            try:
+                #" 'title' 'artist' 'album' 'album_art'  'position' 'playlist_position' 'duration' 'TrackDuration' 'uri' 'position'"
+                track = soco.get_current_track_info()['title']
+                sonos_service.sonos_speakers[uid].track = track
 
-                    track = soco.get_current_track_info()['title']
-                    sonos_service.sonos_speakers[uid].track = track
-                except:
-                    raise Exception("Couldn't get current track title for speaker with uid '{}'!".format(uid))
+            except:
+                raise Exception("Couldn't get current track title for speaker with uid '{}'!".format(uid))
             try:
                 data = udp_broker.UdpResponse.track(uid)
                 udp_broker.UdpBroker.udp_send(data)
@@ -335,6 +334,61 @@ class Command():
 
             except Exception:
                 raise Exception("Couldn't get current track title for speaker with uid '{}'!".format(uid))
+
+        except Exception as err:
+            return False, err
+
+    def speaker_artist(self, ip, arguments):
+        try:
+            uid = arguments[0].lower()
+
+            if len(arguments) > 2:
+                action = arguments[1]
+
+            soco = self.sonos_service.get_soco(uid)
+
+            if not soco:
+                raise Exception("Couldn't find speaker with uid '{}'!".format(uid))
+
+            try:
+                #" 'title' 'artist' 'album' 'album_art'  'position' 'playlist_position' 'duration' 'TrackDuration' 'uri' 'position'"
+                artist = soco.get_current_track_info()['artist']
+                sonos_service.sonos_speakers[uid].artist = artist
+
+            except:
+                raise Exception("Couldn't get current track artist for speaker with uid '{}'!".format(uid))
+            try:
+                data = udp_broker.UdpResponse.artist(uid)
+                udp_broker.UdpBroker.udp_send(data)
+                return True, "Successfully send current track artist for speaker with uid '{}'.".format(uid)
+
+            except Exception:
+                raise Exception("Couldn't get current track artist for speaker with uid '{}'!".format(uid))
+
+        except Exception as err:
+            return False, err
+
+    def speaker_streamtype(self, ip, arguments):
+        try:
+            uid = arguments[0].lower()
+            action = ''
+
+            if len(arguments) > 2:
+                action = arguments[1]
+
+            soco = self.sonos_service.get_soco(uid)
+
+            if not soco:
+                raise Exception("Couldn't find speaker with uid '{}'!".format(uid))
+
+            #no soco implementation, use our speaker info (gathered by sonos events)
+            try:
+                data = udp_broker.UdpResponse.streamtype(uid)
+                udp_broker.UdpBroker.udp_send(data)
+                return True, "Successfully send streamtype for speaker with uid '{}'.".format(uid)
+
+            except Exception:
+                raise Exception("Couldn't get streamtype for speaker with uid '{}'!".format(uid))
 
         except Exception as err:
             return False, err
