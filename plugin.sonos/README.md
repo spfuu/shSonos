@@ -24,7 +24,7 @@ The plugin is designed to control the sonos speakers in connection with the sono
     [sonos]
   
       class_name = Sonos
-      class_path = plugins.sono
+      class_path = plugins.sonos
       broker_url = 192.168.178.31:12900               #this is the sonos server ip and port
 
 
