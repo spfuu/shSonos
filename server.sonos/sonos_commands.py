@@ -2,6 +2,7 @@ import argparse
 import re
 import udp_broker
 import sonos_service
+from urllib.parse import unquote_plus
 
 #import sys
 #sys.path.append('/usr/smarthome/plugins/sonos/server/pycharm-debug-py3k.egg')
@@ -310,10 +311,6 @@ class Command():
     def speaker_track(self, ip, arguments):
         try:
             uid = arguments[0].lower()
-            action = ''
-
-            if len(arguments) > 2:
-                action = arguments[1]
 
             soco = self.sonos_service.get_soco(uid)
 
@@ -342,9 +339,6 @@ class Command():
         try:
             uid = arguments[0].lower()
 
-            if len(arguments) > 2:
-                action = arguments[1]
-
             soco = self.sonos_service.get_soco(uid)
 
             if not soco:
@@ -368,13 +362,37 @@ class Command():
         except Exception as err:
             return False, err
 
-    def speaker_streamtype(self, ip, arguments):
+    def speaker_play_uri(self, ip, arguments):
         try:
             uid = arguments[0].lower()
+
+            print("!!!!!!!")
+
             action = ''
 
             if len(arguments) > 2:
                 action = arguments[1]
+
+            soco = self.sonos_service.get_soco(uid)
+
+            if not soco:
+                raise Exception("Couldn't find speaker with uid '{}'!".format(uid))
+
+            if action == 'set':
+                try:
+                    play_uri = unquote_plus(arguments[2])
+                    print(play_uri)
+                    soco.play_uri(play_uri)
+                except:
+                    raise Exception("Couldn't set uri for speaker with uid '{}'!".format(uid))
+
+        except Exception as err:
+            return False, err
+
+
+    def speaker_streamtype(self, ip, arguments):
+        try:
+            uid = arguments[0].lower()
 
             soco = self.sonos_service.get_soco(uid)
 
