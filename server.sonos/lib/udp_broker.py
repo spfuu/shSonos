@@ -1,5 +1,5 @@
 import socket
-import sonos_service
+from lib import sonos_speaker
 
 __author__ = 'pfischi'
 
@@ -13,8 +13,8 @@ registered_clients = {}
 class UdpResponse():
     @staticmethod
     def get_speaker(uid):
-        if uid in sonos_service.sonos_speakers:
-            return sonos_service.sonos_speakers[uid]
+        if uid in sonos_speaker.sonos_speakers:
+            return sonos_speaker.sonos_speakers[uid]
         return None
 
     @staticmethod

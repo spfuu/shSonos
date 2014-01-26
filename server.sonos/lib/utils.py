@@ -1,10 +1,5 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-import argparse
-import sys
-
-""" Provides general utility functions to be used across modules """
-
 import re
 
 try:
