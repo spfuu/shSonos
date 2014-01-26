@@ -178,6 +178,19 @@ First implemented commands (more coming soon):
 		response (udp)
 			speaker/<sonos_uid>/streamtype/<value>      (radio|music)
 
+    play_uri
+
+        set:
+			http://<sonos_server:port>/speaker/<sonos_uid>/play_uri/set/<value>
+
+			    <value>. has to be urlsafe, qoute_plus
+			    If you want to play a title from your network share use following format:
+
+                x-file-cifs%3A%2F%2F192.168.178.100%2Fmusic%2Ftest.mp3
+                (unqouted: x-file-cifs://192.168.0.3/music/test.mp3)
+
+		response:
+			no explicit reponse, but events will be triggerd, if new track title
 
 
 	list
