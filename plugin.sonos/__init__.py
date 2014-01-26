@@ -19,14 +19,16 @@
 # along with SmartHome.py. If not, see <http://www.gnu.org/licenses/>.
 #########################################################################
 import http
-
 import logging
 import lib.connection
 import lib.tools
+from urllib.parse import quote_plus
 
-#for remote debugging only##import sys
+#for remote debugging only
+#import sys
 #sys.path.append('/usr/smarthome/plugins/sonos/pycharm-debug-py3k.egg')
 #import pydevd
+
 
 logger = logging.getLogger('Sonos')
 
@@ -180,6 +182,8 @@ class Sonos():
                 if command[2] == 'volume':
                     if isinstance(value, int):
                         cmd = self.command.volume(command[1], int(value))
+                if command[2] == 'play_uri':
+                    cmd = self.command.play_uri(command[1], value)
 
                 if cmd:
                     self.send_cmd(cmd)
@@ -249,6 +253,11 @@ class SonosCommand():
     @staticmethod
     def volume(uid, value):
         return "speaker/{}/volume/set/{}".format(uid, value)
+
+    @staticmethod
+    def play_uri(uid, value):
+        value = quote_plus(value)
+        return "speaker/{}/play_uri/set/{}".format(uid, value)
 
     @staticmethod
     def get_uid_from_response(dom):
