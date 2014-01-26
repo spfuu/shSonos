@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 from http.server import BaseHTTPRequestHandler, HTTPServer
-
-import sys
 import socketserver
 import argparse
-from sonos_commands import Command
-from sonos_service import SonosServerService
 
+
+import sys
 #sys.path.append('/usr/smarthome/plugins/sonos/server/pycharm-debug-py3k.egg')
 #import pydevd
+from lib.sonos_commands import Command
+from lib.sonos_service import SonosServerService
+
 
 class SonosHttpHandler(BaseHTTPRequestHandler):
 
