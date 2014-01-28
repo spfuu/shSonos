@@ -27,14 +27,14 @@ smarthome.py
 Install:
 --------------------------------
 
-1.  SETUP
+1. SETUP
 
-    Under the github folder "server.sonos/dist/" you'll find the actual release as a tar.gz file
-	Unzip this file with:
+Under the github folder "server.sonos/dist/" you'll find the actual release as a tar.gz file
+Unzip this file with:
 
-        tar -xvf sonos_broker_release.tar.gz  (adjust the filename to your needs)
+    tar -xvf sonos_broker_release.tar.gz  (adjust the filename to your needs)
 
-    Go to the unpacked folder and run setup.py with:
+Go to the unpacked folder and run setup.py with:
 
         sudo python3 setup.py install
 
@@ -52,7 +52,7 @@ Install:
         ./sonos_broker --localip x.x.x.x    (x.x.x.x means your ip: run ifconfig - a to find it out)
 
 
-2.  CONFIGURATION
+2. CONFIGURATION
 
     (Optional) if you want to start sonos_broker as background service, edit sonos_broker.sh:
 
@@ -80,7 +80,7 @@ Install:
         start-stop-daemon -v --start --pidfile $PIDFILE --make-pidfile --startas $DAEMON --
 
 
-3.  RASPBERRY PI USER
+3. RASPBERRY PI USER
 
     For raspberry pi user, please follow these instruction prior to point 2:
 
