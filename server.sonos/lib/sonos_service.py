@@ -1,7 +1,8 @@
+from __future__ import unicode_literals
+
 # -*- coding: utf-8 -*-
 __author__ = 'pfischi'
 
-from __future__ import unicode_literals
 from xml.dom import minidom
 from collections import namedtuple
 import threading
