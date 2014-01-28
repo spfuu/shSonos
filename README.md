@@ -36,57 +36,57 @@ Unzip this file with:
 
 Go to the unpacked folder and run setup.py with:
 
-        sudo python3 setup.py install
+    sudo python3 setup.py install
 
-    This command will install all the python packages and places the start script to the python folder
-    "/user/local/bin"
+This command will install all the python packages and places the start script to the python folder
+"/user/local/bin"
 
-    Run the file sonos_broker with:
+Run the file sonos_broker with:
 
-        ./sonos_broker
+    ./sonos_broker
 
 
-    Normally, the script finds the interal ip address of your computer. If not, you have start the script with
-    the following parameter:
+Normally, the script finds the interal ip address of your computer. If not, you have start the script with
+the following parameter:
 
-        ./sonos_broker --localip x.x.x.x    (x.x.x.x means your ip: run ifconfig - a to find it out)
+    ./sonos_broker --localip x.x.x.x    (x.x.x.x means your ip: run ifconfig - a to find it out)
 
 
 2. CONFIGURATION
 
-    (Optional) if you want to start sonos_broker as background service, edit sonos_broker.sh:
+(Optional) if you want to start sonos_broker as background service, edit sonos_broker.sh:
 
-	Edit DIR variable to /path/location/of/sonos_broker (default: /usr/local/bin)
+Edit DIR variable to /path/location/of/sonos_broker (default: /usr/local/bin)
 
-	Copy file to /etc/init.d if you want to autostart sonos_broker on system start
+Copy file to /etc/init.d if you want to autostart sonos_broker on system start
 
-	Make the file executable with:
+Make the file executable with:
 
-	    chmod +x /path/to/sonos_broker.sh
+    chmod +x /path/to/sonos_broker.sh
 
-	Start service with:
+Start service with:
 
-	    sudo ./path/to/sonos_server start|restart|stop
+    sudo ./path/to/sonos_server start|restart|stop
 
-    Attention!! Please notice that the script is running as with the 'background' flag. In order that, there is
-    no debug or error output. To get these hints in failure cases, remove this flag in sonos_broker.sh
+Attention!! Please notice that the script is running as with the 'background' flag. In order that, there is
+no debug or error output. To get these hints in failure cases, remove this flag in sonos_broker.sh
 
-        from:
+    from:
 
-        start-stop-daemon -v --start --pidfile $PIDFILE --background --make-pidfile --startas $DAEMON --
+    start-stop-daemon -v --start --pidfile $PIDFILE --background --make-pidfile --startas $DAEMON --
 
-        to:
+    to:
 
-        start-stop-daemon -v --start --pidfile $PIDFILE --make-pidfile --startas $DAEMON --
+    start-stop-daemon -v --start --pidfile $PIDFILE --make-pidfile --startas $DAEMON --
 
 
 3. RASPBERRY PI USER
 
-    For raspberry pi user, please follow these instruction prior to point 2:
+For raspberry pi user, please follow these instruction prior to point 2:
 
-        sudo apt-get update
-        sudo apt-get upgrade
-        sudo easy_install3 requests
+    sudo apt-get update
+    sudo apt-get upgrade
+    sudo easy_install3 requests
 
 Testing:
 --------------------------------
