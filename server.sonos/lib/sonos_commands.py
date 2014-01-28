@@ -1,10 +1,6 @@
 import argparse
 import re
 from urllib.parse import unquote_plus
-
-#import sys
-#sys.path.append('/usr/smarthome/plugins/sonos/server/pycharm-debug-py3k.egg')
-#import pydevd
 from lib import sonos_speaker
 from lib.udp_broker import UdpResponse, UdpBroker
 
@@ -18,7 +14,6 @@ class Command():
 
         response = 'Unknown command'
         try:
-            print(client_ip)
             command = path.lower()
             command = re.sub("^/|/$", '', command).split('/')
 

@@ -160,7 +160,6 @@ class SonosServerService():
         response = requests.get('http://' + speaker.ip + ':1400/status/zp')
         dom = XML.fromstring(response.content)
 
-        print(response.text)
         if dom.findtext('.//ZoneName') is not None:
             speaker.zone_name = dom.findtext('.//ZoneName')
             speaker.zone_icon = dom.findtext('.//ZoneIcon')
@@ -197,7 +196,6 @@ class SonosServerService():
         conn.request("UNSUBSCRIBE", "{}".format(event), "", headers)
 
         response = conn.getresponse()
-        print(response)
         conn.close()
 
     def response_parser(self, sid, data):

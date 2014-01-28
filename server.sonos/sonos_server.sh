@@ -1,24 +1,9 @@
 #!/bin/sh
 #!/usr/bin/env python3
 
-### BEGIN INIT INFO
-# Provides: sonosservice
-# Required-Start: $remote_fs $syslog
-# Required-Stop: $remote_fs $syslog
-# Default-Start: 2 3 4 5
-# Default-Stop: 0 1 6
-# Short-Description: sonos server service
-# Description: starts / stops / restart the sonos server service
-### END INIT INFO
-
-DIR=/usr/smarthome/plugins/sonos/server
-DAEMON=$DIR/sonos_server.py
-DAEMON_NAME=sonosserver
-LOCALIP=192.168.178.31
-
-
-# Root generally not recommended but necessary if you are using the Raspberry Pi GPIO from Python.
-DAEMON_USER=admin
+export $PYTHONPATH
+DAEMON=${PYTHONPATH}:/sonos_broker
+DAEMON_NAME=sonosbroker
 
 # The process ID of the script when it runs is stored here:
 PIDFILE=/var/run/$DAEMON_NAME.pid
@@ -27,9 +12,9 @@ PIDFILE=/var/run/$DAEMON_NAME.pid
 
 do_start () {
 touch $PIDFILE
-chown $DAEMON_USER $PIDFILE
+#chown $DAEMON_USER $PIDFILE
 log_daemon_msg "Starting system $DAEMON_NAME daemon"
-start-stop-daemon -v --start --pidfile $PIDFILE --make-pidfile --user $DAEMON_USER --background --startas $DAEMON -- --localip $LOCALIP
+start-stop-daemon -v --start --pidfile $PIDFILE --make-pidfile --startas $DAEMON --
 log_end_msg $?
 }
 do_stop () {

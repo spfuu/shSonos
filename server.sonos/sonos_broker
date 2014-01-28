@@ -1,18 +1,38 @@
 #!/usr/bin/env python3
 from http.server import BaseHTTPRequestHandler, HTTPServer
+import os
+import socket
 import socketserver
 import argparse
+from time import sleep
 
+if os.name != "nt":
+    import fcntl
+    import struct
 
-import sys
-#sys.path.append('/usr/smarthome/plugins/sonos/server/pycharm-debug-py3k.egg')
-#import pydevd
 from lib.sonos_commands import Command
 from lib.sonos_service import SonosServerService
 
 
-class SonosHttpHandler(BaseHTTPRequestHandler):
+def get_interface_ip(ifname):
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    return socket.inet_ntoa(fcntl.ioctl(s.fileno(), 0x8915, struct.pack('256s', ifname[:15].encode('utf-8')))[20:24])
 
+
+def get_lan_ip():
+    ip = socket.gethostbyname(socket.gethostname())
+    if ip.startswith("127.") and os.name != "nt":
+        interfaces = ["eth0", "eth1", "eth2", "wlan0", "wlan1", "wifi0", "ath0", "ath1", "ppp0"]
+        for ifname in interfaces:
+            try:
+                ip = get_interface_ip(ifname)
+                break;
+            except IOError:
+                pass
+    return ip
+
+
+class SonosHttpHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         result, response = command.do_work(self.client_address[0], self.path)
 
@@ -37,25 +57,34 @@ class SonosHttpHandler(BaseHTTPRequestHandler):
         sid = self.headers['SID']
         content_len = int(self.headers['content-length'])
         post_body = self.rfile.read(content_len).decode('utf-8')
-
-        print(post_body)
         sonos_service.response_parser(sid, post_body)
+
 
 class ThreadedHTTPServer(socketserver.ThreadingMixIn, HTTPServer):
     """Handle requests in a separate thread."""
 
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--port', help='Http server port', type=int, dest='port', default=12900)
 parser.add_argument('--host', help='Http server host', dest='host', default='0.0.0.0')
-parser.add_argument('--localip', help='IP of this server in the local network', dest='localip', required=True)
+parser.add_argument('--localip',
+                    help='IP of this server in the local network. By default, sonso_broker try to fetch he ip automatically.',
+                    dest='localip')
 
 args = parser.parse_args()
 port = args.port
 host = args.host
-localip = args.localip
-sonos_service = SonosServerService(localip, port)
-command = Command(sonos_service)
 
+if args.localip:
+    local_ip = args.localip
+else:
+    local_ip = get_lan_ip()
+
+print("Starting server with ip address %s ... be sure this is correct." % local_ip)
+sleep(2)
+
+sonos_service = SonosServerService(local_ip, port)
+command = Command(sonos_service)
 
 if __name__ == "__main__":
     http_server = ThreadedHTTPServer((host, port), SonosHttpHandler)

@@ -22,7 +22,10 @@ Install:
 
 (setup.py coming soon)
 
-	1. copy the entire files to your preferred location (writeable)
+	1. under the github folder "server.sonos/dist/" you'll find the actual release as a tar.gz file
+
+	2. copy this file to your preferred location and unpack it with "tar -xvf "
+
 
 
 	2. (optional) if you want to start shShonos as background service, edit sonos_server.sh
