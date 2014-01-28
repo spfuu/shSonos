@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+__author__ = 'pfischi'
+
 from __future__ import unicode_literals
 import re
 

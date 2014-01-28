@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import argparse
 import re
 from urllib.parse import unquote_plus

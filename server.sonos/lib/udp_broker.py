@@ -1,14 +1,11 @@
+# -*- coding: utf-8 -*-
+__author__ = 'pfischi'
+
 import socket
 from lib import sonos_speaker
 
-__author__ = 'pfischi'
-
-import sys
-#sys.path.append('/usr/smarthome/plugins/sonos/server/pycharm-debug-py3k.egg')
-#import pydevd
 
 registered_clients = {}
-
 
 class UdpResponse():
     @staticmethod

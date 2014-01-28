@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 __author__ = 'pfischi'
 
 PLAYER_SEARCH = """M-SEARCH * HTTP/1.1
