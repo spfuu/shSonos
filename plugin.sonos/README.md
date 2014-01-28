@@ -134,5 +134,6 @@ The plugin is designed to control the sonos speakers in connection with the sono
         watch_item = ow.ibutton
     
     
-  In this small example, the sonos speaker with uid RINCON_000E58D5892E11230 is muted when the iButton is connected       to an iButton Probe.
+  In this small example, the sonos speaker with uid RINCON_000E58D5892E11230 is muted when the iButton is connected
+  to an iButton Probe.
     

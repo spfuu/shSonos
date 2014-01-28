@@ -22,38 +22,66 @@ Install:
 
 (setup.py coming soon)
 
-	1. under the github folder "server.sonos/dist/" you'll find the actual release as a tar.gz file
+	1.  INSTALL
 
-	2. copy this file to your preferred location and unpack it with "tar -xvf "
+	    under the github folder "server.sonos/dist/" you'll find the actual release as a tar.gz file
+	    Unzip this file with:
 
+            tar -xvf sonos_broker_release.tar.gz  (adjust the filename to your needs)
 
+        Go to the unpacked folder and run setup.py with:
 
-	2. (optional) if you want to start shShonos as background service, edit sonos_server.sh
+            sudo python3 setup.py install
 
-		* edit DIR variable to /your/path/location
+        This command will install all the python packages and places the start script to the python folder
+        "/user/local/bin"
 
-		* edit DAEMON_USER (optional)
-		
-		* edit LOCALIP and set it to the server's local network ip (e.g. 192.168.0.70)
+        Run the file sonos_broker with:
 
-		* copy file to /etc/init.d if you want to autostart shShonos on system start
-
-		* chmod +x /path/to/sonos_server.sh
-
-		* chmod +x /path/to/sonos_server.py
-		
-		* ./path/to/sonos_server start
-
-		* (optional) edit sonos_server.py to edit host and port for the http server
-		  (default: 0.0.0.0:9999)
+            ./sonos_broker
 
 
-	3. for raspberry pi user, please follow these instruction prior to point 2:
+        Normally, the script finds the interal ip address of your computer. If not, you have start the script with
+        the following parameter:
 
-        sudo apt-get update
-        sudo apt-get upgrade
-        sudo easy_install3 requests
+            ./sonos_broker --localip x.x.x.x    (x.x.x.x means your ip: run ifconfig - a to find it out)
 
+
+    2.  CONFIGURATION
+
+        (Optional) if you want to start sonos_broker as background service, edit sonos_broker.sh:
+
+	        Edit DIR variable to /path/location/of/sonos_broker (default: /usr/local/bin)
+
+		    Copy file to /etc/init.d if you want to autostart sonos_broker on system start
+
+		    Make the file executable with:
+
+		        chmod +x /path/to/sonos_broker.sh
+
+		    Start service with:
+
+		        sudo ./path/to/sonos_server start|restart|stop
+
+            Attention!! Please notice that the script is running as with the 'background' flag. In order that, there is
+            no debug or error output. To get these hints in failure cases, remove this flag in sonos_broker.sh
+
+                from:
+
+                start-stop-daemon -v --start --pidfile $PIDFILE --background --make-pidfile --startas $DAEMON --
+
+                to:
+
+                start-stop-daemon -v --start --pidfile $PIDFILE --make-pidfile --startas $DAEMON --
+
+
+	3.  RASPBERRY PI USER
+
+	    For raspberry pi user, please follow these instruction prior to point 2:
+
+            sudo apt-get update
+            sudo apt-get upgrade
+            sudo easy_install3 requests
 
 Testing:
 --------------------------------
@@ -218,9 +246,5 @@ TO DO:
 
 	* full SoCo command implementation
 	* documentation
-	* setup.py
 	* and many more
- 
-
-
-	
+    * Sonos Group Management
