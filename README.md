@@ -27,16 +27,14 @@ smarthome.py
 Install:
 --------------------------------
 
-(setup.py coming soon)
+1.  SETUP
 
-	1.  INSTALL
+    Under the github folder "server.sonos/dist/" you'll find the actual release as a tar.gz file
+	Unzip this file with:
 
-	    under the github folder "server.sonos/dist/" you'll find the actual release as a tar.gz file
-	    Unzip this file with:
+        tar -xvf sonos_broker_release.tar.gz  (adjust the filename to your needs)
 
-            tar -xvf sonos_broker_release.tar.gz  (adjust the filename to your needs)
-
-        Go to the unpacked folder and run setup.py with:
+    Go to the unpacked folder and run setup.py with:
 
             sudo python3 setup.py install
 
