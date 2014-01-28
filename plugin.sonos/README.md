@@ -98,13 +98,18 @@ The plugin is designed to control the sonos speakers in connection with the sono
             sonos_recv = speaker/<sonos_uid>/streamtype
             sonos_init = speaker/<sonos_uid>/streamtype
 
+        [[play_uri]]
+            enforce_update = True
+            type = str
+            sonos_send = speaker/<sonos_uid>/play_uri/set/{}
+            #x-file-cifs://192.168.0.10/music/Depeche Mode - Heaven.mp3
+
   
   To get your sonos speaker id, type this command in your browser (while sonos server running):
   
     http://<sonos_server_ip:port>/client/list
       
-    
-  
+
   To run this plugin with a logic, here is my example:
     
   Go to /usr/smarthome/logics and create a self-named file (e.g. sonos.py)
@@ -129,5 +134,6 @@ The plugin is designed to control the sonos speakers in connection with the sono
         watch_item = ow.ibutton
     
     
-  In this small example, the sonos speaker with uid RINCON_000E58D5892E11230 is muted when the iButton is connected       to an iButton Probe.
+  In this small example, the sonos speaker with uid RINCON_000E58D5892E11230 is muted when the iButton is connected
+  to an iButton Probe.
     

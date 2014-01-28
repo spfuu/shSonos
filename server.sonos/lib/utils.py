@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-import argparse
-import sys
-
-""" Provides general utility functions to be used across modules """
-
 import re
+
+# -*- coding: utf-8 -*-
+__author__ = 'pfischi'
+
+
 
 try:
     from types import StringType, UnicodeType

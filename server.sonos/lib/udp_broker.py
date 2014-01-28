@@ -1,20 +1,17 @@
-import socket
-import sonos_service
-
+# -*- coding: utf-8 -*-
 __author__ = 'pfischi'
 
-import sys
-#sys.path.append('/usr/smarthome/plugins/sonos/server/pycharm-debug-py3k.egg')
-#import pydevd
+import socket
+from lib import sonos_speaker
+
 
 registered_clients = {}
-
 
 class UdpResponse():
     @staticmethod
     def get_speaker(uid):
-        if uid in sonos_service.sonos_speakers:
-            return sonos_service.sonos_speakers[uid]
+        if uid in sonos_speaker.sonos_speakers:
+            return sonos_speaker.sonos_speakers[uid]
         return None
 
     @staticmethod
@@ -103,7 +100,7 @@ class UdpBroker():
                         sock.sendto(data.encode('utf-8'), (sockaddr[0], sockaddr[1]))
                         sock.close()
                         print("UDP: Sending data to {}:{}: ".format(host, port, data))
-                        del (sock)
+                        del sock
 
                     except Exception as e:
                         raise Exception("UDP: Problem sending data to {}:{}: ".format(host, port, e))

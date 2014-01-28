@@ -1,20 +1,24 @@
-# -*- coding: utf-8 -*-
 from __future__ import unicode_literals
+
+# -*- coding: utf-8 -*-
+__author__ = 'pfischi'
+
 from xml.dom import minidom
-import udp_broker
 from collections import namedtuple
 import threading
 import requests
+from lib import sonos_speaker
+from lib.sonos_speaker import SonosSpeaker
+from lib.definitions import uid_pattern, model_pattern, MCAST_PORT, MCAST_GRP, PLAYER_SEARCH
+from lib.udp_broker import UdpBroker, UdpResponse
+from lib.utils import really_utf8, really_unicode
 from soco.core import SoCo
-from utils import really_unicode, really_utf8
 import socket
 import select
-import definitions
 import re
 import logging
 from time import sleep
 from http.client import HTTPConnection
-import sonos_service
 
 try:
     import xml.etree.cElementTree as XML
@@ -39,40 +43,10 @@ Action = namedtuple('Action', 'name, in_args, out_args')
 #sys.path.append('/usr/smarthome/plugins/sonos/server/pycharm-debug-py3k.egg')
 #import pydevd
 
-sonos_speakers = {}
-
-class SonosSpeaker():
-    def __init__(self):
-        self.uid = ''
-        self.ip = ''
-        self.model = ''
-        self.zone_name = ''
-        self.zone_icon = ''
-        self.serial_number = ''
-        self.software_version = ''
-        self.hardware_version = ''
-        self.mac_address = ''
-        self.id = None
-        self.status = 0
-        self.streamtype = ''
-        self.volume = 0
-        self.mute = 0
-        self.led = 1
-        self.streamtype = "No streamtype"
-        self.stop = False
-        self.play = False
-        self.pause = False
-        self.track = "No track title"
-        self.artist = "No track artist"
-
-    def __dir__(self):
-        return ['uid', 'ip', 'model', 'zone_name', 'zone_icon', 'serial_number', 'software_version',
-                'hardware_version', 'mac_address', 'id', 'status']
-
 class SonosServerService():
     def __init__(self, host, port):
 
-        self.udp_broker = udp_broker.UdpBroker()
+        self.udp_broker = UdpBroker()
         self.host = host
         self.port = port
         self._sock = socket.socket(
@@ -96,24 +70,24 @@ class SonosServerService():
 
             if not new_speakers:
                 #no speakers found, delete our list
-                sonos_service.sonos_speakers = {}
+                sonos_speaker.sonos_speakers = {}
                 deep_scan_count = 0
             else:
                 "find any newly added speaker"
-                new_uids = set(new_speakers) - set(sonos_service.sonos_speakers)
+                new_uids = set(new_speakers) - set(sonos_speaker.sonos_speakers)
 
             #do a deep scn for all new devices
             for uid in new_uids:
                 print('new speaker: {} -- adding to list'.format(uid))
                 #add the new speaker to our main list
                 speaker = self.get_speaker_info(new_speakers[uid])
-                sonos_service.sonos_speakers[speaker.uid] = speaker
+                sonos_speaker.sonos_speakers[speaker.uid] = speaker
 
                 for event in events:
                     self.subscribe_speaker_event(speaker, event, self.host, self.port, sleep_scan * max_sleep_count * 2)
 
             #find all offline speaker
-            offline_uids = set(sonos_service.sonos_speakers) - set(new_speakers)
+            offline_uids = set(sonos_speaker.sonos_speakers) - set(new_speakers)
 
             for u in offline_uids:
                 print("offline speaker: {} -- removing from list".format(u))
@@ -121,16 +95,15 @@ class SonosServerService():
             if deep_scan_count == max_sleep_count:
                 print("Performing deep scan for speakers ...")
 
-                for uid, speaker in sonos_service.sonos_speakers.items():
+                for uid, speaker in sonos_speaker.sonos_speakers.items():
                     deep_scan_count = 0
-                    speaker = self.get_speaker_info(sonos_service.sonos_speakers[speaker.uid])
+                    speaker = self.get_speaker_info(sonos_speaker.sonos_speakers[speaker.uid])
                     #re-subscribe
 
                     for event in events:
                         self.unsubscribe_speaker_event(speaker, event, speaker.subscription, self.host, self.port)
-                        self.subscribe_speaker_event(speaker, event, self.host, self.port,
-                                                     sleep_scan * max_sleep_count * 2)
-                    sonos_service.sonos_speakers[speaker.uid] = speaker
+                        self.subscribe_speaker_event(speaker, event, self.host, self.port, sleep_scan * max_sleep_count * 2)
+                        sonos_speaker.sonos_speakers[speaker.uid] = speaker
 
             deep_scan_count += 1
 
@@ -138,7 +111,7 @@ class SonosServerService():
 
 
     def get_soco(self, uid):
-        speaker = sonos_service.sonos_speakers[uid.lower()]
+        speaker =sonos_speaker.sonos_speakers[uid.lower()]
         if speaker:
             return SoCo(speaker.ip)
         return None
@@ -146,7 +119,7 @@ class SonosServerService():
     def get_speakers(self):
         """ Get a list of ips for Sonos devices that can be controlled """
         speakers = {}
-        self._sock.sendto(really_utf8(definitions.PLAYER_SEARCH), (definitions.MCAST_GRP, definitions.MCAST_PORT))
+        self._sock.sendto(really_utf8(PLAYER_SEARCH), (MCAST_GRP, MCAST_PORT))
 
         while True:
             response, _, _ = select.select([self._sock], [], [], 1)
@@ -154,8 +127,8 @@ class SonosServerService():
                 data, addr = self._sock.recvfrom(2048)
                 # Look for the model in parentheses in a line like this
                 # SERVER: Linux UPnP/1.0 Sonos/22.0-65180 (ZPS5)
-                searchmodel = re.search(definitions.model_pattern, data)
-                searchuid = re.search(definitions.uid_pattern, data)
+                searchmodel = re.search(model_pattern, data)
+                searchuid = re.search(uid_pattern, data)
                 try:
                     model = really_unicode(searchmodel.group(1))
                     uid = really_unicode(searchuid.group(1))
@@ -190,7 +163,6 @@ class SonosServerService():
         response = requests.get('http://' + speaker.ip + ':1400/status/zp')
         dom = XML.fromstring(response.content)
 
-        print(response.text)
         if dom.findtext('.//ZoneName') is not None:
             speaker.zone_name = dom.findtext('.//ZoneName')
             speaker.zone_icon = dom.findtext('.//ZoneIcon')
@@ -227,7 +199,6 @@ class SonosServerService():
         conn.request("UNSUBSCRIBE", "{}".format(event), "", headers)
 
         response = conn.getresponse()
-        print(response)
         conn.close()
 
     def response_parser(self, sid, data):
@@ -287,7 +258,7 @@ class SonosServerService():
                 data = "{}\n{}".format(data, entry)
 
             print(data)
-            self.udp_broker.udp_send(data)
+            UdpBroker.udp_send(data)
 
         except Exception as err:
             print(err)
@@ -295,7 +266,7 @@ class SonosServerService():
 
     def parse_mediarenderer_avtransport_event(self, uid, dom, namespace):
 
-        if uid not in sonos_service.sonos_speakers:
+        if uid not in sonos_speaker.sonos_speakers:
             return
 
         changed_values = []
@@ -306,11 +277,11 @@ class SonosServerService():
             track_duration = track_duration_element.get('val')
             if track_duration:
                 if track_duration == '0:00:00':
-                    sonos_service.sonos_speakers[uid].streamtype = "radio"
-                    changed_values.append(udp_broker.UdpResponse.streamtype(uid))
+                    sonos_speaker.sonos_speakers[uid].streamtype = "radio"
+                    changed_values.append(UdpResponse.streamtype(uid))
                 else:
-                    sonos_service.sonos_speakers[uid].streamtype = "music"
-                    changed_values.append(udp_broker.UdpResponse.streamtype(uid))
+                    sonos_speaker.sonos_speakers[uid].streamtype = "music"
+                    changed_values.append(UdpResponse.streamtype(uid))
 
         transport_state_element = dom.find(".//%sTransportState" % namespace)
         if transport_state_element is not None:
@@ -318,21 +289,21 @@ class SonosServerService():
 
             if transport_state:
                 if transport_state.lower() == "stopped":
-                    sonos_service.sonos_speakers[uid].stop = 1
-                    sonos_service.sonos_speakers[uid].play = 0
-                    sonos_service.sonos_speakers[uid].pause = 0
+                    sonos_speaker.sonos_speakers[uid].stop = 1
+                    sonos_speaker.sonos_speakers[uid].play = 0
+                    sonos_speaker.sonos_speakers[uid].pause = 0
                 if transport_state.lower() == "paused_playback":
-                    sonos_service.sonos_speakers[uid].stop = 0
-                    sonos_service.sonos_speakers[uid].play = 0
-                    sonos_service.sonos_speakers[uid].pause = 1
+                    sonos_speaker.sonos_speakers[uid].stop = 0
+                    sonos_speaker.sonos_speakers[uid].play = 0
+                    sonos_speaker.sonos_speakers[uid].pause = 1
                 if transport_state.lower() == "playing":
-                    sonos_service.sonos_speakers[uid].stop = 0
-                    sonos_service.sonos_speakers[uid].play = 1
-                    sonos_service.sonos_speakers[uid].pause = 0
+                    sonos_speaker.sonos_speakers[uid].stop = 0
+                    sonos_speaker.sonos_speakers[uid].play = 1
+                    sonos_speaker.sonos_speakers[uid].pause = 0
 
-                changed_values.append(udp_broker.UdpResponse.stop(uid))
-                changed_values.append(udp_broker.UdpResponse.play(uid))
-                changed_values.append(udp_broker.UdpResponse.pause(uid))
+                changed_values.append(UdpResponse.stop(uid))
+                changed_values.append(UdpResponse.play(uid))
+                changed_values.append(UdpResponse.pause(uid))
 
         didl_element = dom.find(".//%sCurrentTrackMetaData" % namespace)
 
@@ -363,15 +334,15 @@ class SonosServerService():
         if volume_state_element is not None:
             volume = volume_state_element.get('val')
             if volume:
-                sonos_service.sonos_speakers[uid].volume = volume
-                changed_values.append(udp_broker.UdpResponse.volume(uid))
+                sonos_speaker.sonos_speakers[uid].volume = volume
+                changed_values.append(UdpResponse.volume(uid))
 
         mute_state_element = dom.find(".//%sMute[@channel='Master']" % namespace)
         if mute_state_element is not None:
             mute = mute_state_element.get('val')
             if mute:
-                sonos_service.sonos_speakers[uid].mute = mute
-                changed_values.append(udp_broker.UdpResponse.mute(uid))
+                sonos_speaker.sonos_speakers[uid].mute = mute
+                changed_values.append(UdpResponse.mute(uid))
 
         return changed_values
 
@@ -426,10 +397,10 @@ class SonosServerService():
             if not title:
                 title = "No track title"
 
-            sonos_service.sonos_speakers[uid].artist = artist
-            sonos_service.sonos_speakers[uid].track = title
-            changed_values.append(udp_broker.UdpResponse.artist(uid))
-            changed_values.append(udp_broker.UdpResponse.track(uid))
+            sonos_speaker.sonos_speakers[uid].artist = artist
+            sonos_speaker.sonos_speakers[uid].track = title
+            changed_values.append(UdpResponse.artist(uid))
+            changed_values.append(UdpResponse.track(uid))
 
         except Exception as err:
             print(err)

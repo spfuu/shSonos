@@ -1,11 +1,10 @@
+# -*- coding: utf-8 -*-
+
 import argparse
 import re
-import udp_broker
-import sonos_service
-
-#import sys
-#sys.path.append('/usr/smarthome/plugins/sonos/server/pycharm-debug-py3k.egg')
-#import pydevd
+from urllib.parse import unquote_plus
+from lib import sonos_speaker
+from lib.udp_broker import UdpResponse, UdpBroker
 
 
 class Command():
@@ -17,7 +16,6 @@ class Command():
 
         response = 'Unknown command'
         try:
-            print(client_ip)
             command = path.lower()
             command = re.sub("^/|/$", '', command).split('/')
 
@@ -40,7 +38,7 @@ class Command():
     def client_subscribe(self, ip, arguments):
         try:
             port = int(arguments[0])
-            udp_broker.UdpBroker.subscribe_client(ip, port)
+            UdpBroker.subscribe_client(ip, port)
             return True, 'Successfully subscribed client {}:{}'.format(ip, port)
         except:
             return False, "Couldn't subscribe client {}:{}".format(ip, port)
@@ -48,14 +46,14 @@ class Command():
     def client_unsubscribe(self, ip, arguments):
         try:
             port = int(arguments[0])
-            udp_broker.UdpBroker.unsubscribe_client(ip, port)
+            UdpBroker.unsubscribe_client(ip, port)
             return True, 'Successfully unsubscribed client {}:{}'.format(ip, port)
         except:
             return False, "Couldn't unsubscribe client {}:{}".format(ip, port)
 
     def client_list(self, ip, arguments):
         try:
-            speakers = self.sonos_service.get_speakers()
+            speakers = self.get_speakers()
 
             data = ''
 
@@ -75,7 +73,7 @@ class Command():
     def speaker_stop(self, ip, arguments):
         try:
             uid = arguments[0].lower()
-            soco = self.sonos_service.get_soco(uid)
+            soco = self.get_soco(uid)
 
             action = ''
 
@@ -90,23 +88,23 @@ class Command():
                     value = arguments[2]
                     if value in self.true_vars:
                         soco.stop()
-                        sonos_service.sonos_speakers[uid].stop = 1
-                        sonos_service.sonos_speakers[uid].play = 0
-                        sonos_service.sonos_speakers[uid].pause = 0
+                        sonos_speaker.sonos_speakers[uid].stop = 1
+                        sonos_speaker.sonos_speakers[uid].play = 0
+                        sonos_speaker.sonos_speakers[uid].pause = 0
                     else:
                         soco.play()
-                        sonos_service.sonos_speakers[uid].stop = 0
-                        sonos_service.sonos_speakers[uid].play = 1
-                        sonos_service.sonos_speakers[uid].pause = 0
+                        sonos_speaker.sonos_speakers[uid].stop = 0
+                        sonos_speaker.sonos_speakers[uid].play = 1
+                        sonos_speaker.sonos_speakers[uid].pause = 0
 
                 except:
                     raise Exception("Couldn't set stop status for speaker with uid '{}'!".format(uid))
 
             try:
-                data = "%s\r\n" % udp_broker.UdpResponse.stop(uid)
-                data += "%s\r\n" % udp_broker.UdpResponse.play(uid)
-                data += "%s\r\n" % udp_broker.UdpResponse.pause(uid)
-                udp_broker.UdpBroker.udp_send(data)
+                data = "%s\r\n" % UdpResponse.stop(uid)
+                data += "%s\r\n" % UdpResponse.play(uid)
+                data += "%s\r\n" % UdpResponse.pause(uid)
+                UdpBroker.udp_send(data)
 
                 return True, "Successfully send stop status for speaker with uid '{}'.".format(uid)
             except:
@@ -118,7 +116,7 @@ class Command():
     def speaker_play(self, ip, arguments):
         try:
             uid = arguments[0].lower()
-            soco = self.sonos_service.get_soco(uid)
+            soco = self.get_soco(uid)
 
             action = ''
 
@@ -133,21 +131,21 @@ class Command():
                     value = arguments[2]
                     if value in self.true_vars:
                         soco.play()
-                        sonos_service.sonos_speakers[uid].stop = 0
-                        sonos_service.sonos_speakers[uid].play = 1
-                        sonos_service.sonos_speakers[uid].pause = 0
+                        sonos_speaker.sonos_speakers[uid].stop = 0
+                        sonos_speaker.sonos_speakers[uid].play = 1
+                        sonos_speaker.sonos_speakers[uid].pause = 0
                     else:
                         soco.stop()
-                        sonos_service.sonos_speakers[uid].stop = 1
-                        sonos_service.sonos_speakers[uid].play = 0
-                        sonos_service.sonos_speakers[uid].pause = 0
+                        sonos_speaker.sonos_speakers[uid].stop = 1
+                        sonos_speaker.sonos_speakers[uid].play = 0
+                        sonos_speaker.sonos_speakers[uid].pause = 0
                 except:
                     raise Exception("Couldn't set play status for speaker with uid '{}'!".format(uid))
             try:
-                data = "%s\n" % udp_broker.UdpResponse.stop(uid)
-                data += "%s\n" % udp_broker.UdpResponse.play(uid)
-                data += "%s\n" % udp_broker.UdpResponse.pause(uid)
-                udp_broker.UdpBroker.udp_send(data)
+                data = "%s\n" % UdpResponse.stop(uid)
+                data += "%s\n" % UdpResponse.play(uid)
+                data += "%s\n" % UdpResponse.pause(uid)
+                UdpBroker.udp_send(data)
 
                 return True, "Successfully send play status for speaker with uid '{}'.".format(uid)
             except:
@@ -166,7 +164,7 @@ class Command():
             if len(arguments) > 2:
                 action = arguments[1]
 
-            soco = self.sonos_service.get_soco(uid)
+            soco = self.get_soco(uid)
 
             if not soco:
                 raise Exception("Couldn't find speaker with uid '{}'!".format(uid))
@@ -176,23 +174,23 @@ class Command():
                     value = arguments[2]
                     if value in self.true_vars:
                         soco.pause()
-                        sonos_service.sonos_speakers[uid].stop = 0
-                        sonos_service.sonos_speakers[uid].play = 0
-                        sonos_service.sonos_speakers[uid].pause = 1
+                        sonos_speaker.sonos_speakers[uid].stop = 0
+                        sonos_speaker.sonos_speakers[uid].play = 0
+                        sonos_speaker.sonos_speakers[uid].pause = 1
                     else:
                         soco.play()
-                        sonos_service.sonos_speakers[uid].stop = 0
-                        sonos_service.sonos_speakers[uid].play = 1
-                        sonos_service.sonos_speakers[uid].pause = 0
+                        sonos_speaker.sonos_speaker.sonos_speakers[uid].stop = 0
+                        sonos_speaker.sonos_speakers[uid].play = 1
+                        sonos_speaker.sonos_speakers[uid].pause = 0
 
                 except:
                     raise Exception("Couldn't set pause status for speaker with uid '{}'!".format(uid))
 
             try:
-                data = "%s\r\n" % udp_broker.UdpResponse.stop(uid)
-                data += "%s\r\n" % udp_broker.UdpResponse.play(uid)
-                data += "%s\r\n" % udp_broker.UdpResponse.pause(uid)
-                udp_broker.UdpBroker.udp_send(data)
+                data = "%s\r\n" % UdpResponse.stop(uid)
+                data += "%s\r\n" % UdpResponse.play(uid)
+                data += "%s\r\n" % UdpResponse.pause(uid)
+                UdpBroker.udp_send(data)
 
                 return True, "Successfully send pause status for speaker with uid '{}'.".format(uid)
             except:
@@ -210,7 +208,7 @@ class Command():
             if len(arguments) > 2:
                 action = arguments[1]
 
-            soco = self.sonos_service.get_soco(uid)
+            soco = self.get_soco(uid)
 
             if not soco:
                 raise Exception("Couldn't find speaker with uid '{}'!".format(uid))
@@ -220,15 +218,15 @@ class Command():
                     value = arguments[2]
                     if value in self.true_vars:
                         soco.mute = True
-                        sonos_service.sonos_speakers[uid].mute = 1
+                        sonos_speaker.sonos_speakers[uid].mute = 1
                     else:
                         soco.mute = False
-                        sonos_service.sonos_speakers[uid].mute = 0
+                        sonos_speaker.sonos_speakers[uid].mute = 0
                 except:
                     raise Exception("Couldn't set mute status for speaker with uid '{}'!".format(uid))
             try:
-                data = udp_broker.UdpResponse.mute(uid)
-                udp_broker.UdpBroker.udp_send(data)
+                data = UdpResponse.mute(uid)
+                UdpBroker.udp_send(data)
 
                 return True, "Successfully send mute status for speaker with uid '{}'.".format(uid)
             except:
@@ -247,7 +245,7 @@ class Command():
             if len(arguments) > 2:
                 action = arguments[1]
 
-            soco = self.sonos_service.get_soco(uid)
+            soco = self.get_soco(uid)
 
             if not soco:
                 raise Exception("Couldn't find speaker with uid '{}'!".format(uid))
@@ -257,16 +255,16 @@ class Command():
                     value = arguments[2]
                     if value in self.true_vars:
                         soco.status_light = True
-                        sonos_service.sonos_speakers[uid].led = 1
+                        sonos_speaker.sonos_speakers[uid].led = 1
                     else:
                         soco.status_light = False
-                        sonos_service.sonos_speakers[uid].led = 0
+                        sonos_speaker.sonos_speakers[uid].led = 0
                 except:
                     raise Exception("Couldn't set led status for speaker with uid '{}'!".format(uid))
             try:
 
-                data = udp_broker.UdpResponse.led(uid)
-                udp_broker.UdpBroker.udp_send(data)
+                data = UdpResponse.led(uid)
+                UdpBroker.udp_send(data)
 
                 return True, "Successfully send led status for speaker with uid '{}'.".format(uid)
             except Exception:
@@ -283,7 +281,7 @@ class Command():
             if len(arguments) > 2:
                 action = arguments[1]
 
-            soco = self.sonos_service.get_soco(uid)
+            soco = self.get_soco(uid)
 
             if not soco:
                 raise Exception("Couldn't find speaker with uid '{}'!".format(uid))
@@ -293,12 +291,12 @@ class Command():
                     value = arguments[2]
                     check_volume_range(value)
                     soco.volume = value
-                    sonos_service.sonos_speakers[uid].volume = value
+                    sonos_speaker.sonos_speakers[uid].volume = value
                 except:
                     raise Exception("Couldn't set volume for speaker with uid '{}'!".format(uid))
             try:
-                data = udp_broker.UdpResponse.volume(uid)
-                udp_broker.UdpBroker.udp_send(data)
+                data = UdpResponse.volume(uid)
+                UdpBroker.udp_send(data)
 
                 return True, "Successfully send volume status for speaker with uid '{}'.".format(uid)
             except Exception:
@@ -310,12 +308,8 @@ class Command():
     def speaker_track(self, ip, arguments):
         try:
             uid = arguments[0].lower()
-            action = ''
 
-            if len(arguments) > 2:
-                action = arguments[1]
-
-            soco = self.sonos_service.get_soco(uid)
+            soco = self.get_soco(uid)
 
             if not soco:
                 raise Exception("Couldn't find speaker with uid '{}'!".format(uid))
@@ -323,13 +317,13 @@ class Command():
             try:
                 #" 'title' 'artist' 'album' 'album_art'  'position' 'playlist_position' 'duration' 'TrackDuration' 'uri' 'position'"
                 track = soco.get_current_track_info()['title']
-                sonos_service.sonos_speakers[uid].track = track
+                sonos_speaker.sonos_speakers[uid].track = track
 
             except:
                 raise Exception("Couldn't get current track title for speaker with uid '{}'!".format(uid))
             try:
-                data = udp_broker.UdpResponse.track(uid)
-                udp_broker.UdpBroker.udp_send(data)
+                data = UdpResponse.track(uid)
+                UdpBroker.udp_send(data)
                 return True, "Successfully send current track title for speaker with uid '{}'.".format(uid)
 
             except Exception:
@@ -342,10 +336,7 @@ class Command():
         try:
             uid = arguments[0].lower()
 
-            if len(arguments) > 2:
-                action = arguments[1]
-
-            soco = self.sonos_service.get_soco(uid)
+            soco = self.get_soco(uid)
 
             if not soco:
                 raise Exception("Couldn't find speaker with uid '{}'!".format(uid))
@@ -353,13 +344,13 @@ class Command():
             try:
                 #" 'title' 'artist' 'album' 'album_art'  'position' 'playlist_position' 'duration' 'TrackDuration' 'uri' 'position'"
                 artist = soco.get_current_track_info()['artist']
-                sonos_service.sonos_speakers[uid].artist = artist
+                sonos_speaker.sonos_speakers[uid].artist = artist
 
             except:
                 raise Exception("Couldn't get current track artist for speaker with uid '{}'!".format(uid))
             try:
-                data = udp_broker.UdpResponse.artist(uid)
-                udp_broker.UdpBroker.udp_send(data)
+                data = UdpResponse.artist(uid)
+                UdpBroker.udp_send(data)
                 return True, "Successfully send current track artist for speaker with uid '{}'.".format(uid)
 
             except Exception:
@@ -368,7 +359,7 @@ class Command():
         except Exception as err:
             return False, err
 
-    def speaker_streamtype(self, ip, arguments):
+    def speaker_play_uri(self, ip, arguments):
         try:
             uid = arguments[0].lower()
             action = ''
@@ -376,15 +367,36 @@ class Command():
             if len(arguments) > 2:
                 action = arguments[1]
 
-            soco = self.sonos_service.get_soco(uid)
+            soco = self.get_soco(uid)
+
+            if not soco:
+                raise Exception("Couldn't find speaker with uid '{}'!".format(uid))
+
+            if action == 'set':
+                try:
+                    play_uri = unquote_plus(arguments[2])
+                    print(play_uri)
+                    soco.play_uri(play_uri)
+                except:
+                    raise Exception("Couldn't set uri for speaker with uid '{}'!".format(uid))
+
+        except Exception as err:
+            return False, err
+
+
+    def speaker_streamtype(self, ip, arguments):
+        try:
+            uid = arguments[0].lower()
+
+            soco = self.get_soco(uid)
 
             if not soco:
                 raise Exception("Couldn't find speaker with uid '{}'!".format(uid))
 
             #no soco implementation, use our speaker info (gathered by sonos events)
             try:
-                data = udp_broker.UdpResponse.streamtype(uid)
-                udp_broker.UdpBroker.udp_send(data)
+                data = UdpResponse.streamtype(uid)
+                UdpBroker.udp_send(data)
                 return True, "Successfully send streamtype for speaker with uid '{}'.".format(uid)
 
             except Exception:
