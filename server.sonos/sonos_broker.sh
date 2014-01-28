@@ -1,8 +1,8 @@
 #!/bin/sh
 #!/usr/bin/env python3
 
-export $PYTHONPATH
-DAEMON=${PYTHONPATH}:/sonos_broker
+DIR=/usr/local/bin
+DAEMON=$DIR/sonos_broker
 DAEMON_NAME=sonosbroker
 
 # The process ID of the script when it runs is stored here:
@@ -14,7 +14,7 @@ do_start () {
 touch $PIDFILE
 #chown $DAEMON_USER $PIDFILE
 log_daemon_msg "Starting system $DAEMON_NAME daemon"
-start-stop-daemon -v --start --pidfile $PIDFILE --make-pidfile --startas $DAEMON --
+start-stop-daemon -v --start --pidfile $PIDFILE --background --make-pidfile --startas $DAEMON --
 log_end_msg $?
 }
 do_stop () {
