@@ -100,7 +100,7 @@ class UdpBroker():
                         sock.sendto(data.encode('utf-8'), (sockaddr[0], sockaddr[1]))
                         sock.close()
                         print("UDP: Sending data to {}:{}: ".format(host, port, data))
-                        del (sock)
+                        del sock
 
                     except Exception as e:
                         raise Exception("UDP: Problem sending data to {}:{}: ".format(host, port, e))
