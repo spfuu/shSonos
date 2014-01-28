@@ -27,12 +27,16 @@ smarthome.py
 Install:
 --------------------------------
 
+
 1. SETUP
+
 
 Under the github folder "server.sonos/dist/" you'll find the actual release as a tar.gz file
 Unzip this file with:
 
-    tar -xvf sonos_broker_release.tar.gz  (adjust the filename to your needs)
+    tar -xvf sonos_broker_release.tar.gz
+
+(adjust the filename to your needs)
 
 Go to the unpacked folder and run setup.py with:
 
@@ -49,10 +53,14 @@ Run the file sonos_broker with:
 Normally, the script finds the interal ip address of your computer. If not, you have start the script with
 the following parameter:
 
-    ./sonos_broker --localip x.x.x.x    (x.x.x.x means your ip: run ifconfig - a to find it out)
+    ./sonos_broker --localip x.x.x.x
+
+(x.x.x.x means your ip: run ifconfig - a to find it out)
+
 
 
 2. CONFIGURATION
+
 
 (Optional) if you want to start sonos_broker as background service, edit sonos_broker.sh:
 
@@ -66,18 +74,19 @@ Make the file executable with:
 
 Start service with:
 
-    sudo ./path/to/sonos_server start|restart|stop
+    sudo ./path/to/sonos_server start
 
 Attention!! Please notice that the script is running as with the 'background' flag. In order that, there is
 no debug or error output. To get these hints in failure cases, remove this flag in sonos_broker.sh
 
-    from:
+from:
 
     start-stop-daemon -v --start --pidfile $PIDFILE --background --make-pidfile --startas $DAEMON --
 
-    to:
+to:
 
     start-stop-daemon -v --start --pidfile $PIDFILE --make-pidfile --startas $DAEMON --
+
 
 
 3. RASPBERRY PI USER
@@ -88,34 +97,36 @@ For raspberry pi user, please follow these instruction prior to point 2:
     sudo apt-get upgrade
     sudo easy_install3 requests
 
+
+
 Testing:
 --------------------------------
 
-	Because of the server-client design, you're not bound to python to communicate 
-	with the sonos server instance. Open your browser and control your speaker. This project is focused on
-	house automation, therefore there is no web interface.
+Because of the server-client design, you're not bound to python to communicate
+with the sonos broker instance. Open your browser and control your speaker. This project is focused on
+house automation, therefore there is no web interface. (maybe this is your contribution :-) )
 
-	Most of the commands return a simple "200 - OK" or "400 Bad Request". The return values
-	will be send over udp to all subscribed clients. To receive these messages, you must have an UDP port
-	open on your client.
+Most of the commands return a simple "200 - OK" or "400 Bad Request". Most of the return values
+will be send over udp to all subscribed clients. To receive these messages, you must have an UDP port
+open on your client.
 	
-	To susbscribe your client for this messages, simply type in following command in your browser:
-	(this step is not necessary for smarthome.py-plugin user, it's done automatically)
+To susbscribe your client for this messages, simply type in following command in your browser:
+(this step is not necessary for smarthome.py-plugin user, it's done automatically)
 
-	http://<sonos_server_ip:port>/client/subscribe/<udp_port>    (udp port is your client port)
+http://<sonos_server_ip:port>/client/subscribe/<udp_port>    (udp port is your client port)
 	
-	To unsubscribe:
+To unsubscribe:
 	
-	http://<sonos_server_ip:port>/client/unsubscribe/<udp_port>
+    http://<sonos_server_ip:port>/client/unsubscribe/<udp_port>
 	
-	After subscription, your client will receive all status updates of all sonos speakers in the network, 
-	whether	they were triggerd by you or other clients (iPad, Android) 
+After subscription, your client will receive all status updates of all sonos speakers in the network,
+whether	they were triggerd by you or other clients (iPad, Android)
 	
-	Most of the commands need a speaker uid. Just type 
+Most of the commands need a speaker uid. Just type
 	
-		http://<sonos_server_ip:port>/client/list
+    http://<sonos_server_ip:port>/client/list
 		
-	to get a short overview of your sonos speakers in the network and to retrieve the uid.
+to get a short overview of your sonos speakers in the network and to retrieve the uid.
 		
 
 First implemented commands (more coming soon):
