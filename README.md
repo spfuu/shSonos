@@ -28,7 +28,7 @@ Install:
 --------------------------------
 
 
-1. SETUP
+1.SETUP
 
 
 Under the github folder "server.sonos/dist/" you'll find the actual release as a tar.gz file
@@ -59,7 +59,7 @@ the following parameter:
 
 
 
-2. CONFIGURATION
+2.CONFIGURATION
 
 
 (Optional) if you want to start sonos_broker as background service, edit sonos_broker.sh:
@@ -89,7 +89,7 @@ to:
 
 
 
-3. RASPBERRY PI USER
+3.RASPBERRY PI USER
 
 For raspberry pi user, please follow these instruction prior to point 2:
 
