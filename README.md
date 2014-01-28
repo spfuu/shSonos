@@ -1,8 +1,9 @@
 Release
 -------------------------------
 v0.1 - 2014-01-28
-    * initial release
-    * setup package
+
+    initial release
+    setup package
 
 
 Overview
