@@ -3,8 +3,8 @@ from distutils.core import setup
 setup(
     name='sonos_broker',
     version='0.1',
-    packages=['lib', 'soco', 'soco.plugins'],
-    #package_dir={'': 'shSonos.git/server.sonos'},
+    packages=['lib', 'soco'],
+    scripts=['sonos_broker'],
     url='https://github.com/pfischi/shSonos',
     license='',
     author='pfischi',

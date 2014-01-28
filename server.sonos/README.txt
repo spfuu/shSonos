@@ -22,6 +22,8 @@ Install:
 
 (setup.py coming soon)
 
+	1. untar sonos_broker
+
 	1. copy the entire files to your preferred location (writeable)
 
 
