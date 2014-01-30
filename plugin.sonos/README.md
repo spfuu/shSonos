@@ -1,267 +1,139 @@
-Release
--------------------------------
-v0.1 - 2014-01-28
+This is the subproject 'plugin.sonos' for the Smarthome.py framework (https://github.com/mknx/smarthome).
+The plugin is designed to control the sonos speakers in connection with the sonos server.
 
-    initial release
-    setup package
+1. Installation
+-----------------------------
 
-
-Overview
--------------------------------
-	
-The shSonos project is primary a simple (python) sonos control server, mainly based on the brilliant SoCo project https://github.com/SoCo/SoCo). 
-It implements a lightweight http server, wich is controlled by simple commands.
- 
-In addition , i decided to write a plugin for the fantastic "Smarthome.py Project" to control sonos speakers in a smart home. (https://github.com/mknx/smarthome/)
-
- 
-Requirements:
---------------------------------
-
-server:	python3 (with library requests)
-
-client-side: nothing special, just send your commands over http or use the plugin to control the speakers within
-smarthome.py
+  Login to your Raspberry Pi
+  
+  Go to /usr/smarthome/plugins
+  
+  Create directory sonos (or whatver you want, plugins will be scanned automatically in this subfolder)
+  
+  Copy __init__.py to your newly created path.
+  
+  Done
 
 
+2. Integration in Smarthome.py
+------------------------------
 
-Install:
---------------------------------
-
-
-1.SETUP
-
-
-Under the github folder "server.sonos/dist/" you'll find the actual release as a tar.gz file
-Unzip this file with:
-
-    tar -xvf sonos_broker_release.tar.gz
-
-(adjust the filename to your needs)
-
-Go to the unpacked folder and run setup.py with:
-
-    sudo python3 setup.py install
-
-This command will install all the python packages and places the start script to the python folder
-"/user/local/bin"
-
-Run the file sonos_broker with:
-
-    ./sonos_broker
+  Go to /usr/smarthome/etc and edit plugins.conf and add ths entry:
+  
+  
+    [sonos]
+  
+      class_name = Sonos
+      class_path = plugins.sonos
+      broker_url = 192.168.178.31:12900               #this is the sonos server ip and port
 
 
-Normally, the script finds the interal ip address of your computer. If not, you have start the script with
-the following parameter:
+  Go to /usr/smarthome/items
+    
+  Create a file named sonos.conf
+  
+  Edit file with this sample of mine:
+  
+  
+    [sonos]
+        sonos_uid = RINCON_000E5123456789             #replace uid with your sonos speaker uid
 
-    ./sonos_broker --localip x.x.x.x
+        [[mute]]
+            type = bool
+            enforce_updates = True
+            sonos_recv = speaker/<sonos_uid>/mute
+            sonos_send = speaker/<sonos_uid>/mute/set/{}
+            sonos_init = speaker/<sonos_uid>/mute
 
-(x.x.x.x means your ip: run ifconfig - a to find it out)
+        [[led]]
+            type = bool
+            enforce_updates = True
+            sonos_recv = speaker/<sonos_uid>/led
+            sonos_send = speaker/<sonos_uid>/led/set/{}
+            sonos_init = speaker/<sonos_uid>/led
 
+        [[volume]]
+            type = num
+            enforce_updates = True
+            sonos_recv = speaker/<sonos_uid>/volume
+            sonos_send = speaker/<sonos_uid>/volume/set/{}
+            sonos_init = speaker/<sonos_uid>/volume
 
+        [[stop]]
+            type = bool
+            enforce_updates = True
+            sonos_recv = speaker/<sonos_uid>/stop
+            sonos_send = speaker/<sonos_uid>/stop/set/{}
+            sonos_init = speaker/<sonos_uid>/stop
 
-2.CONFIGURATION
+        [[play]]
+            type = bool
+            enforce_updates = True
+            sonos_recv = speaker/<sonos_uid>/play
+            sonos_send = speaker/<sonos_uid>/play/set/{}
+            sonos_init = speaker/<sonos_uid>/play
 
+        [[pause]]
+            type = bool
+            enforce_updates = True
+            sonos_recv = speaker/<sonos_uid>/pause
+            sonos_send = speaker/<sonos_uid>/pause/set/{}
+            sonos_init = speaker/<sonos_uid>/pause
 
-(Optional) if you want to start sonos_broker as background service, edit sonos_broker.sh:
+        [[track]]
+            type = str
+            enforce_updates = True
+            sonos_recv = speaker/<sonos_uid>/track
+            sonos_init = speaker/<sonos_uid>/track
 
-Edit DIR variable to /path/location/of/sonos_broker (default: /usr/local/bin)
+        [[artist]]
+            type = str
+            enforce_updates = True
+            sonos_recv = speaker/<sonos_uid>/artist
+            sonos_init = speaker/<sonos_uid>/artist
 
-Copy file to /etc/init.d if you want to autostart sonos_broker on system start
+        [[streamtype]]
+            type = str
+            enforce_updates = True
+            sonos_recv = speaker/<sonos_uid>/streamtype
+            sonos_init = speaker/<sonos_uid>/streamtype
 
-Make the file executable with:
+        [[play_uri]]
+            enforce_update = True
+            type = str
+            sonos_send = speaker/<sonos_uid>/play_uri/set/{}
+            #x-file-cifs://192.168.0.10/music/Depeche Mode - Heaven.mp3
 
-    chmod +x /path/to/sonos_broker.sh
-
-Start service with:
-
-    sudo ./path/to/sonos_server start
-
-Attention!! Please notice that the script is running as with the 'background' flag. In order that, there is
-no debug or error output. To get these hints in failure cases, remove this flag in sonos_broker.sh
-
-from:
-
-    start-stop-daemon -v --start --pidfile $PIDFILE --background --make-pidfile --startas $DAEMON --
-
-to:
-
-    start-stop-daemon -v --start --pidfile $PIDFILE --make-pidfile --startas $DAEMON --
-
-
-
-3.RASPBERRY PI USER
-
-For raspberry pi user, please follow these instruction prior to point 2:
-
-    sudo apt-get update
-    sudo apt-get upgrade
-    sudo easy_install3 requests
-
-
-
-Testing:
---------------------------------
-
-Because of the server-client design, you're not bound to python to communicate
-with the sonos broker instance. Open your browser and control your speaker. This project is focused on
-house automation, therefore there is no web interface. (maybe this is your contribution :-) )
-
-Most of the commands return a simple "200 - OK" or "400 Bad Request". Most of the return values
-will be send over udp to all subscribed clients. To receive these messages, you must have an UDP port
-open on your client.
-	
-To susbscribe your client for this messages, simply type in following command in your browser:
-(this step is not necessary for smarthome.py-plugin user, it's done automatically)
-
-http://<sonos_server_ip:port>/client/subscribe/<udp_port>    (udp port is your client port)
-	
-To unsubscribe:
-	
-    http://<sonos_server_ip:port>/client/unsubscribe/<udp_port>
-	
-After subscription, your client will receive all status updates of all sonos speakers in the network,
-whether	they were triggerd by you or other clients (iPad, Android)
-	
-Most of the commands need a speaker uid. Just type
-	
+  
+  To get your sonos speaker id, type this command in your browser (while sonos server running):
+  
     http://<sonos_server_ip:port>/client/list
-		
-to get a short overview of your sonos speakers in the network and to retrieve the uid.
-		
+      
 
-First implemented commands (more coming soon):
------------------------------------------------
+  To run this plugin with a logic, here is my example:
+    
+  Go to /usr/smarthome/logics and create a self-named file (e.g. sonos.py)
+  Edit this file and place your logic here:
+    
+    
+    #!/usr/bin/env python
+    #
 
-	volume
-	
-		set:
-		
-			http://<sonos_server:port>/speaker/<sonos_uid>/volume/set/<value:0-100>
-		
-		get:
-		
-			http://<sonos_server:port>/speaker/<sonos_uid>/volume
+    if sh.ow.ibutton():
+        sh.sonos.mute(1)
+    else:
+        sh.sonos.mute(0)
 
-		response (udp):
-		
-			speaker/<sonos_uid>/volume/<value>          (0|1)
-		
-	mute
-		set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/mute/set/<value:0|1>
-			
-		get:
-			http://<sonos_server:port>/speaker/<sonos_uid>/mute
-			
-		response (udp)
-			speaker/<sonos_uid>/mute/<value>            (0|1)
-	
-	led
-		set:
-				
-			http://<sonos_server:port>/speaker/<sonos_uid>/led/set/<value:0|1>
-		get:
-			http://<sonos_server:port>/speaker/<sonos_uid>/led
-		
-		response (udp)
-		    speaker/<sonos_uid>/led/<value>             (0|1)
-
-	play
-
-	    set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/play/set/<value:0|1>
-
-		get:
-			http://<sonos_server:port>/speaker/<sonos_uid>/play
-
-		response (udp)
-			speaker/<sonos_uid>/play/<value>            (0|1)
-
-    pause
-
-        set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/pause/set/<value:0|1>
-
-		get:
-			http://<sonos_server:port>/speaker/<sonos_uid>/pause
-
-		response (udp)
-			speaker/<sonos_uid>/pause/<value>           (0|1)
-
-    stop
-
-        set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/stop/set/<value:0|1>
-
-		get:
-			http://<sonos_server:port>/speaker/<sonos_uid>/stop
-
-		response (udp)
-			speaker/<sonos_uid>/stop/<value>            (0|1)
-
-
-    artist
-
-		get:
-			http://<sonos_server:port>/speaker/<sonos_uid>/artist
-
-		response (udp)
-			speaker/<sonos_uid>/artist/<value>
-
-    track
-
-   		get:
-			http://<sonos_server:port>/speaker/<sonos_uid>/track
-
-		response (udp)
-			speaker/<sonos_uid>/track/<value>
-
-
-    streamtype
-
-   		get:
-			http://<sonos_server:port>/speaker/<sonos_uid>/streamtype
-
-		response (udp)
-			speaker/<sonos_uid>/streamtype/<value>      (radio|music)
-
-    play_uri
-
-        set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/play_uri/set/<value>
-
-			    <value>. has to be urlsafe, qoute_plus
-			    If you want to play a title from your network share use following format:
-
-                x-file-cifs%3A%2F%2F192.168.178.100%2Fmusic%2Ftest.mp3
-                (unqouted: x-file-cifs://192.168.0.3/music/test.mp3)
-
-		response:
-			no explicit reponse, but events will be triggerd, if new track title
-
-
-	list
-		get:
-
-			http://<sonos_server:port>/client/list
-		
-		response (http)
-			
-			<html code ....
-				uid : rincon_000e58c3892e01400
-
-				ip : 192.168.178.40
-
-				model : ZPS1
-				.
-				.
-			... htmlcode>			
-			
-TO DO:
---------------------------------
-
-	* full SoCo command implementation
-	* documentation
-	* and many more
-    * Sonos Group Management
+    
+  Last step: go to /usr/smarthome/etc and edit logics.conf
+  Add a section for your logic:
+    
+    # logic
+    [sonos_logic]
+        filename = sonos.py
+        watch_item = ow.ibutton
+    
+    
+  In this small example, the sonos speaker with uid RINCON_000E58D5892E11230 is muted when the iButton is connected
+  to an iButton Probe.
+    
