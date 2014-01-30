@@ -327,6 +327,8 @@ class Command():
                 except:
                     raise Exception("Couldn't seek speaker with uid '{}'!".format(uid))
 
+            return True, "Successfully send seek command for speaker with uid '{}'.".format(uid)
+
         except Exception as err:
             return False, err
 
