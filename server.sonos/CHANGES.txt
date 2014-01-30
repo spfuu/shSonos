@@ -1,1 +1,3 @@
-v0.1, 2014-01-28 -- Initial release.
+v0.1.1  2014-01-30 -- bugfix in sonos_command
+
+v0.1    2014-01-28 -- Initial release
