@@ -59,6 +59,9 @@ class SonosHttpHandler(BaseHTTPRequestHandler):
         sid = self.headers['SID']
         content_len = int(self.headers['content-length'])
         post_body = self.rfile.read(content_len).decode('utf-8')
+
+        print(post_body)
+
         sonos_service.response_parser(sid, post_body)
 
 
