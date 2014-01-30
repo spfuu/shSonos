@@ -1,6 +1,10 @@
 Release
 -------------------------------
-v0.1 - 2014-01-28
+v0.1.1  - 2014-01-30
+
+    bugfix in sonos_command.py
+
+v0.1    - 2014-01-28
 
     initial release
     setup package
