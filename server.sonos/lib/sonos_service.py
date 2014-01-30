@@ -34,7 +34,6 @@ NS = {
 for key_, value_ in NS.items():
     XML.register_namespace(key_, value_)
 
-
 log = logging.getLogger(__name__)
 Argument = namedtuple('Argument', 'name, vartype')
 Action = namedtuple('Action', 'name, in_args, out_args')
@@ -102,16 +101,17 @@ class SonosServerService():
 
                     for event in events:
                         self.unsubscribe_speaker_event(speaker, event, speaker.subscription, self.host, self.port)
-                        self.subscribe_speaker_event(speaker, event, self.host, self.port, sleep_scan * max_sleep_count * 2)
+                        self.subscribe_speaker_event(speaker, event, self.host, self.port,
+                                                     sleep_scan * max_sleep_count * 2)
                         sonos_speaker.sonos_speakers[speaker.uid] = speaker
 
             deep_scan_count += 1
 
             sleep(sleep_scan)
 
-
-    def get_soco(self, uid):
-        speaker =sonos_speaker.sonos_speakers[uid.lower()]
+    @staticmethod
+    def get_soco(uid):
+        speaker = sonos_speaker.sonos_speakers[uid.lower()]
         if speaker:
             return SoCo(speaker.ip)
         return None
@@ -312,7 +312,7 @@ class SonosServerService():
             if didl:
                 didl_dom = XML.fromstring(didl)
                 if didl_dom:
-                        changed_values.extend(self.parse_track_metadata(uid, didl_dom))
+                    changed_values.extend(self.parse_track_metadata(uid, didl_dom))
 
         return changed_values
 

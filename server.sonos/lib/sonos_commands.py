@@ -5,7 +5,7 @@ import re
 from urllib.parse import unquote_plus
 from lib import sonos_speaker
 from lib.udp_broker import UdpResponse, UdpBroker
-
+from lib.sonos_service import SonosServerService
 
 class Command():
     def __init__(self, service):
@@ -73,7 +73,7 @@ class Command():
     def speaker_stop(self, ip, arguments):
         try:
             uid = arguments[0].lower()
-            soco = self.get_soco(uid)
+            soco = SonosServerService.get_soco(uid)
 
             action = ''
 
@@ -116,7 +116,7 @@ class Command():
     def speaker_play(self, ip, arguments):
         try:
             uid = arguments[0].lower()
-            soco = self.get_soco(uid)
+            soco = SonosServerService.get_soco(uid)
 
             action = ''
 
@@ -164,7 +164,7 @@ class Command():
             if len(arguments) > 2:
                 action = arguments[1]
 
-            soco = self.get_soco(uid)
+            soco = SonosServerService.get_soco(uid)
 
             if not soco:
                 raise Exception("Couldn't find speaker with uid '{}'!".format(uid))
@@ -208,7 +208,7 @@ class Command():
             if len(arguments) > 2:
                 action = arguments[1]
 
-            soco = self.get_soco(uid)
+            soco = SonosServerService.get_soco(uid)
 
             if not soco:
                 raise Exception("Couldn't find speaker with uid '{}'!".format(uid))
@@ -245,7 +245,7 @@ class Command():
             if len(arguments) > 2:
                 action = arguments[1]
 
-            soco = self.get_soco(uid)
+            soco = SonosServerService.get_soco(uid)
 
             if not soco:
                 raise Exception("Couldn't find speaker with uid '{}'!".format(uid))
@@ -281,7 +281,7 @@ class Command():
             if len(arguments) > 2:
                 action = arguments[1]
 
-            soco = self.get_soco(uid)
+            soco = SonosServerService.get_soco(uid)
 
             if not soco:
                 raise Exception("Couldn't find speaker with uid '{}'!".format(uid))
@@ -305,11 +305,37 @@ class Command():
         except Exception as err:
             return False, err
 
+
+    def speaker_seek(self, ip, arguments):
+        try:
+            uid = arguments[0].lower()
+            action = ''
+
+            if len(arguments) > 2:
+                action = arguments[1]
+
+            soco = SonosServerService.get_soco(uid)
+
+            if not soco:
+                raise Exception("Couldn't find speaker with uid '{}'!".format(uid))
+
+            if action == 'set':
+                try:
+                    timestamp = arguments[2]
+                    print(timestamp)
+                    soco.seek(timestamp)
+                except:
+                    raise Exception("Couldn't seek speaker with uid '{}'!".format(uid))
+
+        except Exception as err:
+            return False, err
+
+
     def speaker_track(self, ip, arguments):
         try:
             uid = arguments[0].lower()
 
-            soco = self.get_soco(uid)
+            soco = SonosServerService.get_soco(uid)
 
             if not soco:
                 raise Exception("Couldn't find speaker with uid '{}'!".format(uid))
@@ -336,7 +362,7 @@ class Command():
         try:
             uid = arguments[0].lower()
 
-            soco = self.get_soco(uid)
+            soco = SonosServerService.get_soco(uid)
 
             if not soco:
                 raise Exception("Couldn't find speaker with uid '{}'!".format(uid))
@@ -367,7 +393,7 @@ class Command():
             if len(arguments) > 2:
                 action = arguments[1]
 
-            soco = self.get_soco(uid)
+            soco = SonosServerService.get_soco(uid)
 
             if not soco:
                 raise Exception("Couldn't find speaker with uid '{}'!".format(uid))
@@ -388,7 +414,7 @@ class Command():
         try:
             uid = arguments[0].lower()
 
-            soco = self.get_soco(uid)
+            soco = SonosServerService.get_soco(uid)
 
             if not soco:
                 raise Exception("Couldn't find speaker with uid '{}'!".format(uid))
@@ -404,6 +430,7 @@ class Command():
 
         except Exception as err:
             return False, err
+
 
 
 def check_volume_range(volume):
