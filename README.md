@@ -213,8 +213,8 @@ First implemented commands (more coming soon):
 		response (udp)
 			speaker/<sonos_uid>/stop/<value>            (0|1)
 
-
     seek
+
         set:
 			http://<sonos_server:port>/speaker/<sonos_uid>/seek/set/<value> #value format = HH:MM:ss
 
