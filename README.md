@@ -20,7 +20,7 @@ Overview
 -------------------------------
 	
 The shSonos project is primary a simple (python) sonos control server, mainly based on the brilliant SoCo project https://github.com/SoCo/SoCo). 
-It implements a lightweight http server, wich is controlled by simple commands.
+It implements a lightweight http server, which is controlled by simple commands.
  
 In addition , i decided to write a plugin for the fantastic "Smarthome.py Project" to control sonos speakers in a smart home. (https://github.com/mknx/smarthome/)
 
@@ -86,7 +86,8 @@ Start service with:
     sudo ./path/to/sonos_broker.sh start
 
 
-To autostart the service on system boot, please follow the instruction for your linux distribution.
+To autostart the service on system boot, please follow the instruction for your linux distribution and put this
+script in the right place.
 
 
 Attention!! Please notice that the script is running as with the 'background' flag. In order that, there is
