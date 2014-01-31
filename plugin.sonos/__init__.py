@@ -22,6 +22,7 @@ import http
 import logging
 import lib.connection
 import lib.tools
+import re
 from urllib.parse import quote_plus
 
 #for remote debugging only
@@ -185,10 +186,16 @@ class Sonos():
                 if command[2] == 'play_uri':
                     cmd = self.command.play_uri(command[1], value)
 
+                if command[2] == 'seek':
+                    if not re.match(r'^[0-9][0-9]?:[0-9][0-9]:[0-9][0-9]$', value):
+                        logger.warning('invalid timestamp for sonos seek command, use HH:MM:SS format')
+                        cmd = None
+                    else:
+                        cmd = self.command.seek(command[1], value)
+
                 if cmd:
                     self.send_cmd(cmd)
-        else:
-            logger.debug("SONOS CALLER")
+
         return None
 
     @staticmethod
@@ -253,6 +260,10 @@ class SonosCommand():
     @staticmethod
     def volume(uid, value):
         return "speaker/{}/volume/set/{}".format(uid, value)
+
+    @staticmethod
+    def seek(uid, value):
+        return "speaker/{}/seek/set/{}".format(uid, value)
 
     @staticmethod
     def play_uri(uid, value):
