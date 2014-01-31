@@ -1,6 +1,6 @@
 Release
 -------------------------------
-v0.1.2  - 2014-01-30
+v0.1.2  - 2014-01-31
 
     added command 'track_duration'
     added command 'track_position'
