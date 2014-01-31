@@ -1,3 +1,15 @@
-v0.1.1  2014-01-30 -- bugfix in sonos_command
+v0.1.2  2014-01-31
 
-v0.1    2014-01-28 -- Initial release
+-- added track_duration (get command / event parsing)
+-- added track_postion (get command)
+-- added seek (set command)
+
+
+v0.1.1  2014-01-30
+
+-- bugfix in sonos_command
+
+
+v0.1    2014-01-28
+
+-- Initial release
