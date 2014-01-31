@@ -332,6 +332,63 @@ class Command():
         except Exception as err:
             return False, err
 
+    def speaker_track_duration(self, ip, arguments):
+        try:
+            uid = arguments[0].lower()
+            soco = SonosServerService.get_soco(uid)
+
+            if not soco:
+                raise Exception("Couldn't find speaker with uid '{}'!".format(uid))
+
+            try:
+                track_duration = soco.get_current_track_info()['duration']
+
+                if not track_duration:
+                    track_duration = "00:00:00"
+                sonos_speaker.sonos_speakers[uid].track_duration = track_duration
+
+            except:
+                raise Exception("Couldn't get current track duration for speaker with uid '{}'!".format(uid))
+            try:
+                data = UdpResponse.track_duration(uid)
+                UdpBroker.udp_send(data)
+                return True, "Successfully send current track duration for speaker with uid '{}'.".format(uid)
+
+            except Exception:
+                raise Exception("Couldn't get current track duration for speaker with uid '{}'!".format(uid))
+
+        except Exception as err:
+            return False, err
+
+    def speaker_track_position(self, ip, arguments):
+        try:
+            uid = arguments[0].lower()
+            soco = SonosServerService.get_soco(uid)
+
+            if not soco:
+                raise Exception("Couldn't find speaker with uid '{}'!".format(uid))
+
+            try:
+                track_position = soco.get_current_track_info()['position']
+
+                if not track_position:
+                    track_position = "00:00:00"
+
+                sonos_speaker.sonos_speakers[uid].track_position = track_position
+
+            except:
+                raise Exception("Couldn't get track position for speaker with uid '{}'!".format(uid))
+            try:
+                data = UdpResponse.track_position(uid)
+                UdpBroker.udp_send(data)
+                return True, "Successfully send current track position for speaker with uid '{}'.".format(uid)
+
+            except Exception:
+                raise Exception("Couldn't get current track position for speaker with uid '{}'!".format(uid))
+
+        except Exception as err:
+            return False, err
+
 
     def speaker_track(self, ip, arguments):
         try:
