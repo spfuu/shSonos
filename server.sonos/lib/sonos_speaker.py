@@ -27,6 +27,8 @@ class SonosSpeaker():
         self.pause = False
         self.track = "No track title"
         self.artist = "No track artist"
+        self.track_duration = "00:00:00"
+        self.track_position = "00:00:00"
 
     def __dir__(self):
         return ['uid', 'ip', 'model', 'zone_name', 'zone_icon', 'serial_number', 'software_version',

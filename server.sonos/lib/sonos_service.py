@@ -257,7 +257,6 @@ class SonosServerService():
             for entry in response_list:
                 data = "{}\n{}".format(data, entry)
 
-            print(data)
             UdpBroker.udp_send(data)
 
         except Exception as err:
@@ -276,18 +275,38 @@ class SonosServerService():
         if track_duration_element is not None:
             track_duration = track_duration_element.get('val')
             if track_duration:
+                sonos_speaker.sonos_speakers[uid].track_duration = track_duration
+
                 if track_duration == '0:00:00':
+                    sonos_speaker.sonos_speakers[uid].track_position = "00:00:00"
+                    changed_values.append(UdpResponse.track_position(uid))
                     sonos_speaker.sonos_speakers[uid].streamtype = "radio"
-                    changed_values.append(UdpResponse.streamtype(uid))
                 else:
                     sonos_speaker.sonos_speakers[uid].streamtype = "music"
-                    changed_values.append(UdpResponse.streamtype(uid))
+
+                changed_values.append(UdpResponse.streamtype(uid))
+
+            else:
+                sonos_speaker.sonos_speakers[uid].track_duration = "00:00:00"
+
+            changed_values.append(UdpResponse.track_duration(uid))
 
         transport_state_element = dom.find(".//%sTransportState" % namespace)
         if transport_state_element is not None:
             transport_state = transport_state_element.get('val')
 
             if transport_state:
+                if transport_state.lower() == "transitioning":
+                    #because where is no event for current track position, we call it active
+                    soco = self.get_soco(uid)
+                    track_position = soco.get_current_track_info()['position']
+
+                    if not track_position:
+                        track_position = "00:00:00"
+
+                    sonos_speaker.sonos_speakers[uid].track_position = track_position
+                    changed_values.append(UdpResponse.track_position(uid))
+
                 if transport_state.lower() == "stopped":
                     sonos_speaker.sonos_speakers[uid].stop = 1
                     sonos_speaker.sonos_speakers[uid].play = 0
