@@ -68,6 +68,18 @@ class UdpResponse():
         if speaker:
             return "speaker/{}/artist/{}".format(uid, speaker.artist)
 
+    @staticmethod
+    def track_duration(uid):
+        speaker = UdpResponse.get_speaker(uid)
+        if speaker:
+            return "speaker/{}/track_duration/{}".format(uid, speaker.track_duration)
+
+    @staticmethod
+    def track_position(uid):
+        speaker = UdpResponse.get_speaker(uid)
+        if speaker:
+            return "speaker/{}/track_position/{}".format(uid, speaker.track_position)
+
 
 class UdpBroker():
 
