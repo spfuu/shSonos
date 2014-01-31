@@ -1,6 +1,12 @@
 Release
 -------------------------------
-v0.1.1  - 2014-01-30
+v0.1.2  - 2014-01-30
+
+    added command 'track_duration'
+    added command 'track_position'
+    added command 'seek'
+
+v0.1.1  - 2014-01-29
 
     bugfix in sonos_command.py
 
@@ -64,22 +70,24 @@ the following parameter:
 
 
 
-2.CONFIGURATION
+2.CONFIGURATION (optional)
 
-
-(Optional) if you want to start sonos_broker as background service, edit sonos_broker.sh:
+There is also a sh-script to daemonize the sonos_broker start named sonos_broker.sh.
+If you want to start sonos_broker as background service, edit sonos_broker.sh:
 
 Edit DIR variable to /path/location/of/sonos_broker (default: /usr/local/bin)
 
-Copy file to /etc/init.d if you want to autostart sonos_broker on system start
-
 Make the file executable with:
 
-    chmod +x /path/to/sonos_broker.sh
+    chmod +x /usr/local/bin/sonos_broker.sh
 
 Start service with:
 
-    sudo ./path/to/sonos_server start
+    sudo ./path/to/sonos_broker.sh start
+
+
+To autostart the service on system boot, please follow the instruction for your linux distribution.
+
 
 Attention!! Please notice that the script is running as with the 'background' flag. In order that, there is
 no debug or error output. To get these hints in failure cases, remove this flag in sonos_broker.sh
@@ -118,7 +126,7 @@ open on your client.
 To susbscribe your client for this messages, simply type in following command in your browser:
 (this step is not necessary for smarthome.py-plugin user, it's done automatically)
 
-http://<sonos_server_ip:port>/client/subscribe/<udp_port>    (udp port is your client port)
+    http://<sonos_server_ip:port>/client/subscribe/<udp_port>    (udp port is your client port)
 	
 To unsubscribe:
 	
@@ -205,6 +213,10 @@ First implemented commands (more coming soon):
 			speaker/<sonos_uid>/stop/<value>            (0|1)
 
 
+    seek
+        set:
+			http://<sonos_server:port>/speaker/<sonos_uid>/seek/set/<value> #value format = HH:MM:ss
+
     artist
 
 		get:
@@ -220,6 +232,28 @@ First implemented commands (more coming soon):
 
 		response (udp)
 			speaker/<sonos_uid>/track/<value>
+
+
+    track_duration
+
+        get:
+			http://<sonos_server:port>/speaker/<sonos_uid>/track_duration   #HH:MM:ss
+
+		response (udp)
+			speaker/<sonos_uid>/track_duration/<value>                      #HH:MM:ss
+
+
+    track_position
+
+        get:
+			http://<sonos_server:port>/speaker/<sonos_uid>/track_position   #HH:MM:ss
+
+		response (udp)
+			speaker/<sonos_uid>/track_position/<value>                      #HH:MM:ss
+
+			Attention, there is no automatic event for this value.
+			If necessary poll this value (e.g. 1sec) to get the value by
+			udp.
 
 
     streamtype
@@ -242,7 +276,7 @@ First implemented commands (more coming soon):
                 (unqouted: x-file-cifs://192.168.0.3/music/test.mp3)
 
 		response:
-			no explicit reponse, but events will be triggerd, if new track title
+			no explicit response, but events will be triggered, if new track title
 
 
 	list
