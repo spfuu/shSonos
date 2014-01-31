@@ -1,7 +1,25 @@
 This is the subproject 'plugin.sonos' for the Smarthome.py framework (https://github.com/mknx/smarthome).
 The plugin is designed to control the sonos speakers in connection with the sonos server.
 
-1. Installation
+
+0. Release
+-----------------------------
+  v0.1    2014-01-28
+    -- Initial release
+    -- new commands: seek, track_position, track_duration
+    -- requires sonos_broker server v0.1.2
+
+
+1. Requirements:
+-----------------------------
+
+  sonos_broker server v0.1.2
+  (https://github.com/pfischi/shSonos)
+
+  smarthome.py
+
+
+2. Installation
 -----------------------------
 
   Login to your Raspberry Pi
@@ -15,7 +33,7 @@ The plugin is designed to control the sonos speakers in connection with the sono
   Done
 
 
-2. Integration in Smarthome.py
+3. Integration in Smarthome.py
 ------------------------------
 
   Go to /usr/smarthome/etc and edit plugins.conf and add ths entry:
