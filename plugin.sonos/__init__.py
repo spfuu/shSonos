@@ -23,24 +23,20 @@ import logging
 import lib.connection
 import lib.tools
 import re
+import threading
+from time import sleep
 from urllib.parse import quote_plus
-
-#for remote debugging only
-#import sys
-#sys.path.append('/usr/smarthome/plugins/sonos/pycharm-debug-py3k.egg')
-#import pydevd
-
 
 logger = logging.getLogger('Sonos')
 
 
 class UDPDispatcher(lib.connection.Server):
-
     def __init__(self, parser, ip, port):
         lib.connection.Server.__init__(self, ip, port, proto='UDP')
         self.dest = 'udp:' + ip + ':' + port
         self.parser = parser
         self.connect()
+
 
     def handle_connection(self):
         try:
@@ -54,11 +50,9 @@ class UDPDispatcher(lib.connection.Server):
 
         self.parser(ip, self.dest, data.decode().strip())
 
+
 class Sonos():
-
     def __init__(self, smarthome, host='0.0.0.0', port='9999', broker_url=None):
-
-        #pydevd.settrace('192.168.178.44', port=12000, stdoutToServer=True, stderrToServer=True)
 
         if broker_url:
             self._broker_url = broker_url
@@ -67,13 +61,14 @@ class Sonos():
         self.command = SonosCommand()
         self._val = {}
         self._init_cmds = []
-
+        self.subscribe_thread = None
+        self.stop_treads = False
         UDPDispatcher(self.parse_input, host, port)
 
     def parse_input(self, source, dest, data):
         try:
-           values = data.split('\n')
-           for value in values:
+            values = data.split('\n')
+            for value in values:
                 logger.debug(value)
                 self.update_items_with_data(value)
 
@@ -81,16 +76,31 @@ class Sonos():
             logger.debug(err)
 
     def run(self):
+        self.subscribe_thread = threading.Thread(target=self.subscribe())
+        self.subscribe_thread.start()
         self.alive = True
-        # if you want to create child threads, do not make them daemon = True!
-        # They will not shutdown properly. (It's a python bug)
 
-        self.send_cmd('client/subscribe/{}'.format(self.port))
+    def subscribe(self):
+        counter = 120
+        while True:
+            #main thread is going to be stopped, exit thread
+            if self.stop_treads:
+                return
+            if counter == 120:
+                logger.debug('(re)registering to sonos broker server ...')
+                self.send_cmd('client/subscribe/{}'.format(self.port))
 
-        for cmd in self._init_cmds:
-            self.send_cmd(cmd)
+                for cmd in self._init_cmds:
+                    logger.debug(cmd)
+                    self.send_cmd(cmd)
+
+                counter = 0
+
+            sleep(1)
+            counter += counter
 
     def stop(self):
+        self.stop_treads = True
         self.alive = False
 
     def resolve_cmd(self, item, attr):
@@ -216,14 +226,13 @@ class Sonos():
                 logger.warning("Sonos: Could not send message %s %s - %s %s" %
                                (self._broker_url, cmd, response.status, response.reason))
             conn.close()
-            del(conn)
+            del (conn)
 
         except Exception as e:
             logger.warning(
                 "Could not send sonos notification: {0}. Error: {1}".format(cmd, e))
 
         logger.debug("Sending request: {0}".format(cmd))
-
 
 
     def update_items_with_data(self, data):
@@ -235,6 +244,7 @@ class Sonos():
             for item in self._val[cmd[0]]['items']:
                 logger.debug("data: {}".format(cmd[1]))
                 item(cmd[1], 'Sonos', '')
+
 
 class SonosCommand():
     @staticmethod
@@ -275,7 +285,7 @@ class SonosCommand():
         try:
             return dom.attributes["uid"].value.lower()
         except:
-           return None
+            return None
 
     @staticmethod
     def get_bool_result(dom, result_string):
