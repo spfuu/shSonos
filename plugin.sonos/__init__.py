@@ -20,8 +20,8 @@
 #########################################################################
 import http
 import logging
-import lib_sonos.connection
-import lib_sonos.tools
+import lib.connection
+import lib.tools
 import re
 import threading
 from time import sleep
