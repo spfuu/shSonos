@@ -30,9 +30,9 @@ from urllib.parse import quote_plus
 logger = logging.getLogger('Sonos')
 
 
-class UDPDispatcher(lib_sonos.connection.Server):
+class UDPDispatcher(lib.connection.Server):
     def __init__(self, parser, ip, port):
-        lib_sonos.connection.Server.__init__(self, ip, port, proto='UDP')
+        lib.connection.Server.__init__(self, ip, port, proto='UDP')
         self.dest = 'udp:' + ip + ':' + port
         self.parser = parser
         self.connect()
