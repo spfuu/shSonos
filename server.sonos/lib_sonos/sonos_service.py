@@ -7,11 +7,11 @@ from xml.dom import minidom
 from collections import namedtuple
 import threading
 import requests
-from lib import sonos_speaker
-from lib.sonos_speaker import SonosSpeaker
-from lib.definitions import uid_pattern, model_pattern, MCAST_PORT, MCAST_GRP, PLAYER_SEARCH
-from lib.udp_broker import UdpBroker, UdpResponse
-from lib.utils import really_utf8, really_unicode
+from lib_sonos import sonos_speaker
+from lib_sonos.sonos_speaker import SonosSpeaker
+from lib_sonos.definitions import uid_pattern, model_pattern, MCAST_PORT, MCAST_GRP, PLAYER_SEARCH
+from lib_sonos.udp_broker import UdpBroker, UdpResponse
+from lib_sonos.utils import really_utf8, really_unicode
 from soco.core import SoCo
 import socket
 import select

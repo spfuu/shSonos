@@ -2,7 +2,7 @@
 __author__ = 'pfischi'
 
 import socket
-from lib import sonos_speaker
+from lib_sonos import sonos_speaker
 
 
 registered_clients = {}
