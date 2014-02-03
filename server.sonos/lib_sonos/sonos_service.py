@@ -43,14 +43,17 @@ Action = namedtuple('Action', 'name, in_args, out_args')
 #import pydevd
 
 class SonosServerService():
+
+    _sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+    _sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
+
     def __init__(self, host, port):
 
         self.udp_broker = UdpBroker()
         self.host = host
         self.port = port
-        self._sock = socket.socket(
-            socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-        self._sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
+
+
         threading.Thread(target=self.get_speakers_periodically).start()
 
     def get_speakers_periodically(self):
@@ -116,15 +119,16 @@ class SonosServerService():
             return SoCo(speaker.ip)
         return None
 
-    def get_speakers(self):
+    @staticmethod
+    def get_speakers():
         """ Get a list of ips for Sonos devices that can be controlled """
         speakers = {}
-        self._sock.sendto(really_utf8(PLAYER_SEARCH), (MCAST_GRP, MCAST_PORT))
+        SonosServerService._sock.sendto(really_utf8(PLAYER_SEARCH), (MCAST_GRP, MCAST_PORT))
 
         while True:
-            response, _, _ = select.select([self._sock], [], [], 1)
+            response, _, _ = select.select([SonosServerService._sock], [], [], 1)
             if response:
-                data, addr = self._sock.recvfrom(2048)
+                data, addr = SonosServerService._sock.recvfrom(2048)
                 # Look for the model in parentheses in a line like this
                 # SERVER: Linux UPnP/1.0 Sonos/22.0-65180 (ZPS5)
                 searchmodel = re.search(model_pattern, data)

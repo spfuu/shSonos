@@ -53,7 +53,7 @@ class Command():
 
     def client_list(self, ip, arguments):
         try:
-            speakers = self.get_speakers()
+            speakers = SonosServerService.get_speakers()
 
             data = ''
 

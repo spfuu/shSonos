@@ -12,8 +12,8 @@ if os.name != "nt":
     import fcntl
     import struct
 
-from lib.sonos_commands import Command
-from lib.sonos_service import SonosServerService
+from lib_sonos.sonos_commands import Command
+from lib_sonos.sonos_service import SonosServerService
 
 
 def get_interface_ip(ifname):
