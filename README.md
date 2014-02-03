@@ -1,19 +1,24 @@
 Release
 -------------------------------
-v0.1.2  - 2014-01-31
+v0.1.3  2014-02-02
 
-    added command 'track_duration'
-    added command 'track_position'
-    added command 'seek'
+    -- changed package name from lib to lib_sonos due to incompatibility to smarthome.py
+    -- -- fixed small issue in command get_clients
 
-v0.1.1  - 2014-01-29
+v0.1.2  2014-01-31
 
-    bugfix in sonos_command.py
+    -- added command 'track_duration'
+    -- added command 'track_position'
+    -- added command 'seek'
 
-v0.1    - 2014-01-28
+v0.1.1  2014-01-29
 
-    initial release
-    setup package
+    -- bugfix in sonos_command.py
+
+v0.1    2014-01-28
+
+    -- initial release
+    -- setup package
 
 
 Overview

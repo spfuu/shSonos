@@ -3,9 +3,9 @@
 import argparse
 import re
 from urllib.parse import unquote_plus
-from lib import sonos_speaker
-from lib.udp_broker import UdpResponse, UdpBroker
-from lib.sonos_service import SonosServerService
+from lib_sonos import sonos_speaker
+from lib_sonos.udp_broker import UdpResponse, UdpBroker
+from lib_sonos.sonos_service import SonosServerService
 
 class Command():
     def __init__(self, service):
@@ -53,7 +53,7 @@ class Command():
 
     def client_list(self, ip, arguments):
         try:
-            speakers = self.get_speakers()
+            speakers = SonosServerService.get_speakers()
 
             data = ''
 

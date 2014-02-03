@@ -20,8 +20,8 @@
 #########################################################################
 import http
 import logging
-import lib.connection
-import lib.tools
+import lib_sonos.connection
+import lib_sonos.tools
 import re
 import threading
 from time import sleep
@@ -30,9 +30,9 @@ from urllib.parse import quote_plus
 logger = logging.getLogger('Sonos')
 
 
-class UDPDispatcher(lib.connection.Server):
+class UDPDispatcher(lib_sonos.connection.Server):
     def __init__(self, parser, ip, port):
-        lib.connection.Server.__init__(self, ip, port, proto='UDP')
+        lib_sonos.connection.Server.__init__(self, ip, port, proto='UDP')
         self.dest = 'udp:' + ip + ':' + port
         self.parser = parser
         self.connect()
