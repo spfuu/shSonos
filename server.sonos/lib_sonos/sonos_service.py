@@ -114,6 +114,10 @@ class SonosServerService():
 
     @staticmethod
     def get_soco(uid):
+        """
+
+        @rtype : soco instance, null if not found
+        """
         speaker = sonos_speaker.sonos_speakers[uid.lower()]
         if speaker:
             return SoCo(speaker.ip)
