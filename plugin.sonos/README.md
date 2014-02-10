@@ -4,6 +4,9 @@ The plugin is designed to control the sonos speakers in connection with the sono
 
 0. Release
 -----------------------------
+  v0.2    2014-02-10
+    -- command 'next' and 'previous' added
+
   v0.1    2014-01-28
     -- Initial release
     -- new commands: seek, track_position, track_duration
