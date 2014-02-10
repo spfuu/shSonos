@@ -4,7 +4,7 @@
 the main entry to the SoCo functionality
 """
 
-
+from __future__ import unicode_literals
 
 try:
     import xml.etree.cElementTree as XML
@@ -301,7 +301,7 @@ class SoCo(object):  # pylint: disable=R0904
             ('Target', timestamp)
             ])
 
-    def __next__(self):
+    def next(self):
         """ Go to the next track.
 
         Returns:
@@ -711,7 +711,7 @@ class SoCo(object):  # pylint: disable=R0904
 
         zone_dict = self.topology[zone_name]
         zone_group = zone_dict['group']
-        for zone_value in list(self.topology.values()):
+        for zone_value in self.topology.values():
             if zone_value['group'] == zone_group and zone_value['coordinator']:
                 return zone_value['ip']
 

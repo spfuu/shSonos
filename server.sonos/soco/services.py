@@ -24,7 +24,7 @@ Classes representing Sonos UPnP services.
 """
 # UPnP Spec at http://upnp.org/specs/arch/UPnP-arch-DeviceArchitecture-v1.0.pdf
 
-
+from __future__ import unicode_literals
 
 # UNICODE NOTE
 # UPnP requires all XML to be transmitted/received with utf-8 encoding. All
