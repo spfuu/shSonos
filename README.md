@@ -1,5 +1,9 @@
 Release
 -------------------------------
+v0.1.4  2014-02-09
+    -- added command 'next'
+    -- added command 'previous'
+
 v0.1.3  2014-02-02
 
     -- changed package name from lib to lib_sonos due to incompatibility to smarthome.py
@@ -217,6 +221,16 @@ First implemented commands (more coming soon):
 
 		response (udp)
 			speaker/<sonos_uid>/stop/<value>            (0|1)
+
+    next
+
+        set:
+            http://<sonos_server:port>/speaker/<sonos_uid>/next/set/<value:0|1>
+
+    previous
+
+        set:
+            http://<sonos_server:port>/speaker/<sonos_uid>/previous/set/<value:0|1>
 
     seek
 

@@ -103,6 +103,16 @@ The plugin is designed to control the sonos speakers in connection with the sono
             sonos_send = speaker/<sonos_uid>/pause/set/{}
             sonos_init = speaker/<sonos_uid>/pause
 
+        [[next]]
+            type = bool
+            enforce_updates = True
+            sonos_send = speaker/<sonos_uid>/next/set/{}
+
+        [[previous]]
+            type = bool
+            enforce_updates = True
+            sonos_send = speaker/<sonos_uid>/previous/set/{}
+
         [[track]]
             type = str
             enforce_updates = True
