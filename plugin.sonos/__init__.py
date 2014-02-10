@@ -26,6 +26,7 @@ import re
 import threading
 from time import sleep
 from urllib.parse import quote_plus
+import pydevd
 
 logger = logging.getLogger('Sonos')
 
@@ -115,6 +116,7 @@ class Sonos():
     def parse_item(self, item):
 
         if 'sonos_recv' in item.conf:
+            #pydevd.settrace('192.168.178.44', port=12000, stdoutToServer=True, stderrToServer=True)
             cmd = self.resolve_cmd(item, 'sonos_recv')
 
             if cmd is None:
@@ -193,6 +195,12 @@ class Sonos():
                 if command[2] == 'volume':
                     if isinstance(value, int):
                         cmd = self.command.volume(command[1], int(value))
+                if command[2] == 'next':
+                    if isinstance(value, int):
+                        cmd = self.command.next(command[1], int(value))
+                if command[2] == 'previous':
+                    if isinstance(value, int):
+                        cmd = self.command.previous(command[1], int(value))
                 if command[2] == 'play_uri':
                     cmd = self.command.play_uri(command[1], value)
 
@@ -250,6 +258,14 @@ class SonosCommand():
     @staticmethod
     def mute(uid, value):
         return "speaker/{}/mute/set/{}".format(uid, int(value))
+
+    @staticmethod
+    def next(uid, value):
+        return "speaker/{}/next/set/{}".format(uid, int(value))
+
+    @staticmethod
+    def previous(uid, value):
+        return "speaker/{}/previous/set/{}".format(uid, int(value))
 
     @staticmethod
     def play(uid, value):
