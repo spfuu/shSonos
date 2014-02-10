@@ -141,6 +141,7 @@ class Command():
                         sonos_speaker.sonos_speakers[uid].pause = 0
                 except:
                     raise Exception("Couldn't set play status for speaker with uid '{}'!".format(uid))
+
             try:
                 data = "%s\n" % UdpResponse.stop(uid)
                 data += "%s\n" % UdpResponse.play(uid)
@@ -240,8 +241,6 @@ class Command():
             uid = arguments[0].lower()
             action = ''
 
-            #pydevd.settrace('192.168.178.44', port=12000, stdoutToServer=True, stderrToServer=True)
-
             if len(arguments) > 2:
                 action = arguments[1]
 
@@ -269,6 +268,71 @@ class Command():
                 return True, "Successfully send led status for speaker with uid '{}'.".format(uid)
             except Exception:
                 raise Exception("Couldn't get led status for speaker with uid '{}'!".format(uid))
+
+        except Exception as err:
+            return False, err
+
+
+    def speaker_next(self, ip, arguments):
+        try:
+            uid = arguments[0].lower()
+            exception = Exception("Couldn't execute 'next' command for speaker with uid '{}'!".format(uid))
+            action = ''
+
+            if len(arguments) > 2:
+                action = arguments[1]
+
+            soco = SonosServerService.get_soco(uid)
+
+            if not soco:
+                raise Exception("Couldn't find speaker with uid '{}'!".format(uid))
+
+            try:
+                if action == 'set':
+                    value = arguments[2]
+                    if value in self.true_vars:
+                        try:
+                            soco.next()
+                        except:
+                            pass
+                else:
+                    raise Exception("Unknown action '%s' for command 'next'." % action)
+            except:
+                raise exception
+
+            return True, "Successfully send 'next' command to speaker with uid '{}'.".format(uid)
+
+        except Exception as err:
+            return False, err
+
+    def speaker_previous(self, ip, arguments):
+        try:
+            uid = arguments[0].lower()
+            exception = Exception("Couldn't execute 'previous' command for speaker with uid '{}'!".format(uid))
+            action = ''
+
+            if len(arguments) > 2:
+                action = arguments[1]
+
+            soco = SonosServerService.get_soco(uid)
+
+            if not soco:
+                raise Exception("Couldn't find speaker with uid '{}'!".format(uid))
+
+            try:
+                if action == 'set':
+                    value = arguments[2]
+                    if value in self.true_vars:
+                        try:
+                            soco.previous()
+                        except:
+                            pass
+                else:
+                    raise Exception("Unknown action '%s' for command 'previous'." % action)
+            except:
+                raise exception
+
+            return True, "Successfully send 'previous' command to speaker with uid '{}'.".format(uid)
 
         except Exception as err:
             return False, err
@@ -304,7 +368,6 @@ class Command():
 
         except Exception as err:
             return False, err
-
 
     def speaker_seek(self, ip, arguments):
         try:
