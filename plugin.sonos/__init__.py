@@ -62,7 +62,7 @@ class Sonos():
         self._val = {}
         self._init_cmds = []
         self.subscribe_thread = None
-        self.stop_treads = False
+        self.stop_threads = False
         UDPDispatcher(self.parse_input, host, port)
 
     def parse_input(self, source, dest, data):
@@ -84,7 +84,7 @@ class Sonos():
         counter = 120
         while True:
             #main thread is going to be stopped, exit thread
-            if self.stop_treads:
+            if self.stop_threads:
                 return
             if counter == 120:
                 logger.debug('(re)registering to sonos broker server ...')
@@ -100,7 +100,7 @@ class Sonos():
             counter += counter
 
     def stop(self):
-        self.stop_treads = True
+        self.stop_threads = True
         self.alive = False
 
     def resolve_cmd(self, item, attr):

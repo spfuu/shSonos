@@ -8,7 +8,7 @@ v0.1.4  2014-02-09
 v0.1.3  2014-02-02
 
     -- changed package name from lib to lib_sonos due to incompatibility to smarthome.py
-    -- -- fixed small issue in command get_clients
+    -- fixed small issue in command get_clients
 
 v0.1.2  2014-01-31
 
