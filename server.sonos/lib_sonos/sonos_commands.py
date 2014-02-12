@@ -180,7 +180,7 @@ class Command():
                         sonos_speaker.sonos_speakers[uid].pause = 1
                     else:
                         soco.play()
-                        sonos_speaker.sonos_speaker.sonos_speakers[uid].stop = 0
+                        sonos_speaker.sonos_speakers[uid].stop = 0
                         sonos_speaker.sonos_speakers[uid].play = 1
                         sonos_speaker.sonos_speakers[uid].pause = 0
 

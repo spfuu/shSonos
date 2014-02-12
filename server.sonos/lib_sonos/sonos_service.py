@@ -238,8 +238,6 @@ class SonosServerService():
 
             dom = minidom.parseString(data).documentElement
 
-            #pydevd.settrace('192.168.178.44', port=12000, stdoutToServer=True, stderrToServer=True)
-
             node = dom.getElementsByTagName('LastChange')
             if node:
                 #<LastChange>
