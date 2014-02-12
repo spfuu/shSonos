@@ -1,5 +1,9 @@
 Release
 -------------------------------
+v0.1.5  2014-02-12
+
+    -- bugfix in play command
+
 v0.1.4  2014-02-09
 
     -- added command 'next'
