@@ -76,9 +76,10 @@ class Sonos():
             logger.debug(err)
 
     def run(self):
+        self.alive = True
         self.subscribe_thread = threading.Thread(target=self.subscribe())
         self.subscribe_thread.start()
-        self.alive = True
+
 
     def subscribe(self):
         counter = 120
@@ -97,11 +98,11 @@ class Sonos():
                 counter = 0
 
             sleep(1)
-            counter += counter
+            counter += 1
 
     def stop(self):
-        self.stop_threads = True
         self.alive = False
+        self.stop_threads = True
 
     def resolve_cmd(self, item, attr):
         if '<sonos_uid>' in item.conf[attr]:

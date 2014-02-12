@@ -4,6 +4,9 @@ The plugin is designed to control the sonos speakers in connection with the sono
 
 0. Release
 -----------------------------
+  v0.3    2014-02-12
+    -- bug in thread routine 'subscribe' caused plugin not to resubscribed to sonos broker
+
   v0.2    2014-02-10
     -- command 'next' and 'previous' added
 
