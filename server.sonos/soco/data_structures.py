@@ -6,7 +6,7 @@ such as music tracks or genres
 
 """
 
-
+from __future__ import unicode_literals
 try:
     import xml.etree.cElementTree as XML
 except ImportError:
@@ -17,7 +17,7 @@ NS = {
     '': 'urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/',
 }
 # Register all name spaces within the XML module
-for key_, value_ in list(NS.items()):
+for key_, value_ in NS.items():
     XML.register_namespace(key_, value_)
 from soco.utils import really_unicode
 from soco.exceptions import CannotCreateDIDLMetadata
@@ -141,14 +141,14 @@ class MusicLibraryItem(QueueableItem):
         # Parse the input arguments
         arguments = {'uri': uri, 'title': title, 'item_class': item_class}
         arguments.update(kwargs)
-        for key, value in list(arguments.items()):
+        for key, value in arguments.items():
             if key in self._translation:
                 self.content[key] = value
             else:
                 raise ValueError(
                     'The key \'{0}\' is not allowed as an argument. Only '
                     'these keys are allowed: {1}'.
-                    format(key, str(list(self._translation.keys()))))
+                    format(key, str(self._translation.keys())))
 
     @classmethod
     def from_xml(cls, xml):
@@ -162,7 +162,7 @@ class MusicLibraryItem(QueueableItem):
 
         """
         content = {}
-        for key, value in list(cls._translation.items()):
+        for key, value in cls._translation.items():
             result = xml.find(ns_tag(*value))
             if result is None:
                 content[key] = None

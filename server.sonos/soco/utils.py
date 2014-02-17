@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+from __future__ import unicode_literals
 
 """ Provides general utility functions to be used across modules """
 
@@ -51,8 +51,8 @@ def camel_to_underscore(string):
     """ Convert camelcase to lowercase and underscore
     Recipy from http://stackoverflow.com/a/1176023
     """
-    string = FIRST_CAP_RE.sub(r"\1_\2", string)
-    return ALL_CAP_RE.sub(r"\1_\2", string).lower()
+    string = FIRST_CAP_RE.sub(r'\1_\2', string)
+    return ALL_CAP_RE.sub(r'\1_\2', string).lower()
 
 
 def prettify(unicode_text):

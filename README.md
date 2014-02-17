@@ -1,24 +1,22 @@
 Release
 -------------------------------
+v0.1.6  2014-02-18
+
+    -- minor bugfix: changed EOL (end-of-line) from '\r\n' to '\n' in sonos_command method
+
+v0.1.5  2014-02-12
+
+    -- bugfix in play command
+
+v0.1.4  2014-02-09
+
+    -- added command 'next'
+    -- added command 'previous'
+
 v0.1.3  2014-02-02
 
     -- changed package name from lib to lib_sonos due to incompatibility to smarthome.py
-    -- -- fixed small issue in command get_clients
-
-v0.1.2  2014-01-31
-
-    -- added command 'track_duration'
-    -- added command 'track_position'
-    -- added command 'seek'
-
-v0.1.1  2014-01-29
-
-    -- bugfix in sonos_command.py
-
-v0.1    2014-01-28
-
-    -- initial release
-    -- setup package
+    -- fixed small issue in command get_clients
 
 
 Overview
@@ -217,6 +215,16 @@ First implemented commands (more coming soon):
 
 		response (udp)
 			speaker/<sonos_uid>/stop/<value>            (0|1)
+
+    next
+
+        set:
+            http://<sonos_server:port>/speaker/<sonos_uid>/next/set/<value:0|1>
+
+    previous
+
+        set:
+            http://<sonos_server:port>/speaker/<sonos_uid>/previous/set/<value:0|1>
 
     seek
 

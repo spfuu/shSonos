@@ -4,6 +4,15 @@ The plugin is designed to control the sonos speakers in connection with the sono
 
 0. Release
 -----------------------------
+  v0.3.1  2014-02-18
+    -- bugfix in parse_input method: '\r' was not stripped correctly
+
+  v0.3    2014-02-12
+    -- bug in thread routine 'subscribe' caused plugin not to resubscribed to sonos broker
+
+  v0.2    2014-02-10
+    -- command 'next' and 'previous' added
+
   v0.1    2014-01-28
     -- Initial release
     -- new commands: seek, track_position, track_duration
@@ -19,26 +28,11 @@ The plugin is designed to control the sonos speakers in connection with the sono
   smarthome.py
 
 
-2. Installation
------------------------------
-
-  Login to your Raspberry Pi
-  
-  Go to /usr/smarthome/plugins
-  
-  Create directory sonos (or whatver you want, plugins will be scanned automatically in this subfolder)
-  
-  Copy __init__.py to your newly created path.
-  
-  Done
-
-
-3. Integration in Smarthome.py
+2. Integration in Smarthome.py
 ------------------------------
 
   Go to /usr/smarthome/etc and edit plugins.conf and add ths entry:
-  
-  
+
     [sonos]
   
       class_name = Sonos
@@ -102,6 +96,16 @@ The plugin is designed to control the sonos speakers in connection with the sono
             sonos_recv = speaker/<sonos_uid>/pause
             sonos_send = speaker/<sonos_uid>/pause/set/{}
             sonos_init = speaker/<sonos_uid>/pause
+
+        [[next]]
+            type = bool
+            enforce_updates = True
+            sonos_send = speaker/<sonos_uid>/next/set/{}
+
+        [[previous]]
+            type = bool
+            enforce_updates = True
+            sonos_send = speaker/<sonos_uid>/previous/set/{}
 
         [[track]]
             type = str

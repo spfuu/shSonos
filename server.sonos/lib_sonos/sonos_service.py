@@ -114,6 +114,10 @@ class SonosServerService():
 
     @staticmethod
     def get_soco(uid):
+        """
+
+        @rtype : soco instance, null if not found
+        """
         speaker = sonos_speaker.sonos_speakers[uid.lower()]
         if speaker:
             return SoCo(speaker.ip)
@@ -233,8 +237,6 @@ class SonosServerService():
             print("speaker '{} found for subscription '{}".format(uid, sid))
 
             dom = minidom.parseString(data).documentElement
-
-            #pydevd.settrace('192.168.178.44', port=12000, stdoutToServer=True, stderrToServer=True)
 
             node = dom.getElementsByTagName('LastChange')
             if node:
