@@ -101,9 +101,9 @@ class Command():
                     raise Exception("Couldn't set stop status for speaker with uid '{}'!".format(uid))
 
             try:
-                data = "%s\r\n" % UdpResponse.stop(uid)
-                data += "%s\r\n" % UdpResponse.play(uid)
-                data += "%s\r\n" % UdpResponse.pause(uid)
+                data = "%s\n" % UdpResponse.stop(uid)
+                data += "%s\n" % UdpResponse.play(uid)
+                data += "%s\n" % UdpResponse.pause(uid)
                 UdpBroker.udp_send(data)
 
                 return True, "Successfully send stop status for speaker with uid '{}'.".format(uid)
@@ -188,9 +188,9 @@ class Command():
                     raise Exception("Couldn't set pause status for speaker with uid '{}'!".format(uid))
 
             try:
-                data = "%s\r\n" % UdpResponse.stop(uid)
-                data += "%s\r\n" % UdpResponse.play(uid)
-                data += "%s\r\n" % UdpResponse.pause(uid)
+                data = "%s\n" % UdpResponse.stop(uid)
+                data += "%s\n" % UdpResponse.play(uid)
+                data += "%s\n" % UdpResponse.pause(uid)
                 UdpBroker.udp_send(data)
 
                 return True, "Successfully send pause status for speaker with uid '{}'.".format(uid)
