@@ -1,5 +1,13 @@
 Release
 -------------------------------
+v0.1.7  2014-03-09
+     -- audio snippet integration
+     -- many many code improvements
+     -- JSON format, less network traffic
+     -- easier to configure sonos speaker in conf-file
+     -- better radio integration
+     -- new commands
+
 v0.1.6  2014-02-18
 
     -- minor bugfix: changed EOL (end-of-line) from '\r\n' to '\n' in sonos_command method
@@ -12,11 +20,6 @@ v0.1.4  2014-02-09
 
     -- added command 'next'
     -- added command 'previous'
-
-v0.1.3  2014-02-02
-
-    -- changed package name from lib to lib_sonos due to incompatibility to smarthome.py
-    -- fixed small issue in command get_clients
 
 
 Overview
@@ -149,87 +152,105 @@ to get a short overview of your sonos speakers in the network and to retrieve th
 First implemented commands (more coming soon):
 -----------------------------------------------
 
+
 	volume
-	
+
 		set:
-		
-			http://<sonos_server:port>/speaker/<sonos_uid>/volume/set/<value:0-100>
+			http://<sonos_server:port>/speaker/<sonos_uid>/volume/<value:0-100>
 		
 		get:
-		
 			http://<sonos_server:port>/speaker/<sonos_uid>/volume
 
 		response (udp):
-		
-			speaker/<sonos_uid>/volume/<value>          (0|1)
-		
+	        JSON speaker structure
+
+
 	mute
+
 		set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/mute/set/<value:0|1>
+			http://<sonos_server:port>/speaker/<sonos_uid>/mute/<value:0|1>
 			
 		get:
 			http://<sonos_server:port>/speaker/<sonos_uid>/mute
 			
 		response (udp)
-			speaker/<sonos_uid>/mute/<value>            (0|1)
-	
+			JSON speaker structure
+
+
 	led
+
 		set:
-				
-			http://<sonos_server:port>/speaker/<sonos_uid>/led/set/<value:0|1>
+
+			http://<sonos_server:port>/speaker/<sonos_uid>/led/<value:0|1>
 		get:
 			http://<sonos_server:port>/speaker/<sonos_uid>/led
-		
+
 		response (udp)
-		    speaker/<sonos_uid>/led/<value>             (0|1)
+		    JSON speaker structure
+
 
 	play
 
 	    set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/play/set/<value:0|1>
+			http://<sonos_server:port>/speaker/<sonos_uid>/play/<value:0|1>
 
 		get:
 			http://<sonos_server:port>/speaker/<sonos_uid>/play
 
 		response (udp)
-			speaker/<sonos_uid>/play/<value>            (0|1)
+		    JSON speaker structure
+
 
     pause
 
         set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/pause/set/<value:0|1>
+			http://<sonos_server:port>/speaker/<sonos_uid>/pause/<value:0|1>
 
 		get:
 			http://<sonos_server:port>/speaker/<sonos_uid>/pause
 
 		response (udp)
-			speaker/<sonos_uid>/pause/<value>           (0|1)
+			JSON speaker structure
+
 
     stop
 
         set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/stop/set/<value:0|1>
+			http://<sonos_server:port>/speaker/<sonos_uid>/stop/<value:0|1>
 
 		get:
 			http://<sonos_server:port>/speaker/<sonos_uid>/stop
 
 		response (udp)
-			speaker/<sonos_uid>/stop/<value>            (0|1)
+			JSON speaker structure
+
 
     next
 
         set:
-            http://<sonos_server:port>/speaker/<sonos_uid>/next/set/<value:0|1>
+            http://<sonos_server:port>/speaker/<sonos_uid>/next/<value:0|1>
+
+        response:
+			no explicit response, but events will be triggered, if new track title
+
 
     previous
 
         set:
-            http://<sonos_server:port>/speaker/<sonos_uid>/previous/set/<value:0|1>
+            http://<sonos_server:port>/speaker/<sonos_uid>/previous/<value:0|1>
+
+        response:
+			no explicit response, but events will be triggered, if new track title
+
 
     seek
 
         set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/seek/set/<value> #value format = HH:MM:ss
+			http://<sonos_server:port>/speaker/<sonos_uid>/seek/<value> #value format = HH:MM:ss
+
+        response:
+			no explicit response, but events will be triggered, if the track position is changed
+
 
     artist
 
@@ -237,15 +258,17 @@ First implemented commands (more coming soon):
 			http://<sonos_server:port>/speaker/<sonos_uid>/artist
 
 		response (udp)
-			speaker/<sonos_uid>/artist/<value>
+			response:
+			no explicit response, but events will be triggered, if new track title
+
 
     track
 
-   		get:
-			http://<sonos_server:port>/speaker/<sonos_uid>/track
+        get:
+		    http://<sonos_server:port>/speaker/<sonos_uid>/track
 
 		response (udp)
-			speaker/<sonos_uid>/track/<value>
+			JSON speaker structure
 
 
     track_duration
@@ -254,36 +277,36 @@ First implemented commands (more coming soon):
 			http://<sonos_server:port>/speaker/<sonos_uid>/track_duration   #HH:MM:ss
 
 		response (udp)
-			speaker/<sonos_uid>/track_duration/<value>                      #HH:MM:ss
+			JSON speaker structure
 
 
-    track_position
+    track_info
 
         get:
-			http://<sonos_server:port>/speaker/<sonos_uid>/track_position   #HH:MM:ss
+			http://<sonos_server:port>/speaker/<sonos_uid>/track_info
 
 		response (udp)
-			speaker/<sonos_uid>/track_position/<value>                      #HH:MM:ss
+            JSON speaker structure
 
-			Attention, there is no automatic event for this value.
-			If necessary poll this value (e.g. 1sec) to get the value by
-			udp.
+            Gets the current track info. Only usefull to get the current track position. You need to poll this value,
+            since there is no event for this property
 
 
     streamtype
 
-   		get:
+        get:
 			http://<sonos_server:port>/speaker/<sonos_uid>/streamtype
 
 		response (udp)
-			speaker/<sonos_uid>/streamtype/<value>      (radio|music)
+			JSON speaker structure
+
 
     play_uri
 
         set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/play_uri/set/<value>
+			http://<sonos_server:port>/speaker/<sonos_uid>/play_uri/<uri>
 
-			    <value>. has to be urlsafe, qoute_plus
+			    <uri> has to be urlsafe, qoute_plus
 			    If you want to play a title from your network share use following format:
 
                 x-file-cifs%3A%2F%2F192.168.178.100%2Fmusic%2Ftest.mp3
@@ -293,13 +316,41 @@ First implemented commands (more coming soon):
 			no explicit response, but events will be triggered, if new track title
 
 
-	list
-		get:
+    play_snippet
 
+        set:
+			http://<sonos_server:port>/speaker/<sonos_uid>/play_snippet/<uri>/<volume [-1-100]>
+
+			<uri>. has to be urlsafe, qoute_plus
+			If you want to play a title from your network share use following format:
+
+            x-file-cifs%3A%2F%2F192.168.178.100%2Fmusic%2Ftest.mp3
+            (unqouted: x-file-cifs://192.168.0.3/music/test.mp3)
+
+            <volume> Plays the snippet with <volume>. After the audio snippet is finished, the volume fades to its
+            original value. If -1 i used, the snippet volume is set to the current volume of the sonos speaker
+
+		response:
+			no explicit response, but events will be triggered, if new track title
+
+
+    current_state
+
+        get:
+            http://<sonos_server:port>/speaker/<sonos_uid>/current_state
+
+            Dumps the current sonos player state.
+
+        response (udp):
+            JSON speaker structure
+
+
+	list
+
+		get:
 			http://<sonos_server:port>/client/list
 		
 		response (http)
-			
 			<html code ....
 				uid : rincon_000e58c3892e01400
 
@@ -308,8 +359,43 @@ First implemented commands (more coming soon):
 				model : ZPS1
 				.
 				.
-			... htmlcode>			
-			
+			... htmlcode>
+
+
+Response:
+--------------------------------
+In almost any cases, you will get the appropriate response in the following JSON format (by udp):
+
+    {
+        "hardware_version": "1.8.3.7-2",
+        "ip": "192.168.0.10",
+        "led": 1,
+        "mac_address": "00:0E:59:D4:89:2F",
+        "model": "ZPS1",
+        "mute": 0,
+        "pause": 0,
+        "play": 1,
+        "playlist_position": "1",
+        "radio_show": "",
+        "radio_station": "95.5 Charivari",
+        "serial_number": "00-0E-59-D4-89-2F:7",
+        "software_version": "24.0-71060",
+        "stop": 0,
+        "streamtype": "radio",
+        "track_album_art": "http://192.168.0.10:1400/getaa?s=1&u=x-sonosapi-stream%3as17488%3fsid%3d254%26flags%3d32",
+        "track_artist": "RADIO CHARIVARI 95.5",
+        "track_duration": "0:00:00",
+        "track_position": "0:02:16",
+        "track_title": "LIVE",
+        "track_uri": "",
+        "uid": "rincon_000e58c3e01451",
+        "volume": 11,
+        "zone_icon": "x-rincon-roomicon:living",
+        "zone_name": "Kitchen"
+    }
+
+
+
 TO DO:
 --------------------------------
 
