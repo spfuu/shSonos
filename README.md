@@ -1,6 +1,7 @@
 Release
 -------------------------------
 v0.1.7  2014-03-09
+
      -- audio snippet integration
      -- many many code improvements
      -- JSON format, less network traffic
