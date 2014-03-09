@@ -1,3 +1,12 @@
+v0.1.7      2014-03-09
+
+-- audio snippet integration
+-- many many code improvements
+-- JSON format, less network traffic
+-- easier to configure sonos speaker in conf-file
+-- better radio integration
+-- new commands
+
 v0.1.6      2014-02-18
 
 -- minor bugfix: changed EOL (end-of-line) from '\r\n' to '\n' in sonos_command method
