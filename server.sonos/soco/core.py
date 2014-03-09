@@ -135,7 +135,7 @@ class SoCo(object):  # pylint: disable=R0904
     # Stores the topology of all Zones in the network
     topology = {}
 
-    def __init__(self, speaker_ip):
+    def __init__(self, speaker_ip=None):
         #: The speaker's ip address
         self.speaker_ip = speaker_ip
         self.speaker_info = {}  # Stores information about the current speaker
@@ -232,7 +232,7 @@ class SoCo(object):  # pylint: disable=R0904
             ('Speed', 1)
             ])
 
-    def play_uri(self, uri='', meta=''):
+    def play_uri(self, uri='', meta='', meta_queued=''):
         """ Play a given stream. Pauses the queue.
 
         Arguments:
@@ -594,17 +594,17 @@ class SoCo(object):  # pylint: disable=R0904
             ('Channel', 'Master')
             ])
 
-        track = {'title': '', 'artist': '', 'album': '', 'album_art': '',
-                 'position': ''}
+        track = {'title': '', 'artist': '', 'album': '', 'album_art': '', 'position': ''}
         track['playlist_position'] = response['Track']
         track['duration'] = response['TrackDuration']
         track['uri'] = response['TrackURI']
         track['position'] = response['RelTime']
-
         metadata = response['TrackMetaData']
+
         # Duration seems to be '0:00:00' when listening to radio
         if metadata != '' and track['duration'] == '0:00:00':
             metadata = XML.fromstring(really_utf8(metadata))
+
             # Try parse trackinfo
             trackinfo = metadata.findtext('.//{urn:schemas-rinconnetworks-com:'
                                           'metadata-1-0/}streamContent')
@@ -614,8 +614,6 @@ class SoCo(object):  # pylint: disable=R0904
                 track['artist'] = trackinfo[:index]
                 track['title'] = trackinfo[index + 3:]
             else:
-                LOGGER.warning('Could not handle track info: "%s"', trackinfo)
-                LOGGER.warning(traceback.format_exc())
                 track['title'] = trackinfo
 
         # If the speaker is playing from the line-in source, querying for track
@@ -650,7 +648,6 @@ class SoCo(object):  # pylint: disable=R0904
                 else:
                     track['album_art'] = 'http://' + self.speaker_ip + ':1400'\
                         + url
-
         return track
 
     def get_speaker_info(self, refresh=False):

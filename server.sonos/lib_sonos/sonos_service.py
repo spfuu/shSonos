@@ -1,6 +1,8 @@
 from __future__ import unicode_literals
 
 # -*- coding: utf-8 -*-
+import xml
+
 __author__ = 'pfischi'
 
 from xml.dom import minidom
@@ -10,9 +12,7 @@ import requests
 from lib_sonos import sonos_speaker
 from lib_sonos.sonos_speaker import SonosSpeaker
 from lib_sonos.definitions import uid_pattern, model_pattern, MCAST_PORT, MCAST_GRP, PLAYER_SEARCH
-from lib_sonos.udp_broker import UdpBroker, UdpResponse
 from lib_sonos.utils import really_utf8, really_unicode
-from soco.core import SoCo
 import socket
 import select
 import re
@@ -26,10 +26,12 @@ except ImportError:
     import xml.etree.ElementTree as XML
 
 NS = {
+    'r': 'urn:schemas-rinconnetworks-com:metadata-1-0/',
     'dc': 'http://purl.org/dc/elements/1.1/',
     'upnp': 'urn:schemas-upnp-org:metadata-1-0/upnp/',
     '': 'urn:schemas-upnp-org:metadata-1-0/AVT/',
 }
+
 # Register all name spaces within the XML module
 for key_, value_ in NS.items():
     XML.register_namespace(key_, value_)
@@ -38,22 +40,16 @@ log = logging.getLogger(__name__)
 Argument = namedtuple('Argument', 'name, vartype')
 Action = namedtuple('Action', 'name, in_args, out_args')
 
-#import sys
-#sys.path.append('/usr/smarthome/plugins/sonos/server/pycharm-debug-py3k.egg')
-#import pydevd
 
+# noinspection PyProtectedMember
 class SonosServerService():
 
     _sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     _sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
 
     def __init__(self, host, port):
-
-        self.udp_broker = UdpBroker()
         self.host = host
         self.port = port
-
-
         threading.Thread(target=self.get_speakers_periodically).start()
 
     def get_speakers_periodically(self):
@@ -111,17 +107,6 @@ class SonosServerService():
             deep_scan_count += 1
 
             sleep(sleep_scan)
-
-    @staticmethod
-    def get_soco(uid):
-        """
-
-        @rtype : soco instance, null if not found
-        """
-        speaker = sonos_speaker.sonos_speakers[uid.lower()]
-        if speaker:
-            return SoCo(speaker.ip)
-        return None
 
     @staticmethod
     def get_speakers():
@@ -215,8 +200,6 @@ class SonosServerService():
                          '{urn:schemas-upnp-org:metadata-1-0/RCS/}': self.parse_mediarenderer_renderingontrol_event}
 
         try:
-            response_list = []
-
             #uuid:RINCON_000E58C3892E01400_sub0000000264 --> split uuid: and _sub.....
 
             uid = sid.lower().rsplit('_sub', 1)
@@ -236,15 +219,14 @@ class SonosServerService():
 
             print("speaker '{} found for subscription '{}".format(uid, sid))
 
+
             dom = minidom.parseString(data).documentElement
+
+            if not dom:
+                return
 
             node = dom.getElementsByTagName('LastChange')
             if node:
-                #<LastChange>
-                #   <Event>
-                #   .....
-                #   </Event>
-                #</LstChange>
 
                 #fetching Event node
                 event_string = really_unicode(node[0].firstChild.nodeValue)
@@ -255,15 +237,11 @@ class SonosServerService():
 
                 for namespace, method in parse_methods.items():
                     element = dom.find("./%sInstanceID" % namespace)
-                    if element is not None:
-                        response_list.extend(method(uid, dom, namespace))
+                    if element:
+                        method(uid, dom, namespace)
 
-            #udp wants a string
-            data = ''
-            for entry in response_list:
-                data = "{}\n{}".format(data, entry)
-
-            UdpBroker.udp_send(data)
+            if uid in sonos_speaker.sonos_speakers:
+                sonos_speaker.sonos_speakers[uid].send_data()
 
         except Exception as err:
             print(err)
@@ -274,119 +252,108 @@ class SonosServerService():
         if uid not in sonos_speaker.sonos_speakers:
             return
 
-        changed_values = []
-
         #check whether radio or mp3 is played ---> CurrentTrackDuration > 0 is mp3
         track_duration_element = dom.find(".//%sCurrentTrackDuration" % namespace)
         if track_duration_element is not None:
             track_duration = track_duration_element.get('val')
             if track_duration:
-                sonos_speaker.sonos_speakers[uid].track_duration = track_duration
+                sonos_speaker.sonos_speakers[uid]._track_duration(track_duration)
 
                 if track_duration == '0:00:00':
-                    sonos_speaker.sonos_speakers[uid].track_position = "00:00:00"
-                    changed_values.append(UdpResponse.track_position(uid))
-                    sonos_speaker.sonos_speakers[uid].streamtype = "radio"
+                    sonos_speaker.sonos_speakers[uid]._track_position("00:00:00")
+                    sonos_speaker.sonos_speakers[uid]._streamtype("radio")
                 else:
-                    sonos_speaker.sonos_speakers[uid].streamtype = "music"
-
-                changed_values.append(UdpResponse.streamtype(uid))
-
+                    sonos_speaker.sonos_speakers[uid]._streamtype("music")
             else:
-                sonos_speaker.sonos_speakers[uid].track_duration = "00:00:00"
-
-            changed_values.append(UdpResponse.track_duration(uid))
+                sonos_speaker.sonos_speakers[uid]._track_duration("00:00:00")
 
         transport_state_element = dom.find(".//%sTransportState" % namespace)
         if transport_state_element is not None:
             transport_state = transport_state_element.get('val')
 
             if transport_state:
+
                 if transport_state.lower() == "transitioning":
                     #because where is no event for current track position, we call it active
-                    soco = self.get_soco(uid)
-                    track_position = soco.get_current_track_info()['position']
-
-                    if not track_position:
-                        track_position = "00:00:00"
-
-                    sonos_speaker.sonos_speakers[uid].track_position = track_position
-                    changed_values.append(UdpResponse.track_position(uid))
+                    sonos_speaker.sonos_speakers[uid].get_track_info()
 
                 if transport_state.lower() == "stopped":
-                    sonos_speaker.sonos_speakers[uid].stop = 1
-                    sonos_speaker.sonos_speakers[uid].play = 0
-                    sonos_speaker.sonos_speakers[uid].pause = 0
-                if transport_state.lower() == "paused_playback":
-                    sonos_speaker.sonos_speakers[uid].stop = 0
-                    sonos_speaker.sonos_speakers[uid].play = 0
-                    sonos_speaker.sonos_speakers[uid].pause = 1
-                if transport_state.lower() == "playing":
-                    sonos_speaker.sonos_speakers[uid].stop = 0
-                    sonos_speaker.sonos_speakers[uid].play = 1
-                    sonos_speaker.sonos_speakers[uid].pause = 0
+                    sonos_speaker.sonos_speakers[uid]._stop(1)
+                    sonos_speaker.sonos_speakers[uid]._play(0)
+                    sonos_speaker.sonos_speakers[uid]._pause(0)
 
-                changed_values.append(UdpResponse.stop(uid))
-                changed_values.append(UdpResponse.play(uid))
-                changed_values.append(UdpResponse.pause(uid))
+                if transport_state.lower() == "paused_playback":
+                    sonos_speaker.sonos_speakers[uid]._stop(0)
+                    sonos_speaker.sonos_speakers[uid]._play(0)
+                    sonos_speaker.sonos_speakers[uid]._pause(1)
+
+                if transport_state.lower() == "playing":
+                    sonos_speaker.sonos_speakers[uid]._stop(0)
+                    sonos_speaker.sonos_speakers[uid]._play(1)
+                    sonos_speaker.sonos_speakers[uid]._pause(0)
+
+                    #get current track info, if new track is played or resumed to get track_uri, track_album_art
+                    sonos_speaker.sonos_speakers[uid].get_track_info()
+
 
         didl_element = dom.find(".//%sCurrentTrackMetaData" % namespace)
-
         if didl_element is not None:
             didl = didl_element.get('val')
             if didl:
                 didl_dom = XML.fromstring(didl)
                 if didl_dom:
-                    changed_values.extend(self.parse_track_metadata(uid, didl_dom))
+                    self.parse_track_metadata(uid, didl_dom)
 
-        return changed_values
+        if sonos_speaker.sonos_speakers[uid].streamtype == 'radio':
+             r_namespace = '{urn:schemas-rinconnetworks-com:metadata-1-0/}'
+             enqueued_data = dom.find(".//%sEnqueuedTransportURIMetaData" % r_namespace)
+             if enqueued_data is not None:
+                enqueued_data = enqueued_data.get('val')
+                sonos_speaker.sonos_speakers[uid].metadata = enqueued_data
+                dom = XML.fromstring(enqueued_data)
+
+                if dom:
+                    SonosServerService.parse_radio_mediadata(uid, dom)
 
     @staticmethod
     def parse_mediarenderer_renderingontrol_event(uid, dom, namespace):
-
-        #changed value in smarthome.py response syntax, change this to your preference
-        #e.g. speaker/<uid>/volume/<value>
-        """
-
-
-        @param uid:
-        @param dom:
-        @rtype : list
-        """
-        changed_values = []
 
         volume_state_element = dom.find(".//%sVolume[@channel='Master']" % namespace)
         if volume_state_element is not None:
             volume = volume_state_element.get('val')
             if volume:
-                sonos_speaker.sonos_speakers[uid].volume = volume
-                changed_values.append(UdpResponse.volume(uid))
+                sonos_speaker.sonos_speakers[uid]._volume(volume)
 
         mute_state_element = dom.find(".//%sMute[@channel='Master']" % namespace)
         if mute_state_element is not None:
             mute = mute_state_element.get('val')
             if mute:
-                sonos_speaker.sonos_speakers[uid].mute = mute
-                changed_values.append(UdpResponse.mute(uid))
+                sonos_speaker.sonos_speakers[uid]._mute(mute)
 
-        return changed_values
+    #radio exclusive data
+    @staticmethod
+    def parse_radio_mediadata(uid, dom):
+
+        radio_station = ''
+
+        radio_station_element = dom.find('.//dc:title', NS)
+
+        if radio_station_element is not None:
+            radio_station = radio_station_element.text
+
+        sonos_speaker.sonos_speakers[uid]._radio_station(radio_station)
 
     @staticmethod
     def parse_track_metadata(uid, dom):
 
-        namespaces = {'r': 'urn:schemas-rinconnetworks-com:metadata-1-0/', 'dc': 'http://purl.org/dc/elements/1.1/'}
-
-        changed_values = []
-
         ignore_title_string = ('ZPSTR_BUFFERING', 'ZPSTR_BUFFERING', 'ZPSTR_CONNECTING', 'x-sonosapi-stream')
-        #EnqueuedTransportURIMetaData
 
         title = ''
         artist = ''
 
         try:
             #title listening radio
-            stream_content_element = dom.find('.//r:streamContent', namespaces)
+            stream_content_element = dom.find('.//r:streamContent', NS)
             if stream_content_element is not None:
                 stream_content = stream_content_element.text
                 if stream_content:
@@ -396,39 +363,56 @@ class SonosServerService():
                         split_title = stream_content.split('-')
 
                         if split_title:
-                            artist = split_title[0].strip()
-                            title = split_title[1].strip()
+                            if len(split_title) == 2:
+                                artist = split_title[0].strip()
+                                title = split_title[1].strip()
+                            else:
+                                title = split_title
                         else:
                             title = stream_content
-            print(title)
 
+            radio_show_element = dom.find('.//r:radioShowMd', NS)
+            if radio_show_element is not None:
+                radio_show = radio_show_element.text
+                if radio_show:
+                    #the foramt of a radio_shw item seems to be this format:
+                    # <radioshow><,p123456> --> rstrip ,p....
+                    radio_show = radio_show.split(',p', 1)
+
+                    if len(radio_show) > 1:
+                        radio_show = radio_show[0]
+                else:
+                    radio_show = ''
+
+                sonos_speaker.sonos_speakers[uid]._radio_show(radio_show)
+
+            album_art = dom.findtext('.//{urn:schemas-upnp-org:metadata-1-0/upnp/}albumArtURI')
+            if album_art:
+                if not album_art.startswith(('http:', 'https:')):
+                    album_art = 'http://' + sonos_speaker.sonos_speakers[uid].ip + ':1400' + album_art
+                sonos_speaker.sonos_speakers[uid]._track_album_art(album_art)
 
             #mp3, etc -> overrides stream content
-            title_element = dom.find('.//dc:title', namespaces)
+            title_element = dom.find('.//dc:title', NS)
             if title_element is not None:
                 assumed_title = title_element.text
                 if assumed_title:
                     if not assumed_title.startswith(ignore_title_string):
                         title = assumed_title
 
-            artist_element = dom.find('.//dc:creator', namespaces)
+            artist_element = dom.find('.//dc:creator', NS)
             if artist_element is not None:
                 assumed_artist = artist_element.text
                 if assumed_artist:
                     artist = assumed_artist
 
             if not artist:
-                artist = "No artist"
+                artist = ''
             if not title:
-                title = "No track title"
+                title = ''
 
-            sonos_speaker.sonos_speakers[uid].artist = artist
-            sonos_speaker.sonos_speakers[uid].track = title
-            changed_values.append(UdpResponse.artist(uid))
-            changed_values.append(UdpResponse.track(uid))
+            sonos_speaker.sonos_speakers[uid]._track_artist(artist)
+            sonos_speaker.sonos_speakers[uid]._track_title(title)
 
         except Exception as err:
             print(err)
-
-        return changed_values
-
