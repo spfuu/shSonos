@@ -1,3 +1,8 @@
+v0.1.7.1    2014-03-09
+
+-- fix: track_uri now shown
+-- socket now closed correctly
+
 v0.1.7      2014-03-09
 
 -- audio snippet integration

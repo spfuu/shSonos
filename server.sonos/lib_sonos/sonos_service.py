@@ -252,6 +252,12 @@ class SonosServerService():
         if uid not in sonos_speaker.sonos_speakers:
             return
 
+        track_uri_element = dom.find(".//%sCurrentTrackURI" % namespace)
+        if track_uri_element is not None:
+            track_uri = track_uri_element.get('val')
+
+        sonos_speaker.sonos_speakers[uid]._track_uri(track_uri)
+
         #check whether radio or mp3 is played ---> CurrentTrackDuration > 0 is mp3
         track_duration_element = dom.find(".//%sCurrentTrackDuration" % namespace)
         if track_duration_element is not None:

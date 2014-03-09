@@ -34,13 +34,15 @@ class UdpBroker():
                 for port in ports:
                     try:
                         family, type, proto, canonname, sockaddr = socket.getaddrinfo(host, port)[0]
+
                         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                         sock.sendto(data.encode('utf-8'), (sockaddr[0], sockaddr[1]))
-                        sock.close()
                         print("UDP: Sending data to {}:{}: ".format(host, port, data))
-                        del sock
-
                     except Exception as e:
                         raise Exception("UDP: Problem sending data to {}:{}: ".format(host, port, e))
+                    finally:
+                        sock.close()
+                        del(sock)
+
         except Exception as err:
             print(err)
