@@ -1,6 +1,11 @@
 Release
 -------------------------------
-v0.1.7  2014-03-09
+v0.1.7.1    2014-03-09
+
+    -- fix: track_uri now shown
+    -- socket now closed correctly
+
+v0.1.7      2014-03-09
 
      -- audio snippet integration
      -- many many code improvements
@@ -9,15 +14,15 @@ v0.1.7  2014-03-09
      -- better radio integration
      -- new commands
 
-v0.1.6  2014-02-18
+v0.1.6      2014-02-18
 
     -- minor bugfix: changed EOL (end-of-line) from '\r\n' to '\n' in sonos_command method
 
-v0.1.5  2014-02-12
+v0.1.5      2014-02-12
 
     -- bugfix in play command
 
-v0.1.4  2014-02-09
+v0.1.4      2014-02-09
 
     -- added command 'next'
     -- added command 'previous'
