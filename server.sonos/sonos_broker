@@ -36,34 +36,35 @@ def get_lan_ip():
 
 class SonosHttpHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        result, response = command.do_work(self.client_address[0], self.path)
+        try:
+            result, response = command.do_work(self.client_address[0], self.path)
 
-        status = 'Error'
-        if result:
-            self.send_response(200, 'OK')
-            status = 'Success'
-        else:
-            self.send_response(400, 'Bad request')
+            status = 'Error'
+            if result:
+                self.send_response(200, 'OK')
+                status = 'Success'
+            else:
+                self.send_response(400, 'Bad request')
 
-        self.send_header("Content-type", "text/html")
-        self.end_headers()
-        self.wfile.write("<html><head><title>{}</title></head>".format(status).encode('utf-8'))
-        self.wfile.write("<body><p>{}</p></body>".format(response).encode('utf-8'))
-
+            self.send_header("Content-type", "text/html")
+            self.end_headers()
+            self.wfile.write("<html><head><title>{}</title></head>".format(status).encode('utf-8'))
+            self.wfile.write("<body><p>{}</p></body>".format(response).encode('utf-8'))
+        finally:
+            self.connection.close()
 
     def do_NOTIFY(self):
+        try:
+            self.send_response(200, "OK")
 
-        self.send_response(200, "OK")
-
-        #get subscription id and find the connected speaker uid
-        sid = self.headers['SID']
-        content_len = int(self.headers['content-length'])
-        post_body = self.rfile.read(content_len).decode('utf-8')
-
-        print(post_body)
-
-        sonos_service.response_parser(sid, post_body)
-
+            #get subscription id and find the connected speaker uid
+            sid = self.headers['SID']
+            content_len = int(self.headers['content-length'])
+            post_body = self.rfile.read(content_len).decode('utf-8')
+            print(post_body)
+            sonos_service.response_parser(sid, post_body)
+        finally:
+            self.connection.close
 
 class ThreadedHTTPServer(socketserver.ThreadingMixIn, HTTPServer):
     """Handle requests in a separate thread."""
