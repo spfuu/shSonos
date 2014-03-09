@@ -4,7 +4,9 @@ The plugin is designed to control the sonos speakers in connection with the sono
 
 0. Release
 -----------------------------
+
   v0.4    2014-03-08
+
     -- audio snippet integration
     -- many many code improvements
     -- JSON format, less network traffic
@@ -31,15 +33,19 @@ The plugin is designed to control the sonos speakers in connection with the sono
         -   mac_address [readonly] (sonos speaker mac address)
 
   v0.3.1  2014-02-18
-    -- bugfix in parse_input method: '\r' was not stripped correctly
 
+    -- bugfix in parse_input method: '\r' was not stripped correctly
+  
   v0.3    2014-02-12
+    
     -- bug in thread routine 'subscribe' caused plugin not to resubscribed to sonos broker
 
   v0.2    2014-02-10
+  
     -- command 'next' and 'previous' added
 
   v0.1    2014-01-28
+    
     -- Initial release
     -- new commands: seek, track_position, track_duration
     -- requires sonos_broker server v0.1.2
