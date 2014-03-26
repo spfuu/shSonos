@@ -439,8 +439,8 @@ to get a short overview of your sonos speakers in the network and to retrieve th
 			... htmlcode>
 
 
-Response:
---------------------------------
+###Response:
+
 In almost any cases, you will get the appropriate response in the following JSON format (by udp):
 
     {
@@ -473,10 +473,11 @@ In almost any cases, you will get the appropriate response in the following JSON
 
 
 
-TO DO:
---------------------------------
+
+##TO DO:
+
 
 	* full SoCo command implementation
 	* documentation
 	* and many more
-    * Sonos Group Management
+    	* Sonos Group Management
