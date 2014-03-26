@@ -39,7 +39,7 @@ It implements a lightweight http server, which is controlled by simple commands.
 In addition , i decided to write a plugin for the fantastic "Smarthome.py Project" to control sonos speakers in a smart home. (https://github.com/mknx/smarthome/)
 
  
-#Requirements:
+#Requirements
 
 
 server:	python3 (with library requests)
@@ -49,10 +49,10 @@ smarthome.py
 
 
 
-#Install:
+#Install
 
 
-##1.SETUP
+##Setup
 
 
 Under the github folder "server.sonos/dist/" you'll find the actual release as a tar.gz file
@@ -89,7 +89,7 @@ the following parameter:
 
 
 
-##2.CONFIGURATION (optional)
+##Configuration (optional)
 
 There is also a sh-script to daemonize the sonos_broker start named sonos_broker.sh.
 If you want to start sonos_broker as background service, edit sonos_broker.sh:
@@ -124,16 +124,18 @@ to:
 If you want to start the broker with arguments (see below) keep in mind to edit the script.
 
 
-##3.Google TTS Support
+##Google TTS Support
 
 Sonos broker features the Google Text-To-Speech API. You can play any text limited to 100 chars.
 
-###3.1 Prerequisite:
+
+###Prerequisite:
 
 - running samaba server with at least one mountable share with read/write access
 - readable fstab for auto-mode (linux only)
 
-###3.1 Auto-Mode (only linux):
+
+###Auto-Mode (only Linux):
 
 - create an entry 'in /etc/fstab' to automount the smb share
 - add a comment prior to this entry with '#sonos'
@@ -147,14 +149,15 @@ here is mine:
 
 That's it. The broker will now parse the line and fetches all necessary values.
 
-###3.2 Manual Mode
+
+###Manual Mode
 
 You can set all values manually. To do this, start the broker with some additional arguments:
 
     ./sonos_broker --smb_url '//192.168.0.10/music/snippets' --local_share '/mnt/google_tts'
 
 
-###3.3 Internals
+###Internals
 
 If a text is given to the google tts function, sonos broker makes a http request to the Google API. The response is
 stored as a mp3-file to local mounted samba share. Before the request is made, the broker checks whether a file exists
@@ -169,7 +172,9 @@ To disable the Google TTS support, start the broker with:
     ./sonos_broker --disable-tts
 
 
-##4.RASPBERRY PI USER
+
+##Raspberry Pi User
+
 
 For raspberry pi user, please follow these instruction prior to point 2:
 
