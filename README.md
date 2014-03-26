@@ -182,6 +182,9 @@ For raspberry pi user, please follow these instruction prior to point 2:
     sudo apt-get upgrade
     sudo easy_install3 requests
 
+To get samba shares working on your Pi (to get Google TTS support), here is a good how-to:
+
+http://raspberrypihelp.net/tutorials/12-mount-a-samba-share-on-raspberry-pi
 
 
 #Testing:
