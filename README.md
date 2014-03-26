@@ -1,5 +1,5 @@
 #Release
-#-------------------------------
+
 v0.8        2014-03-26
 
     -- add Google Text-To-Speech suppor (see documentation)
@@ -31,7 +31,7 @@ v0.1.5      2014-02-12
 
 
 #Overview
-#-------------------------------
+
 	
 The shSonos project is primary a simple (python) sonos control server, mainly based on the brilliant SoCo project https://github.com/SoCo/SoCo). 
 It implements a lightweight http server, which is controlled by simple commands.
@@ -40,7 +40,7 @@ In addition , i decided to write a plugin for the fantastic "Smarthome.py Projec
 
  
 #Requirements:
-#--------------------------------
+
 
 server:	python3 (with library requests)
 
@@ -50,7 +50,6 @@ smarthome.py
 
 
 #Install:
-#--------------------------------
 
 
 ##1.SETUP
@@ -141,10 +140,10 @@ Sonos broker features the Google Text-To-Speech API. You can play any text limit
 
 here is mine:
 
-```#sonos
-//192.168.0.10/music/snippets /mnt/google_tts cifs defaults,uid=1000,user=jonnycash,password=kNmx12,users,auto,user_xattr 0 0´´´
-
-
+```
+#sonos
+//192.168.0.10/music/snippets /mnt/google_tts cifs defaults,uid=1000,user=jonnycash,password=kNmx12,users,auto,user_xattr 0 0
+```
 
 That's it. The broker will now parse the line and fetches all necessary values.
 
@@ -180,8 +179,8 @@ For raspberry pi user, please follow these instruction prior to point 2:
 
 
 
-Testing:
---------------------------------
+#Testing:
+
 
 Because of the server-client design, you're not bound to python to communicate
 with the sonos broker instance. Open your browser and control your speaker. This project is focused on
@@ -211,7 +210,7 @@ to get a short overview of your sonos speakers in the network and to retrieve th
 		
 
 #First implemented commands (more coming soon):
-#-----------------------------------------------
+
 
 
 	volume
