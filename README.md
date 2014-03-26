@@ -1,5 +1,5 @@
-Release
--------------------------------
+#Release
+#-------------------------------
 v0.8        2014-03-26
 
     -- add Google Text-To-Speech suppor (see documentation)
@@ -30,8 +30,8 @@ v0.1.5      2014-02-12
 
 
 
-Overview
--------------------------------
+#Overview
+#-------------------------------
 	
 The shSonos project is primary a simple (python) sonos control server, mainly based on the brilliant SoCo project https://github.com/SoCo/SoCo). 
 It implements a lightweight http server, which is controlled by simple commands.
@@ -39,8 +39,8 @@ It implements a lightweight http server, which is controlled by simple commands.
 In addition , i decided to write a plugin for the fantastic "Smarthome.py Project" to control sonos speakers in a smart home. (https://github.com/mknx/smarthome/)
 
  
-Requirements:
---------------------------------
+#Requirements:
+#--------------------------------
 
 server:	python3 (with library requests)
 
@@ -49,11 +49,11 @@ smarthome.py
 
 
 
-Install:
---------------------------------
+#Install:
+#--------------------------------
 
 
-1.SETUP
+##1.SETUP
 
 
 Under the github folder "server.sonos/dist/" you'll find the actual release as a tar.gz file
@@ -90,7 +90,7 @@ the following parameter:
 
 
 
-2.CONFIGURATION (optional)
+##2.CONFIGURATION (optional)
 
 There is also a sh-script to daemonize the sonos_broker start named sonos_broker.sh.
 If you want to start sonos_broker as background service, edit sonos_broker.sh:
@@ -122,38 +122,40 @@ to:
     start-stop-daemon -v --start --pidfile $PIDFILE --make-pidfile --startas $DAEMON --
 
 
-if you want to start the broker with arguments (see below) keep in mid to edit the script.
+If you want to start the broker with arguments (see below) keep in mind to edit the script.
 
 
-3. Google TTS Support
+##3.Google TTS Support
 
 Sonos broker features the Google Text-To-Speech API. You can play any text limited to 100 chars.
 
-3.1 Prerequisite:
+###3.1 Prerequisite:
 
 - running samaba server with at least one mountable share with read/write access
 - readable fstab for auto-mode (linux only)
 
-3.1 Auto-Mode (only linux):
+###3.1 Auto-Mode (only linux):
 
 - create an entry 'in /etc/fstab' to automount the smb share
 - add a comment prior to this entry with '#sonos'
 
 here is mine:
 
-#sonos
-//192.168.0.10/music/snippets /mnt/google_tts cifs defaults,uid=1000,user=jonnycash,password=kNmx12,users,auto,user_xattr 0 0
+```#sonos
+//192.168.0.10/music/snippets /mnt/google_tts cifs defaults,uid=1000,user=jonnycash,password=kNmx12,users,auto,user_xattr 0 0´´´
+
+
 
 That's it. The broker will now parse the line and fetches all necessary values.
 
-3.2 Manual Mode
+###3.2 Manual Mode
 
 You can set all values manually. To do this, start the broker with some additional arguments:
 
     ./sonos_broker --smb_url '//192.168.0.10/music/snippets' --local_share '/mnt/google_tts'
 
 
-3.3 Internals
+###3.3 Internals
 
 If a text is given to the google tts function, sonos broker makes a http request to the Google API. The response is
 stored as a mp3-file to local mounted samba share. Before the request is made, the broker checks whether a file exists
@@ -168,7 +170,7 @@ To disable the Google TTS support, start the broker with:
     ./sonos_broker --disable-tts
 
 
-4.RASPBERRY PI USER
+##4.RASPBERRY PI USER
 
 For raspberry pi user, please follow these instruction prior to point 2:
 
@@ -208,8 +210,8 @@ Most of the commands need a speaker uid. Just type
 to get a short overview of your sonos speakers in the network and to retrieve the uid.
 		
 
-First implemented commands (more coming soon):
------------------------------------------------
+#First implemented commands (more coming soon):
+#-----------------------------------------------
 
 
 	volume
