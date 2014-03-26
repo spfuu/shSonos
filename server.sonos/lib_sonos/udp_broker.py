@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 __author__ = 'pfischi'
 
+import errno
 import socket
-#from lib_sonos import sonos_speaker
-import json
 
 registered_clients = {}
 
@@ -26,23 +25,35 @@ class UdpBroker():
 
     @staticmethod
     def udp_send(data):
-        try:
 
-            print("sending data to all connected clients: {}".format(data))
+        print("sending data to all connected clients: {}".format(data))
 
-            for host, ports in registered_clients.items():
-                for port in ports:
+        for host, ports in registered_clients.items():
+            for port in ports:
+                try:
+                    family, type, proto, canonname, sockaddr = socket.getaddrinfo(host, port)[0]
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
                     try:
-                        family, type, proto, canonname, sockaddr = socket.getaddrinfo(host, port)[0]
-
-                        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                         sock.sendto(data.encode('utf-8'), (sockaddr[0], sockaddr[1]))
-                        print("UDP: Sending data to {}:{}: ".format(host, port, data))
-                    except Exception as e:
-                        raise Exception("UDP: Problem sending data to {}:{}: ".format(host, port, e))
-                    finally:
-                        sock.close()
-                        del(sock)
+                        #print("UDP: Sending data to {}:{}: ".format(host, port, data))
 
-        except Exception as err:
-            print(err)
+                    except socket.error as e:
+                        if isinstance(e.args, tuple):
+                            if e[0] == errno.EPIPE:
+                                # remote peer disconnected
+                                print("Detected remote disconnect")
+                            else:
+                                # determine and handle different error
+                                pass
+                        else:
+                            print("socket error {}".format(e))
+
+                        sock.close()
+
+                    except IOError as e:
+                        print("Got IO error: {}".format(e))
+
+                except:
+                    pass
+

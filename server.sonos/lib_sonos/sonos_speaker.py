@@ -2,9 +2,11 @@
 import threading
 import time
 import json
-import xml
+
 from soco.core import SoCo
 from lib_sonos import udp_broker
+from lib_sonos import utils
+
 
 try:
     import xml.etree.cElementTree as XML
@@ -150,6 +152,11 @@ class SonosSpeaker():
         t = threading.Thread(target=self._play_snippet_thread, args=(uri, volume))
         t.start()
 
+    def set_play_tts(self, tts, volume, smb_url, local_share, language, quota):
+        #we use the sleep function, so thread it !!
+        t = threading.Thread(target=self._play_tts_thread, args=(tts, volume, smb_url, local_share, language, quota))
+        t.start()
+
     def set_add_to_queue(self, uri):
         soco = self.get_soco()
         soco.add_to_queue(uri)
@@ -160,25 +167,45 @@ class SonosSpeaker():
 
 ######### internal methods #######################################
 
+    def _play_tts_thread(self, tts, volume, smb_url, local_share, language, quota):
+        try:
+            fname = utils.save_google_tts(local_share, tts, language, quota)
+
+            if smb_url.endswith('/'):
+                smb_url =smb_url[:-1]
+
+            url = 'x-file-cifs:{}/{}'.format(smb_url, fname)
+            self._play_snippet_thread(url, volume)
+
+        except Exception as err:
+            raise err
+
+
     def _play_snippet_thread(self, uri, volume):
 
-        if self.play:
-            self.get_track_info()
-            queued_streamtype =self.streamtype
-            queued_uri = self.track_uri
-            queued_playlist_position = self.playlist_position
-            queued_track_position = self.track_position
-            queued_metadata = self.metadata
+        queued_playlist_position = -1
+
+        self.get_track_info()
+        queued_streamtype =self.streamtype
+        queued_uri = self.track_uri
+        queued_playlist_position = self.playlist_position
+        queued_track_position = self.track_position
+        queued_metadata = self.metadata
+        queued_play_status = self.play
 
         queued_volume = self.volume
+        if volume == -1:
+            volume = queued_volume
 
-        self._fadedown_volume()
+        self.set_volume(0)
+        time.sleep(1)
+
         self.set_volume(volume)
         self.set_play_uri(uri)
         self.get_track_info()
 
         h, m, s = self.track_duration.split(":")
-        seconds = int(h)*3600+int(m)*60+int(s)
+        seconds = int(h)*3600+int(m)*60+int(s) + 1
         time.sleep(seconds)
 
         #something changed during playing the audio snippet. Maybe there was command send by an other client (iPad e.g)
@@ -187,7 +214,7 @@ class SonosSpeaker():
 
         self.set_volume(0)
 
-        if queued_playlist_position:
+        if queued_playlist_position != -1:
             soco = self.get_soco()
 
             if queued_streamtype == "music":
@@ -196,38 +223,10 @@ class SonosSpeaker():
             else:
                 soco.play_uri(queued_uri, queued_metadata)
 
-            self._fadeup_volume(queued_volume)
+            if not queued_play_status:
+                soco.pause()
 
-        else:
-            self.set_volume(queued_volume)
-
-    def _fadedown_volume(self):
-        #fade volume to zero in 7 steps
-        steps = 7
-        step = (self.volume + steps // 2) // steps
-
-        if steps > 0:
-            counter = 0 #max loop in case of failure or manipulated volume by another client
-            while self.volume > step and counter < steps:
-                self.set_volume(self.volume-step)
-                counter += 1
-
-        self.set_volume(0)
-
-    def _fadeup_volume(self, volume_to_reach):
-        #fade volume up in 7 steps
-        steps = 7
-        step = (volume_to_reach + steps // 2) // steps
-
-        if step > 0:
-            while self.volume < volume_to_reach:
-                volume_to_set = self.volume + step
-                if  volume_to_set <= volume_to_reach:
-                    self.set_volume(volume_to_set)
-                else:
-                    self.set_volume(volume_to_reach)
-        else:
-            self.set_volume(volume_to_reach)
+        self.set_volume(queued_volume)
 
     def _streamtype(self, value):
         if value != 'radio':

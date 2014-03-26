@@ -1,5 +1,11 @@
-Release
--------------------------------
+#Release
+
+v0.8        2014-03-26
+
+    -- add Google Text-To-Speech suppor (see documentation)
+    -- minor bugfixes
+
+
 v0.1.7.1    2014-03-09
 
     -- fix: track_uri now shown
@@ -22,14 +28,10 @@ v0.1.5      2014-02-12
 
     -- bugfix in play command
 
-v0.1.4      2014-02-09
-
-    -- added command 'next'
-    -- added command 'previous'
 
 
-Overview
--------------------------------
+#Overview
+
 	
 The shSonos project is primary a simple (python) sonos control server, mainly based on the brilliant SoCo project https://github.com/SoCo/SoCo). 
 It implements a lightweight http server, which is controlled by simple commands.
@@ -37,8 +39,8 @@ It implements a lightweight http server, which is controlled by simple commands.
 In addition , i decided to write a plugin for the fantastic "Smarthome.py Project" to control sonos speakers in a smart home. (https://github.com/mknx/smarthome/)
 
  
-Requirements:
---------------------------------
+#Requirements
+
 
 server:	python3 (with library requests)
 
@@ -47,11 +49,10 @@ smarthome.py
 
 
 
-Install:
---------------------------------
+#Install
 
 
-1.SETUP
+##Setup
 
 
 Under the github folder "server.sonos/dist/" you'll find the actual release as a tar.gz file
@@ -72,6 +73,12 @@ Run the file sonos_broker with:
 
     ./sonos_broker
 
+or
+
+    ./sonos_broker -h
+
+for help an additional arguments.
+
 
 Normally, the script finds the interal ip address of your computer. If not, you have start the script with
 the following parameter:
@@ -82,7 +89,7 @@ the following parameter:
 
 
 
-2.CONFIGURATION (optional)
+##Configuration (optional)
 
 There is also a sh-script to daemonize the sonos_broker start named sonos_broker.sh.
 If you want to start sonos_broker as background service, edit sonos_broker.sh:
@@ -114,8 +121,60 @@ to:
     start-stop-daemon -v --start --pidfile $PIDFILE --make-pidfile --startas $DAEMON --
 
 
+If you want to start the broker with arguments (see below) keep in mind to edit the script.
 
-3.RASPBERRY PI USER
+
+##Google TTS Support
+
+Sonos broker features the Google Text-To-Speech API. You can play any text limited to 100 chars.
+
+
+###Prerequisite:
+
+- running samaba server with at least one mountable share with read/write access
+- readable fstab for auto-mode (linux only)
+
+
+###Auto-Mode (only Linux):
+
+- create an entry 'in /etc/fstab' to automount the smb share
+- add a comment prior to this entry with '#sonos'
+
+here is mine:
+
+```
+#sonos
+//192.168.0.10/music/snippets /mnt/google_tts cifs defaults,uid=1000,user=jonnycash,password=kNmx12,users,auto,user_xattr 0 0
+```
+
+That's it. The broker will now parse the line and fetches all necessary values.
+
+
+###Manual Mode
+
+You can set all values manually. To do this, start the broker with some additional arguments:
+
+    ./sonos_broker --smb_url '//192.168.0.10/music/snippets' --local_share '/mnt/google_tts'
+
+
+###Internals
+
+If a text is given to the google tts function, sonos broker makes a http request to the Google API. The response is
+stored as a mp3-file to local mounted samba share. Before the request is made, the broker checks whether a file exists
+with the name. The file name of a tts-file is always:  BASE64(<tts_txt>_<tts_language>).mp3
+You can set a file quota. This limits the amount of disk space the broker can use to save tts files. If the quota
+exceeds, you will receive a message. By default the quota is set to 100 mb.
+
+    ./sonos_broker --quota 1000
+
+To disable the Google TTS support, start the broker with:
+
+    ./sonos_broker --disable-tts
+
+
+
+##Raspberry Pi User
+
 
 For raspberry pi user, please follow these instruction prior to point 2:
 
@@ -123,10 +182,13 @@ For raspberry pi user, please follow these instruction prior to point 2:
     sudo apt-get upgrade
     sudo easy_install3 requests
 
+To get samba shares working on your Pi (to get Google TTS support), here is a good how-to:
+
+http://raspberrypihelp.net/tutorials/12-mount-a-samba-share-on-raspberry-pi
 
 
-Testing:
---------------------------------
+#Testing:
+
 
 Because of the server-client design, you're not bound to python to communicate
 with the sonos broker instance. Open your browser and control your speaker. This project is focused on
@@ -155,8 +217,8 @@ Most of the commands need a speaker uid. Just type
 to get a short overview of your sonos speakers in the network and to retrieve the uid.
 		
 
-First implemented commands (more coming soon):
------------------------------------------------
+#First implemented commands (more coming soon):
+
 
 
 	volume
@@ -333,11 +395,28 @@ First implemented commands (more coming soon):
             x-file-cifs%3A%2F%2F192.168.178.100%2Fmusic%2Ftest.mp3
             (unqouted: x-file-cifs://192.168.0.3/music/test.mp3)
 
-            <volume> Plays the snippet with <volume>. After the audio snippet is finished, the volume fades to its
-            original value. If -1 i used, the snippet volume is set to the current volume of the sonos speaker
+            <volume> Plays the snippet with <volume>. The volume fades is set to its original value.
+            If -1 i used, the snippet volume is set to the current volume of the sonos speaker
 
 		response:
 			no explicit response, but events will be triggered, if new track title
+
+
+    play_tts
+
+        set:
+			http://<sonos_server:port>/speaker/<sonos_uid>/play_tts/<text>/<google_tts_language><volume [-1-100]>
+
+			<text>  has to be urlsafe, qoute_plus, max. 100 chars
+
+            <google_tts_language> e.g: 'de', 'en, 'fr' ...
+
+            <volume> Plays the tts_snippet with <volume>. The volume fades is set to its original value.
+            If -1 i used, the snippet volume is set to the current volume of the sonos speaker
+
+
+		response:
+			no explicit response, but events will be triggered, if the tts_snippet is played
 
 
     current_state
@@ -368,8 +447,8 @@ First implemented commands (more coming soon):
 			... htmlcode>
 
 
-Response:
---------------------------------
+###Response:
+
 In almost any cases, you will get the appropriate response in the following JSON format (by udp):
 
     {
@@ -402,10 +481,11 @@ In almost any cases, you will get the appropriate response in the following JSON
 
 
 
-TO DO:
---------------------------------
+
+##TO DO:
+
 
 	* full SoCo command implementation
 	* documentation
 	* and many more
-    * Sonos Group Management
+    	* Sonos Group Management

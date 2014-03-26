@@ -1,8 +1,6 @@
 from __future__ import unicode_literals
 
 # -*- coding: utf-8 -*-
-import xml
-
 __author__ = 'pfischi'
 
 from xml.dom import minidom
@@ -47,16 +45,25 @@ class SonosServerService():
     _sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     _sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
 
-    def __init__(self, host, port):
+    def __init__(self, host, port, smb_url, local_share, quota, disable_tts):
         self.host = host
         self.port = port
+        self.smb_url = smb_url
+        self.local_share = local_share
+        self.quota = quota
+        self.disable_tts =disable_tts
         threading.Thread(target=self.get_speakers_periodically).start()
 
     def get_speakers_periodically(self):
 
         events = ['/MediaRenderer/RenderingControl/Event', '/MediaRenderer/AVTransport/Event']
-        sleep_scan = 10 #in seconds
-        max_sleep_count = 10 #new devices will always be deep scanned, old speaker every 10 loops
+
+        #in seconds
+        sleep_scan = 10
+
+        #new devices will always be deep scanned, old speaker every 10 loops
+        max_sleep_count = 10
+
         deep_scan_count = 0
 
         while 1:
@@ -71,7 +78,7 @@ class SonosServerService():
                 sonos_speaker.sonos_speakers = {}
                 deep_scan_count = 0
             else:
-                "find any newly added speaker"
+                #find any newly added speaker
                 new_uids = set(new_speakers) - set(sonos_speaker.sonos_speakers)
 
             #do a deep scn for all new devices

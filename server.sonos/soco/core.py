@@ -232,7 +232,7 @@ class SoCo(object):  # pylint: disable=R0904
             ('Speed', 1)
             ])
 
-    def play_uri(self, uri='', meta='', meta_queued=''):
+    def play_uri(self, uri='', meta=''):
         """ Play a given stream. Pauses the queue.
 
         Arguments:
