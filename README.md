@@ -1,6 +1,10 @@
 #Release
+v0.1.8.1      2014-03-27
 
-v0.8        2014-03-26
+    -- bugfix: server does not start correctly if no local share for Google TTS was found
+
+
+v0.1.8        2014-03-26
 
     -- add Google Text-To-Speech suppor (see documentation)
     -- minor bugfixes
