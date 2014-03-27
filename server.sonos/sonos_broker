@@ -118,16 +118,17 @@ if not disable_tts:
         else:
             local_share = l
 
-    if not utils.check_directory_permissions(local_share):
-        print('No sufficient folder permissions in \'{}\'!'.format(local_share))
-        valid_tts = False
-    else:
-        free_diskspace = utils.get_free_space_mb(local_share)
-        print('Free diskspace: {} mb'.format(free_diskspace))
-
-        if free_diskspace < quota:
-            print('Not enough diskspace left on \'{}\'. At least {} mb of free diskspace required!'.format(local_share, quota))
+    if valid_tts and local_share:
+        if not utils.check_directory_permissions(local_share):
+            print('No sufficient folder permissions in \'{}\'!'.format(local_share))
             valid_tts = False
+        else:
+            free_diskspace = utils.get_free_space_mb(local_share)
+            print('Free diskspace: {} mb'.format(free_diskspace))
+
+            if free_diskspace < quota:
+                print('Not enough diskspace left on \'{}\'. At least {} mb of free diskspace required!'.format(local_share, quota))
+                valid_tts = False
 
 
 if disable_tts or not valid_tts:

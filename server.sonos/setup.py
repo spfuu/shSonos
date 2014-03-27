@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name='sonos_broker',
-    version='0.1.8',
+    version='0.1.8.1',
     packages=['lib_sonos', 'soco'],
     scripts=['sonos_broker', 'sonos_broker.sh'],
     url='https://github.com/pfischi/shSonos',
