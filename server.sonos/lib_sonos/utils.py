@@ -108,6 +108,10 @@ def parse_fstab():
         return '', ''
 
 def check_directory_permissions(local_share):
+    if not os.path.exists(local_share):
+        print('Local share \'{}\' does not exists!'.format(local_share))
+        return False
+
     return os.access(local_share, os.W_OK) and os.access(local_share, os.R_OK)
 
 def get_folder_size(folder):
