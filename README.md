@@ -399,7 +399,7 @@ to get a short overview of your sonos speakers in the network and to retrieve th
             x-file-cifs%3A%2F%2F192.168.178.100%2Fmusic%2Ftest.mp3
             (unqouted: x-file-cifs://192.168.0.3/music/test.mp3)
 
-            <volume> Plays the snippet with <volume>. The volume is setback  to its original value.
+            <volume> Plays the snippet with <volume>. The volume is set back  to its original value.
             If -1 i used, the snippet volume is set to the current volume of the sonos speaker
 
 		response:
