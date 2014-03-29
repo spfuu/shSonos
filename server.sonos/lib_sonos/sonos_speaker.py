@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from soco.exceptions import SoCoUPnPException
 import threading
 import time
 import json
@@ -137,12 +138,6 @@ class SonosSpeaker():
         self._track_position(track_info['position'])
         self._playlist_position(track_info['playlist_position'])
 
-        #self._track_duration(track_info['duration'])
-        #self._tack_uri(track_info['uri'])
-        #self._track_album_art(track_info['album_art'])
-        #self._track_title(track_info['title'])
-        #self._track_artist(track_info['artist'])
-
     def set_play_uri(self, uri):
         soco = self.get_soco()
         soco.play_uri(uri)
@@ -183,8 +178,6 @@ class SonosSpeaker():
 
     def _play_snippet_thread(self, uri, volume):
 
-        queued_playlist_position = -1
-
         self.get_track_info()
         queued_streamtype =self.streamtype
         queued_uri = self.track_uri
@@ -212,19 +205,25 @@ class SonosSpeaker():
         if self.track_uri != uri:
             return
 
-        self.set_volume(0)
+        if queued_playlist_position:
 
-        if queued_playlist_position != -1:
             soco = self.get_soco()
 
-            if queued_streamtype == "music":
-                soco.play_from_queue(int(queued_playlist_position)-1)
-                soco.seek(queued_track_position)
-            else:
-                soco.play_uri(queued_uri, queued_metadata)
+            try:
+                if queued_streamtype == "music":
+                    soco.play_from_queue(int(queued_playlist_position)-1)
+                    soco.seek(queued_track_position)
+                else:
+                    soco.play_uri(queued_uri, queued_metadata)
 
-            if not queued_play_status:
-                soco.pause()
+                if not queued_play_status:
+                    soco.pause()
+            except SoCoUPnPException as err:
+                #this happens if there is no track in playlist after snippet was played
+                if err.error_code == 701:
+                    pass
+                else:
+                    raise err
 
         self.set_volume(queued_volume)
 
