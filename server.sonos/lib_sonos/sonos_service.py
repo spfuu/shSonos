@@ -376,11 +376,17 @@ class SonosServerService():
                         split_title = stream_content.split('-')
 
                         if split_title:
+                            if len(split_title)==1:
+                                title = split_title
+
                             if len(split_title) == 2:
                                 artist = split_title[0].strip()
                                 title = split_title[1].strip()
-                            else:
-                                title = split_title
+
+                            # mostly this happens during commercial breaks, news, weather etc
+                            if len(split_title) > 2:
+                                artist = split_title[0].strip()
+                                title = '-'.join(split_title[1:])
                         else:
                             title = stream_content
 
@@ -424,8 +430,8 @@ class SonosServerService():
             if not title:
                 title = ''
 
-            sonos_speaker.sonos_speakers[uid]._track_artist(artist)
-            sonos_speaker.sonos_speakers[uid]._track_title(title)
+            sonos_speaker.sonos_speakers[uid]._track_artist(artist.title())
+            sonos_speaker.sonos_speakers[uid]._track_title(title.title())
 
         except Exception as err:
             print(err)
