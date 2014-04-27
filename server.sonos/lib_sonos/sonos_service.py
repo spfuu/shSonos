@@ -45,13 +45,13 @@ class SonosServerService():
     _sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     _sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
 
-    def __init__(self, host, port, smb_url, local_share, quota, disable_tts):
+    def __init__(self, host, port, smb_url, local_share, quota, tts_enabled):
         self.host = host
         self.port = port
         self.smb_url = smb_url
         self.local_share = local_share
         self.quota = quota
-        self.disable_tts =disable_tts
+        self.tts_enabled =tts_enabled
         threading.Thread(target=self.get_speakers_periodically).start()
 
     def get_speakers_periodically(self):
@@ -81,7 +81,7 @@ class SonosServerService():
                 #find any newly added speaker
                 new_uids = set(new_speakers) - set(sonos_speaker.sonos_speakers)
 
-            #do a deep scn for all new devices
+            #do a deep scan for all new devices
             for uid in new_uids:
                 print('new speaker: {} -- adding to list'.format(uid))
                 #add the new speaker to our main list
@@ -94,8 +94,11 @@ class SonosServerService():
             #find all offline speaker
             offline_uids = set(sonos_speaker.sonos_speakers) - set(new_speakers)
 
-            for u in offline_uids:
-                print("offline speaker: {} -- removing from list".format(u))
+            for uid in offline_uids:
+                print("offline speaker: {} -- removing from list".format(uid))
+                sonos_speaker.sonos_speakers[uid].set_online_status(False)
+                sonos_speaker.sonos_speakers[uid].send_data()
+                del sonos_speaker.sonos_speakers[uid]
 
             if deep_scan_count == max_sleep_count:
                 print("Performing deep scan for speakers ...")

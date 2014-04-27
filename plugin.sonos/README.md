@@ -3,6 +3,18 @@ The plugin is designed to control the sonos speakers in connection with the sono
 
 
 ##Release
+  v0.7    2014-04-27
+
+    -- version string added
+    -- changed subscription method from own thread to internal scheduler function
+    -- thread stable change of sonos values added
+    -- new command:
+        -   status [readonly] (Is the speaker online / offline, should be updated within 20sec)
+        -   maxvolume [read/write] (set maximum volume for the speaker. This setting will be ignored, if play_tts or
+            play_snippet are used.
+    -- new functions:
+        -   get_favorite_radiostations()    Gets favorite radio stations from sonos library
+        -   version                         Just the version of the current plugin
 
   v0.6    2014-03-29
 
@@ -16,51 +28,6 @@ The plugin is designed to control the sonos speakers in connection with the sono
     -- new commands:
         -   play_tts (play any text through Google TTS API)
     -- broken_pipe bugfix
-
-  v0.4    2014-03-08
-
-    -- audio snippet integration
-    -- many many code improvements
-    -- JSON format, less network traffic
-    -- easier to configure sonos speaker in conf-file
-    -- better radio integration
-    -- new commands:
-        -   track_uri [readonly] (can be used for command 'play_uri)
-        -   track_album_art [readonly] (track album url to show it in the visu)
-        -   radio_station [readonly] (if radio, name of radio station)
-        -   radio_show [readonly] (if radio, name of current radio station)
-        -   playlist_position [readonly] (current track position in playlist)
-        -   play_snippet (plays a audio snippet. If a track / radio stream is active, the current track stops,
-            the audio snippets will be played. After the snippet is finished, the last play track is resumed.
-            The volume behaviour can be adjusted. Use the sonos_volume attribute within the play_snippet command
-            to set a higher volume. When the snippet is finished, the volume fades to its original value.
-        -   uid [readonly] (sonos speaker uid)
-        -   ip [readonly] (sonos speaker ip)
-        -   model [readonly] (sonos seaker model)
-        -   zone_name [readonly] (zone name where the speaker is currently located)
-        -   zone_icon [readonly] (zone icon)
-        -   serial_number [readonly] (sonos speaker serial number)
-        -   software_version [readonly] (sonos speaker software version)
-        -   hardware_version [readonly] (sonos speaker hardware version)
-        -   mac_address [readonly] (sonos speaker mac address)
-
-  v0.3.1  2014-02-18
-
-    -- bugfix in parse_input method: '\r' was not stripped correctly
-  
-  v0.3    2014-02-12
-    
-    -- bug in thread routine 'subscribe' caused plugin not to resubscribed to sonos broker
-
-  v0.2    2014-02-10
-  
-    -- command 'next' and 'previous' added
-
-  v0.1    2014-01-28
-    
-    -- Initial release
-    -- new commands: seek, track_position, track_duration
-    -- requires sonos_broker server v0.1.2
 
 
 ##Requirements:
@@ -112,6 +79,17 @@ The plugin is designed to control the sonos speakers in connection with the sono
         sonos_recv = volume
         sonos_send = volume
 
+    [[max_volume]]
+        type = num
+        value = -1
+        enforce_updates = True
+        visu_acl = rw
+        sonos_recv = max_volume
+        sonos_send = max_volume
+
+        #This setting will be ignored, if play_tts or 'play_snippet' are used.
+        #Unset max_volume with value -1
+_
     [[stop]]
         type = bool
         enforce_updates = True
@@ -261,11 +239,51 @@ The plugin is designed to control the sonos speakers in connection with the sono
         type = str
         sonos_recv = mac_address
 
+    [[status]]
+        type = bool
+        sonos_recv = status
 
   To get your sonos speaker id, type this command in your browser (while sonos server running):
   
     http://<sonos_server_ip:port>/client/list
-      
+
+
+##Methods
+
+get_favorite_radiostations(<start_item>, <max_items>)
+
+    Get all favorite radio stations from sonos library
+
+    start_item [optional]: item to start, starting with 0 (default: 0)
+    max_items [optional]: maximum items to fetch. (default: 50)
+
+    Parameter max_items can only be used, if start_item is set (positional argument)
+
+    It's a good idea to check to see if the total number of favorites is greater than the amount you
+    requested ('max_items'), if it is, use `start` to page through and  get the entire list of favorites.
+
+    Response:
+
+    JSON object, utf-8 encoded
+
+    Example:
+
+    {
+        "favorites":
+        [
+            { "title": "Radio TEDDY", "uri": "x-sonosapi-stream:s80044?sid=254&flags=32" },
+            { "title": "radioeins vom rbb 95.8 (Pop)", "uri": "x-sonosapi-stream:s25111?sid=254&flags=32" }
+        ],
+            "returned": 2,
+            "total": "10"
+    }
+
+version()
+
+    current plugin version
+
+
+##Logic examples
 
   To run this plugin with a logic, here is my example:
     

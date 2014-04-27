@@ -25,9 +25,7 @@ class UdpBroker():
 
     @staticmethod
     def udp_send(data):
-
         print("sending data to all connected clients: {}".format(data))
-
         for host, ports in registered_clients.items():
             for port in ports:
                 try:
@@ -36,8 +34,6 @@ class UdpBroker():
 
                     try:
                         sock.sendto(data.encode('utf-8'), (sockaddr[0], sockaddr[1]))
-                        #print("UDP: Sending data to {}:{}: ".format(host, port, data))
-
                     except socket.error as e:
                         if isinstance(e.args, tuple):
                             if e[0] == errno.EPIPE:
@@ -53,7 +49,5 @@ class UdpBroker():
 
                     except IOError as e:
                         print("Got IO error: {}".format(e))
-
                 except:
                     pass
-

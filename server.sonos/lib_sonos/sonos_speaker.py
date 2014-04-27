@@ -8,7 +8,6 @@ from soco.core import SoCo
 from lib_sonos import udp_broker
 from lib_sonos import utils
 
-
 try:
     import xml.etree.cElementTree as XML
 except ImportError:
@@ -44,6 +43,8 @@ class SonosSpeaker():
         self.track_album_art = ''
         self.radio_show = ''
         self.radio_station =''
+        self.status = True
+        self.max_volume = -1
 
     def to_JSON(self):
         to_ignore = ['metadata', 'subscription']
@@ -64,9 +65,22 @@ class SonosSpeaker():
     def set_volume(self, volume):
         volume = int(volume)
         SonosSpeaker.check_volume_range(volume)
+        if SonosSpeaker.check_max_volume_exceeded(volume, self.max_volume):
+            volume = self.max_volume
         soco = self.get_soco()
         soco.volume = volume
-        self.volume = volume
+
+    def set_maxvolume(self, maxvolume):
+
+        maxvolume = int(maxvolume)
+
+        if maxvolume is not -1:
+            SonosSpeaker.check_volume_range(maxvolume)
+            self.max_volume = maxvolume
+            if self.volume > maxvolume:
+                self.set_volume(maxvolume)
+        else:
+            self.max_volume = maxvolume
 
     def get_volume(self):
         soco = self.get_soco()
@@ -160,6 +174,29 @@ class SonosSpeaker():
         data = self.to_JSON()
         udp_broker.UdpBroker.udp_send(data)
 
+    def set_online_status(self, status):
+        #status == 0 -> speaker offline:
+        self.status = status
+
+        if status == 0:
+            self.streamtype = ''
+            self.volume = 0
+            self.mute = 0
+            self.led = 1
+            self.stop = False
+            self.play = False
+            self.pause = False
+            self.track_title = "No track title"
+            self.track_artist = "No track artist"
+            self.track_duration = "00:00:00"
+            self.track_position = "00:00:00"
+            self.playlist_position = 0
+            self.track_uri = ''
+            self.track_album_art = ''
+            self.radio_show = ''
+            self.radio_station =''
+            self.max_volume = -1
+
 ######### internal methods #######################################
 
     def _play_tts_thread(self, tts, volume, smb_url, local_share, language, quota):
@@ -169,7 +206,7 @@ class SonosSpeaker():
             if smb_url.endswith('/'):
                 smb_url =smb_url[:-1]
 
-            url = 'x-file-cifs:{}/{}'.format(smb_url, fname)
+            url = '{}/{}'.format(smb_url, fname)
             self._play_snippet_thread(url, volume)
 
         except Exception as err:
@@ -193,6 +230,10 @@ class SonosSpeaker():
         self.set_volume(0)
         time.sleep(1)
 
+        #ignore max_volume here
+        queued_max_volume = self.max_volume
+        self.max_volume = -1
+
         self.set_volume(volume)
         self.set_play_uri(uri)
         self.get_track_info()
@@ -200,6 +241,8 @@ class SonosSpeaker():
         h, m, s = self.track_duration.split(":")
         seconds = int(h)*3600+int(m)*60+int(s) + 1
         time.sleep(seconds)
+
+        self.max_volume = queued_max_volume
 
         #something changed during playing the audio snippet. Maybe there was command send by an other client (iPad e.g)
         if self.track_uri != uri:
@@ -238,6 +281,9 @@ class SonosSpeaker():
 
     def _volume(self, value):
         self.volume = int(value)
+        #if max_volume for current volume exceeded, we'll set the volume to max_volume
+        if SonosSpeaker.check_max_volume_exceeded(value, self.max_volume):
+            self.set_volume(self.max_volume)
 
     def _play(self, value):
         self.play = int(value)
@@ -292,3 +338,12 @@ class SonosSpeaker():
         if volume < 0 or volume > 100:
             msg = 'Volume has to be between 0 and 100.'
             raise Exception(msg)
+
+    @staticmethod
+    def check_max_volume_exceeded(volume, max_volume):
+        volume = int(volume)
+        if max_volume  > -1:
+            if volume > max_volume:
+                return True
+        return False
+
