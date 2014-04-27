@@ -1,14 +1,21 @@
 #Release
-v0.1.8.1      2014-03-27
+
+v0.1.9      2014-04-27
+
+    -- removed startup parameters for a config file
+    -- Google-TTS: removed the requirement for a working smb share
+    -- Google-TTS: removed auto config for smb shares (not necessary any more)
+    -- Command: added favorite radiostation command
+    -- Command: added maxvolume command
+
+v0.1.8.1    2014-03-27
 
     -- bugfix: server does not start correctly if no local share for Google TTS was found
 
-
-v0.1.8        2014-03-26
+v0.1.8      2014-03-26
 
     -- add Google Text-To-Speech suppor (see documentation)
     -- minor bugfixes
-
 
 v0.1.7.1    2014-03-09
 
@@ -28,11 +35,6 @@ v0.1.6      2014-02-18
 
     -- minor bugfix: changed EOL (end-of-line) from '\r\n' to '\n' in sonos_command method
 
-v0.1.5      2014-02-12
-
-    -- bugfix in play command
-
-
 
 #Overview
 
@@ -45,19 +47,16 @@ In addition , i decided to write a plugin for the fantastic "Smarthome.py Projec
  
 #Requirements
 
+Server:	python3 (with library 'requests')
 
-server:	python3 (with library requests)
-
-client-side: nothing special, just send your commands over http or use the plugin to control the speakers within
-smarthome.py
-
+Client-side: nothing special, just send your commands over http or use the Smarthome.py plugin to control the speakers
+within smarthome.py
 
 
 #Install
 
 
 ##Setup
-
 
 Under the github folder "server.sonos/dist/" you'll find the actual release as a tar.gz file
 Unzip this file with:
@@ -77,23 +76,19 @@ Run the file sonos_broker with:
 
     ./sonos_broker
 
-or
+Normally, the script finds the interal ip address of your computer. If not, you have to edit your sonos_broker.cfg.
 
-    ./sonos_broker -h
-
-for help an additional arguments.
-
-
-Normally, the script finds the interal ip address of your computer. If not, you have start the script with
-the following parameter:
-
-    ./sonos_broker --localip x.x.x.x
+    [sonos_broker]
+    server_ip = x.x.x.x
 
 (x.x.x.x means your ip: run ifconfig - a to find it out)
 
 
-
 ##Configuration (optional)
+
+You can edit the settings of Sonos Broker. Open 'sonos_broker.cfg' with your favorite editor and edit the file.
+All values within the config file should be self-explaining. For Google-TTS options, see the appropriate section in this
+Readme.
 
 There is also a sh-script to daemonize the sonos_broker start named sonos_broker.sh.
 If you want to start sonos_broker as background service, edit sonos_broker.sh:
@@ -108,10 +103,8 @@ Start service with:
 
     sudo ./path/to/sonos_broker.sh start
 
-
 To autostart the service on system boot, please follow the instruction for your linux distribution and put this
 script in the right place.
-
 
 Attention!! Please notice that the script is running as with the 'background' flag. In order that, there is
 no debug or error output. To get these hints in failure cases, remove this flag in sonos_broker.sh
@@ -125,56 +118,52 @@ to:
     start-stop-daemon -v --start --pidfile $PIDFILE --make-pidfile --startas $DAEMON --
 
 
-If you want to start the broker with arguments (see below) keep in mind to edit the script.
-
 
 ##Google TTS Support
 
 Sonos broker features the Google Text-To-Speech API. You can play any text limited to 100 chars.
 
-
 ###Prerequisite:
 
-- running samaba server with at least one mountable share with read/write access
-- readable fstab for auto-mode (linux only)
-
-
-###Auto-Mode (only Linux):
-
-- create an entry 'in /etc/fstab' to automount the smb share
-- add a comment prior to this entry with '#sonos'
-
-here is mine:
-
-```
-#sonos
-//192.168.0.10/music/snippets /mnt/google_tts cifs defaults,uid=1000,user=jonnycash,password=kNmx12,users,auto,user_xattr 0 0
-```
-
-That's it. The broker will now parse the line and fetches all necessary values.
-
-
-###Manual Mode
-
-You can set all values manually. To do this, start the broker with some additional arguments:
-
-    ./sonos_broker --smb_url '//192.168.0.10/music/snippets' --local_share '/mnt/google_tts'
-
+- local / remote mounted folder or share with read/write access
+- http access to this local folder (e.g. /var/www)
+- settings configured in sonos_broker.conf
 
 ###Internals
 
 If a text is given to the google tts function, sonos broker makes a http request to the Google API. The response is
 stored as a mp3-file to local mounted samba share. Before the request is made, the broker checks whether a file exists
 with the name. The file name of a tts-file is always:  BASE64(<tts_txt>_<tts_language>).mp3
-You can set a file quota. This limits the amount of disk space the broker can use to save tts files. If the quota
+You can set a file quota in the config file. This limits the amount of disk space the broker can use to save tts files. If the quota
 exceeds, you will receive a message. By default the quota is set to 100 mb.
 
-    ./sonos_broker --quota 1000
+    sonos_broker.cfg:
 
-To disable the Google TTS support, start the broker with:
+        [google_tts]
+        quota = 200
 
-    ./sonos_broker --disable-tts
+By default, Google TTS support is disabled. To enable the service, add following line to sonos_broker.cfg:
 
+    sonos_broker.cfg:
+
+        [google_tts]
+        enable = true
+
+You have to set the local save path (where the mp3 is stored) and the accessible local url:
+
+     sonos_broker.cfg
+
+        [google_tts]
+        save_path =/your/path/here
+        server_url = http://192.168.0.2/tts
+
+This is an example of a google_tts section in the sonos_broker.cfg file:
+
+    [google_tts]
+    enable=true
+    quota=200
+    save_path =/your/path/here
+    server_url = http://192.168.0.2/tts
 
 
 ##Raspberry Pi User
@@ -223,7 +212,7 @@ to get a short overview of your sonos speakers in the network and to retrieve th
 
 #First implemented commands (more coming soon):
 
-
+##Speaker commands
 
 	volume
 
@@ -235,6 +224,23 @@ to get a short overview of your sonos speakers in the network and to retrieve th
 
 		response (udp):
 	        JSON speaker structure
+
+
+    maxvolume
+
+		set:
+			http://<sonos_server:port>/speaker/<sonos_uid>/maxvolume/<value:-1-100>
+
+		get:
+			http://<sonos_server:port>/speaker/<sonos_uid>/maxvolume
+
+		response (udp):
+	        JSON speaker structure
+
+        Sets the maximum volume for the sonos speaker. This setting also affects other sonos clients (iPad, Android etc).
+        If a volume greater than maxvolume is set, the volume is set to maxvolume.
+        The maximum volume will be ignored if play_snippet or play_tts are used.
+        To unset maxvolume, set the value to -1.
 
 
 	mute
@@ -438,7 +444,7 @@ to get a short overview of your sonos speakers in the network and to retrieve th
 
 		get:
 			http://<sonos_server:port>/client/list
-		
+
 		response (http)
 			<html code ....
 				uid : rincon_000e58c3892e01400
@@ -462,6 +468,7 @@ In almost any cases, you will get the appropriate response in the following JSON
         "mac_address": "00:0E:59:D4:89:2F",
         "model": "ZPS1",
         "mute": 0,
+        "maxvolume" : 0
         "pause": 0,
         "play": 1,
         "playlist_position": "1",
@@ -470,6 +477,7 @@ In almost any cases, you will get the appropriate response in the following JSON
         "serial_number": "00-0E-59-D4-89-2F:7",
         "software_version": "24.0-71060",
         "stop": 0,
+        "status" : 1                    #speaker online / offline?
         "streamtype": "radio",
         "track_album_art": "http://192.168.0.10:1400/getaa?s=1&u=x-sonosapi-stream%3as17488%3fsid%3d254%26flags%3d32",
         "track_artist": "RADIO CHARIVARI 95.5",
@@ -484,6 +492,37 @@ In almost any cases, you will get the appropriate response in the following JSON
     }
 
 
+##Library commands
+
+    favorite radio stations
+
+        get:
+            http://<sonos_server:port>/library/favradio/<start_item>/<max_items>
+
+            Get all favorite radio stations from sonos library
+
+            start_item [optional]: item to start, starting with 0 (default: 0)
+            max_items [optional]: maximum items to fetch. (default: 50)
+
+            Parameter max_items can only be used, if start_item is set (positional argument)
+
+            It's a good idea to check to see if the total number of favorites is greater than the amount you
+            requested (`max_items`), if it is, use `start` to page through and  get the entire list of favorites.
+
+        response (http):
+            JSON object, utf-8 encoded
+
+            Example:
+
+            {
+                "favorites":
+                    [
+                        { "title": "Radio TEDDY", "uri": "x-sonosapi-stream:s80044?sid=254&flags=32" },
+                        { "title": "radioeins vom rbb 95.8 (Pop)", "uri": "x-sonosapi-stream:s25111?sid=254&flags=32" }
+                    ],
+                "returned": 2,
+                "total": "10"
+            }
 
 
 ##TO DO:
