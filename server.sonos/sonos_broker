@@ -7,7 +7,9 @@ import socket
 import socketserver
 import argparse
 from time import sleep
+import configparser
 from lib_sonos import utils
+from lib_sonos import definitions
 
 if os.name != "nt":
     import fcntl
@@ -42,27 +44,26 @@ class SonosHttpHandler(BaseHTTPRequestHandler):
 
             status = 'Error'
             if result:
-                self.send_response(200, 'OK')
+                self.send_response(definitions.HTTP_SUCCESS, 'OK')
                 status = 'Success'
             else:
-                self.send_response(400, 'Bad request')
+                self.send_response(definitions.HTTP_ERROR, 'Bad request')
 
             self.send_header("Content-type", "text/html")
             self.end_headers()
-            self.wfile.write("<html><head><title>{}</title></head>".format(status).encode('utf-8'))
-            self.wfile.write("<body><p>{}</p></body>".format(response).encode('utf-8'))
+            #self.wfile.write("<html><head><title>{}</title></head>".format(status).encode('utf-8'))
+            #self.wfile.write("<body><p>{}</p></body>".format(response).encode('utf-8'))
+            self.wfile.write("{}".format(response).encode('utf-8'))
         finally:
             self.connection.close()
 
     def do_NOTIFY(self):
         try:
-            self.send_response(200, "OK")
-
+            self.send_response(definitions.HTTP_SUCCESS, "OK")
             #get subscription id and find the connected speaker uid
             sid = self.headers['SID']
             content_len = int(self.headers['content-length'])
             post_body = self.rfile.read(content_len).decode('utf-8')
-            print(post_body)
             sonos_service.response_parser(sid, post_body)
         finally:
             self.connection.close
@@ -71,82 +72,83 @@ class SonosHttpHandler(BaseHTTPRequestHandler):
 class ThreadedHTTPServer(socketserver.ThreadingMixIn, HTTPServer):
     """Handle requests in a separate thread."""
 
+config = configparser.ConfigParser()
+config.read(definitions.DEFAULT_CFG)
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--port', help='Http server port', type=int, dest='port', default=12900)
-parser.add_argument('--host', help='Http server host', dest='host', default='0.0.0.0')
-parser.add_argument('--localip',
-                    help='IP of this server in the local network. By default, sonos_broker tries to fetch the ip automatically.',
-                    dest='localip')
-parser.add_argument('--disable_tts', action='store_true', help='Disable Google Text-To-Speech', default=False,
-                    dest='disable_tts')
-parser.add_argument('--smb_url',
-                    help='Url of samba share to store Google Text-to-Speech files. Leave it empty to fetch it by the fstab entry (insert a comment-line with #sonos before your mount command).',
+server_ip = None
+port = definitions.DEFAULT_PORT
+host = definitions.DEFAULT_HOST
 
-                    dest='smb_url')
-parser.add_argument('--local_share',
-                    help='Local mounted samba share pointed to smb_url. Leave it empty to fetch it by the fstab entry (insert a comment-line with #sonos before your mount command). '
-                         'A mounted smb share with read/write permissions is required.',
-                    dest='local_share')
-parser.add_argument('--quota',
-                    help='Max. disk quota to store tts files in megabytes.', dest='quota', default=100, type=int)
+if config.has_section('sonos_broker'):
+    if config.has_option('sonos_broker', 'server_ip'):
+        server_ip = config.get('sonos_broker', 'server_ip')
 
-args = parser.parse_args()
-port = args.port
-host = args.host
-disable_tts = args.disable_tts
-smb_url = args.smb_url
-local_share = args.local_share
-quota = args.quota
+    if config.has_option('sonos_broker', 'host'):
+        host = config.get('sonos_broker', 'host')
 
-valid_tts = True
+    if config.has_option('sonos_broker', 'port'):
+        port = config.getint('sonos_broker', 'port')
 
-if not disable_tts:
-    s, l = utils.parse_fstab()
-
-    if not smb_url:
-        if not s:
-            print('No smb url given!')
-            valid_tts = False
-        else:
-            smb_url = s
-
-    if not local_share:
-        if not l:
-            print('No local share given!')
-            valid_tts = False
-        else:
-            local_share = l
-
-    if valid_tts and local_share:
-        if not utils.check_directory_permissions(local_share):
-            print('No sufficient folder permissions in \'{}\'!'.format(local_share))
-            valid_tts = False
-        else:
-            free_diskspace = utils.get_free_space_mb(local_share)
-            print('Free diskspace: {} mb'.format(free_diskspace))
-
-            if free_diskspace < quota:
-                print('Not enough diskspace left on \'{}\'. At least {} mb of free diskspace required!'.format(local_share, quota))
-                valid_tts = False
+if not server_ip:
+    server_ip = get_lan_ip()
+    if not server_ip:
+        raise ('Couldn\'t detect the internal server ip automatically! Set the ip address manually (see config file).')
 
 
-if disable_tts or not valid_tts:
+tts_enabled = False
+save_path = None
+server_url = None
+quota = None
+
+if config.has_section('google_tts'):
+    if config.has_option('google_tts', 'enabled'):
+        tts_enabled = config.getboolean('google_tts', 'enabled')
+
+    if tts_enabled:
+        if config.has_option('google_tts', 'save_path'):
+            save_path = config.get('google_tts', 'save_path')
+
+        if config.has_option('google_tts', 'server_url'):
+            server_url = config.get('google_tts', 'server_url')
+
+        if config.has_option('google_tts', 'quota'):
+            quota = config.getint('google_tts', 'quota')
+
+if tts_enabled and not save_path:
+    print('No local save path given!')
+    tts_enabled = False
+
+if tts_enabled and not server_url:
+    print('No local server url given!')
+    tts_enabled = False
+
+if tts_enabled and not quota:
+    quota = definitions.DEFAULT_QUOTA
+
+if tts_enabled:
+    if not utils.check_directory_permissions(save_path):
+        print('No sufficient folder permissions in \'{}\'!'.format(save_path))
+        tts_enabled = False
+    else:
+        free_diskspace = utils.get_free_space_mb(save_path)
+        print('Free diskspace: {} mb'.format(free_diskspace))
+
+        if free_diskspace < quota:
+            print('Not enough diskspace left on \'{}\'. At least {} mb of free diskspace required!'.format(save_path, quota))
+            tts_enabled = False
+
+if not tts_enabled:
     print('Google-TTS disabled!')
 else:
     print('Google-TTS enabled!')
-    print('smb url:\t\t{}'.format(smb_url))
-    print('local share:\t\t{}'.format(local_share))
+    print('server_url:\t\t{}'.format(server_url))
+    print('save_path:\t\t{}'.format(save_path))
 
-if args.localip:
-    local_ip = args.localip
-else:
-    local_ip = get_lan_ip()
 
-print("Starting server with ip address %s ... be sure this is correct." % local_ip)
-sleep(2)
+print("Starting server with ip address %s ... be sure this is correct." % server_ip)
+sleep(1)
 
-sonos_service = SonosServerService(local_ip, port, smb_url, local_share, quota, disable_tts)
+sonos_service = SonosServerService(server_ip, port, server_url, save_path, quota, tts_enabled)
 command = Command(sonos_service)
 
 if __name__ == "__main__":

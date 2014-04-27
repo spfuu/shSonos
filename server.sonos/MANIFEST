@@ -5,6 +5,7 @@ sonos_broker.sh
 lib_sonos/__init__.py
 lib_sonos/definitions.py
 lib_sonos/sonos_commands.py
+lib_sonos/sonos_library.py
 lib_sonos/sonos_service.py
 lib_sonos/sonos_speaker.py
 lib_sonos/udp_broker.py

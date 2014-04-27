@@ -3,12 +3,15 @@ import re
 import urllib
 from urllib.parse import unquote_plus
 from lib_sonos import sonos_speaker
+from lib_sonos.sonos_library import SonosLibrary
 from lib_sonos.udp_broker import UdpBroker
 from lib_sonos.sonos_service import SonosServerService
+
 
 class Command():
     def __init__(self, service):
         self.sonos_service = service
+        self.sonos_library = SonosLibrary()
         self.true_vars = ['true', '1', 't', 'y', 'yes']
 
     def do_work(self, client_ip, path):
@@ -53,7 +56,6 @@ class Command():
     def client_list(self, ip, arguments):
         try:
             speakers = SonosServerService.get_speakers()
-
             data = ''
 
             for uid, speaker in speakers.items():
@@ -192,6 +194,24 @@ class Command():
         except Exception as err:
             return False, Exception("VOLUME command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
 
+    def speaker_maxvolume(self, ip, arguments):
+        try:
+            uid = arguments[0].lower()
+
+            if not uid in sonos_speaker.sonos_speakers:
+                raise Exception("Couldn't find any speaker with uid '%s'!" % uid)
+
+            if len(arguments) > 1:
+                value = int(arguments[1])
+                sonos_speaker.sonos_speakers[uid].set_maxvolume(value)
+
+            sonos_speaker.sonos_speakers[uid].send_data()
+
+            return True, "MAXVOLUME command was processed successfully for speaker with uid '{}'.".format(uid)
+
+        except Exception as err:
+            return False, Exception("MAXVOLUME command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
+
     def speaker_next(self, ip, arguments):
         try:
             uid = arguments[0].lower()
@@ -269,7 +289,6 @@ class Command():
                 raise Exception("Couldn't find any speaker with uid '%s'!" % uid)
 
             sonos_speaker.sonos_speakers[uid].get_track_info()
-
             sonos_speaker.sonos_speakers[uid].send_data()
 
             return True, "TRACKINFO command was processed successfully for speaker with uid '{}'.".format(uid)
@@ -329,7 +348,7 @@ class Command():
     def speaker_play_tts(self, ip, arguments):
         try:
 
-            if self.sonos_service.disable_tts:
+            if not self.sonos_service.tts_enabled:
                 return False, 'Google-TTS not active. Check server logs!'
 
             volume = -1
@@ -381,6 +400,26 @@ class Command():
         except Exception as err:
             return False, Exception("STREAMTYPE command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
 
+    def library_favradio(self, ip, arguments):
+        try:
+            start_item = 0
+            max_items = 10
+
+            if len(arguments) > 0:
+                try:
+                    start_item = int(arguments[0])
+                except ValueError:
+                    pass
+            if len(arguments) > 1:
+                try:
+                    max_items = int(arguments[1])
+                except ValueError:
+                    pass
+
+            return True, self.sonos_library.get_fav_radiostations(start_item, max_items)
+
+        except Exception as err:
+            return False, Exception("FAVRADIO command failed!\nException: {}".format(err))
 
 def url_fix(s, charset='utf-8'):
     """Sometimes you get an URL by a user that just isn't a real

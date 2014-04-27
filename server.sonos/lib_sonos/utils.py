@@ -83,30 +83,6 @@ def get_free_space_mb(folder):
         st = os.statvfs(folder)
         return int(round(st.f_bavail * st.f_frsize/1024/1024, 0))
 
-
-def parse_fstab():
-
-    pattern = re.compile('[\n\r]#[sS]onos\s*([^\n\r]*)')
-    cifs_pattern = re.compile('\s*(\S*)\s*(\S*)\s*cifs\s*(\S*)\s*')
-
-    try:
-
-        with open('/etc/fstab', 'rb') as file:
-            fstab = file.read().decode('ascii')
-
-            line, = pattern.search(fstab).groups()
-
-            if line:
-                smb_share, local_share, options = cifs_pattern.search(line).groups()
-
-                return smb_share, local_share
-
-            else:
-                print('No valid entry found in fstab for google-tts!!')
-                return '', ''
-    except:
-        return '', ''
-
 def check_directory_permissions(local_share):
     if not os.path.exists(local_share):
         print('Local share \'{}\' does not exists!'.format(local_share))
