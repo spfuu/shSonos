@@ -468,7 +468,7 @@ In almost any cases, you will get the appropriate response in the following JSON
         "mac_address": "00:0E:59:D4:89:2F",
         "model": "ZPS1",
         "mute": 0,
-        "maxvolume" : 0
+        "max_volume" : 0
         "pause": 0,
         "play": 1,
         "playlist_position": "1",
