@@ -10,7 +10,7 @@ The plugin is designed to control the sonos speakers in connection with the sono
     -- thread stable change of sonos values added
     -- new command:
         -   status [readonly] (Is the speaker online / offline, should be updated within 20sec)
-        -   maxvolume [read/write] (set maximum volume for the speaker. This setting will be ignored, if play_tts or
+        -   max_volume [read/write] (set maximum volume for the speaker. This setting will be ignored, if play_tts or
             play_snippet are used.
     -- new functions:
         -   get_favorite_radiostations()    Gets favorite radio stations from sonos library

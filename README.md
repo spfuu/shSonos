@@ -2,7 +2,8 @@
 
 v0.1.9      2014-04-27
 
-    -- removed startup parameters for a config file
+    -- removed startup parameters
+    -- sonos broker is now configured by a config file
     -- Google-TTS: removed the requirement for a working smb share
     -- Google-TTS: removed auto config for smb shares (not necessary any more)
     -- Command: added favorite radiostation command

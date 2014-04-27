@@ -4,7 +4,7 @@ setup(
     name='sonos_broker',
     version='0.1.9',
     packages=['lib_sonos', 'soco'],
-    scripts=['sonos_broker', 'sonos_broker.sh'],
+    scripts=['sonos_broker', 'sonos_broker.sh', 'sonos_broker.cfg'],
     url='https://github.com/pfischi/shSonos',
     license='',
     author='pfischi',
