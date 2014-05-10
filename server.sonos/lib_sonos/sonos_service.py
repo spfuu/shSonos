@@ -17,6 +17,7 @@ import re
 import logging
 from time import sleep
 from http.client import HTTPConnection
+from soco import SoCo, discover
 
 try:
     import xml.etree.cElementTree as XML
@@ -59,7 +60,7 @@ class SonosServerService():
         events = ['/MediaRenderer/RenderingControl/Event', '/MediaRenderer/AVTransport/Event']
 
         #in seconds
-        sleep_scan = 10
+        sleep_scan = 30
 
         #new devices will always be deep scanned, old speaker every 10 loops
         max_sleep_count = 10
@@ -67,32 +68,34 @@ class SonosServerService():
         deep_scan_count = 0
 
         while 1:
-
-            new_uids = []
             print('scan devices ...')
-            #find all (new and old speaker)
-            new_speakers = self.get_speakers()
+            active_uids = []
 
-            if not new_speakers:
-                #no speakers found, delete our list
-                sonos_speaker.sonos_speakers = {}
-                deep_scan_count = 0
-            else:
-                #find any newly added speaker
-                new_uids = set(new_speakers) - set(sonos_speaker.sonos_speakers)
+            for soco_speaker in discover():
+                uid = soco_speaker.speaker_info['uid'].lower()
+                active_uids.append(uid)
 
-            #do a deep scan for all new devices
-            for uid in new_uids:
-                print('new speaker: {} -- adding to list'.format(uid))
-                #add the new speaker to our main list
-                speaker = self.get_speaker_info(new_speakers[uid])
-                sonos_speaker.sonos_speakers[speaker.uid] = speaker
+                #new speaker found, update it
+                if uid not in sonos_speaker.sonos_speakers:
 
-                for event in events:
-                    self.subscribe_speaker_event(speaker, event, self.host, self.port, sleep_scan * max_sleep_count * 2)
+                    soco_speaker.get_speaker_info(refresh=True)
+                    sonos_speaker.sonos_speakers[uid] = SonosSpeaker(soco_speaker)
 
-            #find all offline speaker
-            offline_uids = set(sonos_speaker.sonos_speakers) - set(new_speakers)
+                    for event in events:
+                        self.subscribe_speaker_event(sonos_speaker.sonos_speakers[uid], event, self.host, self.port,
+                                                     sleep_scan * max_sleep_count * 2)
+                #speaker already in list, update only when deep scan is forced
+                else:
+                    if deep_scan_count == max_sleep_count:
+                        sonos_speaker.sonos_speakers[uid].soco.get_speaker_info(refresh=True)
+
+                        for event in events:
+                            self.unsubscribe_speaker_event(sonos_speaker.sonos_speakers[uid], event,
+                                                       sonos_speaker.sonos_speakers[uid].subscription, self.host, self.port)
+                            self.subscribe_speaker_event(sonos_speaker.sonos_speakers[uid], event, self.host, self.port,
+                                                     sleep_scan * max_sleep_count * 2)
+
+            offline_uids = set(list(sonos_speaker.sonos_speakers.keys())) - set(active_uids)
 
             for uid in offline_uids:
                 print("offline speaker: {} -- removing from list".format(uid))
@@ -100,81 +103,8 @@ class SonosServerService():
                 sonos_speaker.sonos_speakers[uid].send_data()
                 del sonos_speaker.sonos_speakers[uid]
 
-            if deep_scan_count == max_sleep_count:
-                print("Performing deep scan for speakers ...")
-
-                for uid, speaker in sonos_speaker.sonos_speakers.items():
-                    deep_scan_count = 0
-                    speaker = self.get_speaker_info(sonos_speaker.sonos_speakers[speaker.uid])
-                    #re-subscribe
-
-                    for event in events:
-                        self.unsubscribe_speaker_event(speaker, event, speaker.subscription, self.host, self.port)
-                        self.subscribe_speaker_event(speaker, event, self.host, self.port,
-                                                     sleep_scan * max_sleep_count * 2)
-                        sonos_speaker.sonos_speakers[speaker.uid] = speaker
-
             deep_scan_count += 1
-
             sleep(sleep_scan)
-
-    @staticmethod
-    def get_speakers():
-        """ Get a list of ips for Sonos devices that can be controlled """
-        speakers = {}
-        SonosServerService._sock.sendto(really_utf8(PLAYER_SEARCH), (MCAST_GRP, MCAST_PORT))
-
-        while True:
-            response, _, _ = select.select([SonosServerService._sock], [], [], 1)
-            if response:
-                data, addr = SonosServerService._sock.recvfrom(2048)
-                # Look for the model in parentheses in a line like this
-                # SERVER: Linux UPnP/1.0 Sonos/22.0-65180 (ZPS5)
-                searchmodel = re.search(model_pattern, data)
-                searchuid = re.search(uid_pattern, data)
-                try:
-                    model = really_unicode(searchmodel.group(1))
-                    uid = really_unicode(searchuid.group(1))
-                except AttributeError:
-                    model = None
-                    uid = None
-
-                # BR100 = Sonos Bridge,        ZPS3 = Zone Player 3
-                # ZP120 = Zone Player Amp 120, ZPS5 = Zone Player 5
-                # ZP90  = Sonos Connect,       ZPS1 = Zone Player 1
-                # If it's the bridge, then it's not a speaker and shouldn't
-                # be returned
-                if (model and model != "BR100"):
-                    speaker = SonosSpeaker()
-                    speaker.uid = uid.lower()
-                    speaker.ip = addr[0]
-                    speaker.model = model
-                    speakers[speaker.uid] = speaker
-            else:
-                break
-        return speakers
-
-    @staticmethod
-    def get_speaker_info(speaker):
-
-        """ Get information about the Sonos speaker.
-        Returns:
-        Information about the Sonos speaker, such as the UID, MAC Address, and
-        Zone Name.
-
-        """
-        response = requests.get('http://' + speaker.ip + ':1400/status/zp')
-        dom = XML.fromstring(response.content)
-
-        if dom.findtext('.//ZoneName') is not None:
-            speaker.zone_name = dom.findtext('.//ZoneName')
-            speaker.zone_icon = dom.findtext('.//ZoneIcon')
-            speaker.uid = dom.findtext('.//LocalUID').lower()
-            speaker.serial_number = dom.findtext('.//SerialNumber')
-            speaker.software_version = dom.findtext('.//SoftwareVersion')
-            speaker.hardware_version = dom.findtext('.//HardwareVersion')
-            speaker.mac_address = dom.findtext('.//MACAddress')
-            return speaker
 
     @staticmethod
     def subscribe_speaker_event(speaker, event, host, port, timeout):
