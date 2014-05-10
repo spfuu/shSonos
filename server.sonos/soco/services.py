@@ -50,9 +50,9 @@ import requests
 from .exceptions import SoCoUPnPException, UnknownSoCoException
 from .utils import prettify
 
-log = logging.getLogger(__name__)
-#logging.basicConfig()
-#log.setLevel(logging.INFO)
+log = logging.getLogger(__name__)  # pylint: disable=C0103
+# logging.basicConfig()
+# log.setLevel(logging.INFO)
 
 Action = namedtuple('Action', 'name, in_args, out_args')
 Argument = namedtuple('Argument', 'name, vartype')
@@ -89,7 +89,7 @@ class Service(object):
         self.service_type = self.__class__.__name__
         self.version = 1
         self.service_id = self.service_type
-        self.base_url = 'http://{}:1400'.format(self.soco.speaker_ip)
+        self.base_url = 'http://{}:1400'.format(self.soco.ip_address)
         self.control_url = '/{}/Control'.format(self.service_type)
         # Service control protocol description
         self.scpd_url = '/xml/{}{}.xml'.format(self.service_type, self.version)
@@ -185,12 +185,12 @@ class Service(object):
         """
         if args is None:
             args = []
-        l = ["<{name}>{value}</{name}>".format(
+        tag = ["<{name}>{value}</{name}>".format(
             name=name, value=escape("%s" % value, {'"': "&quot;"}))
             for name, value in args]  # % converts to unicode because we are
-            # using unicode literals. Avoids use of 'unicode' function which
-            # does not exist in python 3
-        xml = "".join(l)
+        # using unicode literals. Avoids use of 'unicode' function which does
+        # not exist in python 3
+        xml = "".join(tag)
         return xml
 
     def unwrap_arguments(self, xml_response):
@@ -294,7 +294,7 @@ class Service(object):
         """
 
         headers, body = self.build_command(action, args)
-        log.info("Sending %s %s to %s", action, args, self.soco.speaker_ip)
+        log.info("Sending %s %s to %s", action, args, self.soco.ip_address)
         log.debug("Sending %s, %s", headers, prettify(body))
         response = requests.post(
             self.base_url + self.control_url, headers=headers, data=body)
@@ -306,7 +306,7 @@ class Service(object):
             # params are returned.
             result = self.unwrap_arguments(response.text) or True
             log.info(
-                "Received status %s from %s", status, self.soco.speaker_ip)
+                "Received status %s from %s", status, self.soco.ip_address)
             return result
         elif status == 500:
             # Internal server error. UPnP requires this to be returned if the
@@ -314,13 +314,13 @@ class Service(object):
             # content will be a SOAP Fault. Parse it and raise an error.
             try:
                 self.handle_upnp_error(response.text)
-            except Exception as e:
-                log.exception(e.message)
+            except Exception as exc:
+                log.exception(exc.message)
                 raise
         else:
             # Something else has gone wrong. Probably a network error. Let
             # Requests handle it
-            #raise Exception('OOPS')
+            # raise Exception('OOPS')
             response.raise_for_status()
 
     def handle_upnp_error(self, xml_error):
@@ -371,14 +371,14 @@ class Service(object):
             description = self.UPNP_ERRORS.get(int(error_code), '')
             raise SoCoUPnPException(
                 message='UPnP Error {} received: {} from {}'.format(
-                    error_code, description, self.soco.speaker_ip),
+                    error_code, description, self.soco.ip_address),
                 error_code=error_code,
                 error_description=description,
                 error_xml=xml_error
                 )
         else:
             # Unknown error, so just return the entire response
-            log.error("Unknown error received from %s", self.soco.speaker_ip)
+            log.error("Unknown error received from %s", self.soco.ip_address)
             raise UnknownSoCoException(xml_error)
 
     def iter_actions(self):
@@ -402,9 +402,9 @@ class Service(object):
         # parse the state variables to get the relevant variable types
         statevars = tree.iterfind('.//{}stateVariable'.format(ns))
         vartypes = {}
-        for s in statevars:
-            name = s.findtext('{}name'.format(ns))
-            vartypes[name] = s.findtext('{}dataType'.format(ns))
+        for state in statevars:
+            name = state.findtext('{}name'.format(ns))
+            vartypes[name] = state.findtext('{}dataType'.format(ns))
         # find all the actions
         actions = tree.iterfind('.//{}action'.format(ns))
         for i in actions:
@@ -412,10 +412,10 @@ class Service(object):
             args_iter = i.iterfind('.//{}argument'.format(ns))
             in_args = []
             out_args = []
-            for a in args_iter:
-                arg_name = a.findtext('{}name'.format(ns))
-                direction = a.findtext('{}direction'.format(ns))
-                related_variable = a.findtext(
+            for arg in args_iter:
+                arg_name = arg.findtext('{}name'.format(ns))
+                direction = arg.findtext('{}direction'.format(ns))
+                related_variable = arg.findtext(
                     '{}relatedStateVariable'.format(ns))
                 vartype = vartypes[related_variable]
                 if direction == "in":
