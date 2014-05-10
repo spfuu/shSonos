@@ -7,6 +7,7 @@ import json
 from soco.core import SoCo
 from lib_sonos import udp_broker
 from lib_sonos import utils
+from soco.core import SoCo
 
 try:
     import xml.etree.cElementTree as XML
@@ -16,17 +17,18 @@ except ImportError:
 sonos_speakers = {}
 
 class SonosSpeaker():
-    def __init__(self):
+    def __init__(self, soco):
+        self.soco = soco
         self.metadata = ''
-        self.uid = ''
-        self.ip = ''
-        self.model = ''
-        self.zone_name = ''
-        self.zone_icon = ''
-        self.serial_number = ''
-        self.software_version = ''
-        self.hardware_version = ''
-        self.mac_address = ''
+        self.uid = self.soco.speaker_info['uid'].lower()
+        self.ip = self.soco.ip_address
+        self.model = self.soco.speaker_info['model']
+        self.zone_name = self.soco.speaker_info['zone_name']
+        self.zone_icon = self.soco.speaker_info['zone_icon']
+        self.serial_number = self.soco.speaker_info['serial_number']
+        self.software_version = self.soco.speaker_info['software_version']
+        self.hardware_version = self.soco.speaker_info['hardware_version']
+        self.mac_address = self.soco.speaker_info['mac_address']
         self.streamtype = ''
         self.volume = 0
         self.mute = 0
@@ -47,7 +49,7 @@ class SonosSpeaker():
         self.max_volume = -1
 
     def to_JSON(self):
-        to_ignore = ['metadata', 'subscription']
+        to_ignore = ['metadata', 'subscription', 'soco']
         json_dict= dict(self.__dict__)
 
         for value in to_ignore:
@@ -59,16 +61,12 @@ class SonosSpeaker():
         return ['uid', 'ip', 'model', 'zone_name', 'zone_icon', 'serial_number', 'software_version',
                 'hardware_version', 'mac_address', 'id', 'status']
 
-    def get_soco(self):
-        return SoCo(self.ip)
-
     def set_volume(self, volume):
         volume = int(volume)
         SonosSpeaker.check_volume_range(volume)
         if SonosSpeaker.check_max_volume_exceeded(volume, self.max_volume):
             volume = self.max_volume
-        soco = self.get_soco()
-        soco.volume = volume
+        self.soco.volume = volume
 
     def set_maxvolume(self, maxvolume):
 
@@ -83,13 +81,11 @@ class SonosSpeaker():
             self.max_volume = maxvolume
 
     def get_volume(self):
-        soco = self.get_soco()
-        self.volume = soco.volume
+        self.volume = self.soco.volume
 
     def set_stop(self, value):
         if value:
-            soco = self.get_soco()
-            soco.stop()
+            self.soco.stop()
             self.stop = 1
             self.play = 0
             self.pause = 0
@@ -98,8 +94,7 @@ class SonosSpeaker():
 
     def set_play(self, value):
         if value:
-            soco = self.get_soco()
-            soco.play()
+            self.soco.play()
             self.stop = 0
             self.play = 1
             self.pause = 0
@@ -108,8 +103,7 @@ class SonosSpeaker():
 
     def set_pause(self, value):
         if value:
-            soco = self.get_soco()
-            soco.pause()
+            self.soco.pause()
             self.stop = 0
             self.play = 0
             self.pause = 1
@@ -117,44 +111,35 @@ class SonosSpeaker():
             self.set_play(True)
 
     def set_mute(self, value):
-        soco = self.get_soco()
-        soco.mute = value
+        self.soco.mute = value
         self.mute = int(value)
 
     def get_mute(self):
-        soco = self.get_soco()
-        self.mute = soco.mute
+        self.mute = self.soco.mute
 
     def set_led(self, value):
-        soco = self.get_soco()
-        soco.status_light = value
+        self.soco.status_light = value
         self.led = int(value)
 
     def get_led(self):
-        soco = self.get_soco()
-        self.led = soco.status_light
+        self.led = self.soco.status_light
 
     def set_next(self):
-        soco = self.get_soco()
-        soco.next()
+        self.soco.next()
 
     def set_previous(self):
-        soco = self.get_soco()
-        soco.previous()
+        self.soco.previous()
 
     def set_seek(self, timestamp):
-        soco = self.get_soco()
-        soco.seek(timestamp)
+        self.soco.seek(timestamp)
 
     def get_track_info(self):
-        soco = self.get_soco()
-        track_info = soco.get_current_track_info()
+        track_info = self.soco.get_current_track_info()
         self._track_position(track_info['position'])
         self._playlist_position(track_info['playlist_position'])
 
-    def set_play_uri(self, uri):
-        soco = self.get_soco()
-        soco.play_uri(uri)
+    def set_play_uri(self, uri, metadata=None):
+        self.soco.play_uri(uri, metadata)
 
     def set_play_snippet(self, uri, volume):
         #we use the sleep function, so thread it !!
@@ -167,8 +152,7 @@ class SonosSpeaker():
         t.start()
 
     def set_add_to_queue(self, uri):
-        soco = self.get_soco()
-        soco.add_to_queue(uri)
+        self.soco.add_to_queue(uri)
 
     def send_data(self):
         data = self.to_JSON()
@@ -249,18 +233,14 @@ class SonosSpeaker():
             return
 
         if queued_playlist_position:
-
-            soco = self.get_soco()
-
             try:
                 if queued_streamtype == "music":
-                    soco.play_from_queue(int(queued_playlist_position)-1)
-                    soco.seek(queued_track_position)
+                    self.soco.play_from_queue(int(queued_playlist_position)-1)
+                    self.set_seek(queued_track_position)
                 else:
-                    soco.play_uri(queued_uri, queued_metadata)
-
+                    self.set_play_uri(queued_uri, queued_metadata)
                 if not queued_play_status:
-                    soco.pause()
+                    self.set_pause(True)
             except SoCoUPnPException as err:
                 #this happens if there is no track in playlist after snippet was played
                 if err.error_code == 701:
@@ -277,7 +257,7 @@ class SonosSpeaker():
         self.streamtype = value
 
     def _mute(self, value):
-        self.mute = int(value);
+        self.mute = int(value)
 
     def _volume(self, value):
         self.volume = int(value)
