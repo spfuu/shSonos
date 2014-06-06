@@ -15,6 +15,8 @@ The plugin is designed to control the sonos speakers in connection with the sono
         -   partymode [write]: group all speaker to one zone (partymode)
         -   volume_up [write]: increases the volume (+2)
         -   volume_down [write]: decreases the volume (-2)
+    --  new value:
+        -   additional_zone_members [read]: additional zone members if speaker is in a group
     --  changed commands: pause, play, stop, led, mute now toggle commands
     --  documentation: 'Group behaviour' added
 
@@ -305,6 +307,12 @@ Edit file with this sample of mine:
         visu_acl = rw
         enforce_updates = True
         sonos_send = partymode
+
+    [[additional_zone_members]]
+        type = str
+        visu_acl = rw
+        sonos_recv = additional_ zone_members
+
 
   To get your sonos speaker id, type this command in your browser (while sonos server is running):
   

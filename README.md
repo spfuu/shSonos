@@ -487,36 +487,36 @@ to get a short overview of your sonos speakers in the network and to retrieve th
 In almost any cases, you will get the appropriate response in the following JSON format (by udp):
 
     {
-        "_hardware_version": "1.8.3.7-2",
-        "_ip": "192.168.0.40",
-        "_led": 1,
-        "_mac_address": "00:0F:12:D4:88:2F",
-        "_max_volume": -1,
-        "_model": "ZPS1",
-        "_mute": "0",
-        "_pause": 0,
-        "_play": 1,
-        "_playlist_position": "10",
-        "_radio_show": "",
-        "_radio_station": "",
-        "_serial_number": "00-0F-12-D4-88-2F:1",
-        "_software_version": "26.1-76230",
-        "_status": true,
-        "_stop": 0,
-        "_streamtype": "music",
-        "_track_album_art": "http://192.168.0.40:1400/getaa?s=1&u=x-sonos-spotify%3aspotify%253atrack%253a3ZJSDh87VrZXvJGwZ82zQu%3fsid%3d9%26flags%3d32",
-        "_track_artist": "Herbert Grönemeyer",
-        "_track_duration": "0:03:30",
-        "_track_position": "0:02:21",
-        "_track_title": "Halt Mich",
-        "_track_uri": "x-sonos-spotify:spotify%3atrack%3a3ZJSDh87VrZXvJGwZ82zQu?sid=9&flags=32",
-        "_uid": "rincon_000f44c3892e01400",
-        "_volume": "2",
-        "_zone_coordinator": "rincon_000f44c3892e01400",
-        "_zone_icon": "x-rincon-roomicon:bedroom",
-        "_zone_id": "RINCON_B9E94030D19801400:19",
-        "_zone_members": "rincon_000f44c3892e01400,rincon_b9e94030d19801400", #all mebers of zone, splitted by ','
-        "_zone_name": "child room"
+        "hardware_version": "1.8.3.7-2",
+        "ip": "192.168.0.40",
+        "led": 1,
+        "mac_address": "00:0F:12:D4:88:2F",
+        "max_volume": -1,
+        "model": "ZPS1",
+        "mute": "0",
+        "pause": 0,
+        "play": 1,
+        "playlist_position": "10",
+        "radio_show": "",
+        "radio_station": "",
+        "serial_number": "00-0F-12-D4-88-2F:1",
+        "software_version": "26.1-76230",
+        "status": true,
+        "stop": 0,
+        "streamtype": "music",
+        "track_album_art": "http://192.168.0.40:1400/getaa?s=1&u=x-sonos-spotify%3aspotify%253atrack%253a3ZJSDh87VrZXvJGwZ82zQu%3fsid%3d9%26flags%3d32",
+        "track_artist": "Herbert Grönemeyer",
+        "track_duration": "0:03:30",
+        "track_position": "0:02:21",
+        "track_title": "Halt Mich",
+        "track_uri": "x-sonos-spotify:spotify%3atrack%3a3ZJSDh87VrZXvJGwZ82zQu?sid=9&flags=32",
+        "uid": "rincon_000f44c3892e01400",
+        "volume": "2",
+        "zone_coordinator": "rincon_000f44c3892e01400",
+        "zone_icon": "x-rincon-roomicon:bedroom",
+        "zone_id": "RINCON_B9E94030D19801400:19",
+        "zone_members": "rincon_000f44c3892e01400,rincon_b9e94030d19801400", #all members of zone, splitted by ','
+        "zone_name": "child room"
     }
 
 
@@ -555,8 +555,6 @@ In almost any cases, you will get the appropriate response in the following JSON
 
 ##TO DO:
 
-
 	* full SoCo command implementation
 	* documentation
 	* and many more
-    	* Sonos Group Management

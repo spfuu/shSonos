@@ -303,6 +303,7 @@ class SonosSpeaker():
         self.radio_show = []
         self.status =[]
         self.max_volume = []
+        self.zone_members = []
 
 class SonosCommand():
     @staticmethod
