@@ -150,20 +150,15 @@ class Sonos():
                 command = item.conf['sonos_send']
 
                 if command == 'mute':
-                    if isinstance(value):
-                        cmd = self.command.mute(uid)
+                    cmd = self.command.mute(uid)
                 if command == 'led':
-                    if isinstance(value, bool):
-                        cmd = self.command.led(uid,int(value))
+                    cmd = self.command.led(uid)
                 if command == 'play':
-                    if isinstance(value, bool):
-                        cmd = self.command.play(uid, int(value))
+                    cmd = self.command.play(uid)
                 if command == 'pause':
-                    if isinstance(value, bool):
-                        cmd = self.command.pause(uid, int(value))
+                    cmd = self.command.pause(uid)
                 if command == 'stop':
-                    if isinstance(value, bool):
-                        cmd = self.command.stop(uid, int(value))
+                    cmd = self.command.stop(uid)
                 if command == 'volume':
                     if isinstance(value, int):
                         cmd = self.command.volume(uid, int(value))
@@ -315,7 +310,7 @@ class SonosCommand():
         return "speaker/{}/unjoin".format(uid)
 
     @staticmethod
-    def mute(uid, value):
+    def mute(uid):
         return "speaker/{}/mute".format(uid)
 
     @staticmethod
@@ -327,20 +322,20 @@ class SonosCommand():
         return "speaker/{}/previous".format(uid)
 
     @staticmethod
-    def play(uid, value):
-        return "speaker/{}/play/{}".format(uid, int(value))
+    def play(uid):
+        return "speaker/{}/play".format(uid)
 
     @staticmethod
-    def pause(uid, value):
-        return "speaker/{}/pause/{}".format(uid, int(value))
+    def pause(uid):
+        return "speaker/{}/pause".format(uid)
 
     @staticmethod
-    def stop(uid, value):
-        return "speaker/{}/stop/{}".format(uid, int(value))
+    def stop(uid):
+        return "speaker/{}/stop".format(uid)
 
     @staticmethod
-    def led(uid, value):
-        return "speaker/{}/led/{}".format(uid, int(value))
+    def led(uid):
+        return "speaker/{}/led".format(uid)
 
     @staticmethod
     def volume(uid, value):
