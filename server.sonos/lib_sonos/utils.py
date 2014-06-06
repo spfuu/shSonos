@@ -3,6 +3,8 @@ from __future__ import unicode_literals
 # -*- coding: utf-8 -*-
 import base64
 import ctypes
+import hashlib
+import json
 import os
 import platform
 import requests
@@ -130,3 +132,38 @@ def save_google_tts(local_share, tts_string, tts_language, quota):
             raise requests.RequestException('Status code: {}'.format(response.status_code))
     except requests.RequestException as e:
         raise("Couldn't obtain TTS from Google.\nError: {}".format(e.errno))
+
+def to_JSON(value):
+        return json.dumps(value, default=lambda o: value, ensure_ascii=False)
+
+def check_volume_range(volume):
+    if volume < 0 or volume > 100:
+        print('Volume has to be between 0 and 100.')
+        return False
+    return True
+
+def url_fix(s, charset='utf-8'):
+    """Sometimes you get an URL by a user that just isn't a real
+    URL because it contains unsafe characters like ' ' and so on.  This
+    function can fix some of the problems in a similar way browsers
+    handle data entered by the user:
+
+    'http://de.wikipedia.org/wiki/Elf%20%28Begriffskl%C3%A4rung%29'
+
+    :param charset: The target charset for the URL if the url was
+                    given as unicode string.
+    """
+    if isinstance(s, str):
+        s = s.encode(charset, 'ignore')
+    scheme, netloc, path, query, fragment = urllib.parse.urlsplit(s)
+    path = urllib.parse.quote(path, '/%').encode(charset)
+    query = urllib.parse.quote_plus(query, ':&=').encode(charset)
+    return urllib.parse.urlunsplit((scheme, netloc, path, query, fragment))
+
+
+def check_max_volume_exceeded(volume, max_volume):
+    volume = int(volume)
+    if max_volume  > -1:
+        if volume > max_volume:
+            return True
+    return False

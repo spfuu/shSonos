@@ -24,7 +24,6 @@ import lib.connection
 import lib.tools
 import re
 import threading
-from time import sleep
 import json
 import urllib
 from urllib.parse import urlparse
@@ -40,7 +39,7 @@ class UDPDispatcher(lib.connection.Server):
 
     def handle_connection(self):
         try:
-            data, addr = self.socket.recvfrom(65000)
+            data, addr = self.socket.recvfrom(10000)
             ip = addr[0]
             addr = "{}:{}".format(addr[0], addr[1])
             logger.debug("{}: incoming connection from {}".format('sonos', addr))
@@ -209,6 +208,16 @@ class Sonos():
                         cmd = self.command.seek(uid, value)
                 if command == 'current_state':
                     cmd = self.command.current_state(uid)
+                if command == 'join':
+                    cmd = self.command.join(uid, value)
+                if command == 'unjoin':
+                    cmd = self.command.unjoin(uid)
+                if command == 'partymode':
+                    cmd = self.command.partymode(uid)
+                if command == 'volume_up':
+                    cmd = self.command.volume_up(uid)
+                if command == 'volume_down':
+                    cmd = self.command.volume_down(uid)
                 if cmd:
                     self._send_cmd(cmd)
         return None
@@ -262,7 +271,7 @@ class Sonos():
         return self._send_cmd_response(SonosCommand.favradio(start_item, max_items))
 
     def version(self):
-        return "v0.7\t2014-04-27"
+        return "v0.8\t2014-06-06"
 
 class SonosSpeaker():
 
@@ -297,6 +306,14 @@ class SonosSpeaker():
 
 class SonosCommand():
     @staticmethod
+    def join(uid, value):
+        return "speaker/{}/join/{}".format(uid, value)
+
+    @staticmethod
+    def unjoin(uid):
+        return "speaker/{}/unjoin".format(uid)
+
+    @staticmethod
     def mute(uid, value):
         return "speaker/{}/mute/{}".format(uid, int(value))
 
@@ -329,6 +346,14 @@ class SonosCommand():
         return "speaker/{}/volume/{}".format(uid, value)
 
     @staticmethod
+    def volume_up(uid):
+        return "speaker/{}/volume_up".format(uid)
+
+    @staticmethod
+    def volume_down(uid):
+        return "speaker/{}/volume_down".format(uid)
+
+    @staticmethod
     def max_volume(uid, value):
         return "speaker/{}/maxvolume/{}".format(uid, value)
 
@@ -354,6 +379,10 @@ class SonosCommand():
     @staticmethod
     def current_state(uid):
         return "speaker/{}/current_state".format(uid)
+
+    @staticmethod
+    def partymode(uid):
+        return "speaker/{}/partymode".format(uid)
 
     @staticmethod
     def get_uid_from_response(dom):
