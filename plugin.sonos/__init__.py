@@ -150,8 +150,8 @@ class Sonos():
                 command = item.conf['sonos_send']
 
                 if command == 'mute':
-                    if isinstance(value, bool):
-                        cmd = self.command.mute(uid, int(value))
+                    if isinstance(value):
+                        cmd = self.command.mute(uid)
                 if command == 'led':
                     if isinstance(value, bool):
                         cmd = self.command.led(uid,int(value))
@@ -316,7 +316,7 @@ class SonosCommand():
 
     @staticmethod
     def mute(uid, value):
-        return "speaker/{}/mute/{}".format(uid, int(value))
+        return "speaker/{}/mute".format(uid)
 
     @staticmethod
     def next(uid):
