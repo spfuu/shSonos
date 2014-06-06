@@ -515,7 +515,7 @@ In almost any cases, you will get the appropriate response in the following JSON
         "zone_coordinator": "rincon_000f44c3892e01400",
         "zone_icon": "x-rincon-roomicon:bedroom",
         "zone_id": "RINCON_B9E94030D19801400:19",
-        "zone_members": "rincon_000f44c3892e01400,rincon_b9e94030d19801400", #all members of zone, splitted by ','
+        "additional zone_members": "rincon_000f44c3892e01400,rincon_b9e94030d19801400"
         "zone_name": "child room"
     }
 
