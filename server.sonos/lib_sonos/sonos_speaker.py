@@ -286,7 +286,7 @@ class SonosSpeaker():
                 self.speaker_zone_coordinator._play = 0
                 self.speaker_zone_coordinator._pause = 1
             else:
-                self.speaker_zone_coordinator.pause = True
+                self.speaker_zone_coordinator.play = True
         else:
             if value:
                 self.soco.pause()
@@ -294,7 +294,7 @@ class SonosSpeaker():
                 self._play = 0
                 self._pause = 1
             else:
-                self.pause = True
+                self.play = True
 
 
     @property
