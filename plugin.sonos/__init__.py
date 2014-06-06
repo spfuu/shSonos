@@ -261,7 +261,6 @@ class Sonos():
 
         logger.debug("Sending request: {0}".format(cmd))
 
-
     def get_favorite_radiostations(self, start_item=0, max_items=50):
         return self._send_cmd_response(SonosCommand.favradio(start_item, max_items))
 
@@ -280,6 +279,7 @@ class SonosSpeaker():
         self.software_version = []
         self.hardware_version = []
         self.mac_address = []
+
         self.playlist_position = []
         self.volume = []
         self.mute = []
