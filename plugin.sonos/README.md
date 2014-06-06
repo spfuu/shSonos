@@ -311,7 +311,7 @@ Edit file with this sample of mine:
     [[additional_zone_members]]
         type = str
         visu_acl = rw
-        sonos_recv = additional_ zone_members
+        sonos_recv = additional_zone_members
 
 
   To get your sonos speaker id, type this command in your browser (while sonos server is running):
