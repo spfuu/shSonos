@@ -4,6 +4,9 @@ The plugin is designed to control the sonos speakers in connection with the sono
 
 ##Release
 
+  v0.8.1  2014-06-07
+    --  bugfixes in some command processing
+
   v0.8    2014-06-06
 
     --  changed some values in sonos plugin config to 'foo' (commands without parameter like play, pause, next etc),
