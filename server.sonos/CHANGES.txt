@@ -1,3 +1,17 @@
+v0.2.0      2014-06-06
+
+-- Command: added join command (joins the speaker to another speaker)
+-- Command: added unjoin command (unjoins the speaker from the current group)
+-- Command: added partymode command (joins all speaker to one group)
+-- Command: added volume_up command (+2 volume, this is the default sonos speaker behaviour)
+-- Command: added volume_down command (-2 volume, this is the default sonos speaker behaviour)
+-- Event handling now based on soco core functionality
+-- added ZoneGroup event handling
+-- changed commands pause, play, stop, led, mute to toggle commands (no arguments necessary)
+-- fixed bug in play_snippet and play_uri command (case sensitive uri)
+-- speaker metadata will only be send, if something has changed
+-- many many code improvements
+
 v0.1.9      2014-04-27
 
 -- removed startup parameters for a config file

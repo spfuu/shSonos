@@ -1,77 +1,153 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=C0302
+# pylint: disable=C0302,fixme, protected-access
 """ The core module contains SonosDiscovery and SoCo classes that implement
 the main entry to the SoCo functionality
 """
 
 from __future__ import unicode_literals
 
-try:
-    import xml.etree.cElementTree as XML
-except ImportError:
-    import xml.etree.ElementTree as XML
-
 import select
 import socket
 import logging
-import traceback
+from textwrap import dedent
 import re
-import xml.sax.saxutils
+import itertools
 import requests
 
 from .services import DeviceProperties, ContentDirectory
-from .services import RenderingControl, AVTransport
+from .services import RenderingControl, AVTransport, ZoneGroupTopology
+from .groups import ZoneGroup
 from .exceptions import CannotCreateDIDLMetadata
-from .data_structures import get_ml_item, QueueableItem
-from .utils import really_unicode, really_utf8, camel_to_underscore
+from .data_structures import get_ml_item, QueueItem, URI
+from .utils import really_utf8, camel_to_underscore
+from .xml import XML
 
 LOGGER = logging.getLogger(__name__)
 
 
-class SonosDiscovery(object):  # pylint: disable=R0903
-    """A simple class for discovering Sonos speakers.
+def discover(timeout=1, include_invisible=False):
+    """ Discover Sonos zones on the local network.
 
-    Public functions:
-    get_speaker_ips -- Get a list of IPs of all zoneplayers.
+    Return an set of visible SoCo instances for each zone found.
+    Include invisible zones (bridges and slave zones in stereo pairs if
+    `include_invisible` is True. Will block for up to `timeout` seconds, after
+    which return `None` if no zones found.
+
+    """
+
+    # pylint: disable=invalid-name
+    PLAYER_SEARCH = dedent("""\
+        M-SEARCH * HTTP/1.1
+        HOST: 239.255.255.250:1900
+        MAN: "ssdp:discover"
+        MX: 1
+        ST: urn:schemas-upnp-org:device:ZonePlayer:1
+        """).encode('utf-8')
+    MCAST_GRP = "239.255.255.250"
+    MCAST_PORT = 1900
+
+    _sock = socket.socket(
+        socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+    # UPnP v1.0 requires a TTL of 4
+    _sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 4)
+    # Send a few times. UDP is unreliable
+    _sock.sendto(really_utf8(PLAYER_SEARCH), (MCAST_GRP, MCAST_PORT))
+    _sock.sendto(really_utf8(PLAYER_SEARCH), (MCAST_GRP, MCAST_PORT))
+    _sock.sendto(really_utf8(PLAYER_SEARCH), (MCAST_GRP, MCAST_PORT))
+
+    response, _, _ = select.select([_sock], [], [], timeout)
+    # Only Zone Players will respond, given the value of ST in the
+    # PLAYER_SEARCH message. It doesn't matter what response they make. All
+    # we care about is the IP address
+    if response:
+        _, addr = _sock.recvfrom(1024)
+        # Now we have an IP, we can build a SoCo instance and query that player
+        # for the topology to find the other players. It is much more efficient
+        # to rely upon the Zone Player's ability to find the others, than to
+        # wait for query responses from them ourselves.
+        zone = SoCo(addr[0])
+        if include_invisible:
+            return zone.all_zones
+        else:
+            return zone.visible_zones
+    else:
+        return None
+
+
+class SonosDiscovery(object):  # pylint: disable=R0903
+    """Retained for backward compatibility only. Will be removed in future
+    releases
+
+    .. deprecated:: 0.7
+       Use :func:`discover` instead.
 
     """
 
     def __init__(self):
-        self._sock = socket.socket(
-            socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-        self._sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
+        import warnings
+        warnings.warn("SonosDiscovery is deprecated. Use discover instead.")
 
-    def get_speaker_ips(self):
-        """ Get a list of ips for Sonos devices that can be controlled """
-        speakers = []
-        self._sock.sendto(really_utf8(PLAYER_SEARCH), (MCAST_GRP, MCAST_PORT))
-
-        while True:
-            response, _, _ = select.select([self._sock], [], [], 1)
-            if response:
-                data, addr = self._sock.recvfrom(2048)
-                # Look for the model in parentheses in a line like this
-                # SERVER: Linux UPnP/1.0 Sonos/22.0-65180 (ZPS5)
-                search = re.search(br'SERVER.*\((.*)\)', data)
-                try:
-                    model = really_unicode(search.group(1))
-                except AttributeError:
-                    model = None
-
-                # BR100 = Sonos Bridge,        ZPS3 = Zone Player 3
-                # ZP120 = Zone Player Amp 120, ZPS5 = Zone Player 5
-                # ZP90  = Sonos Connect,       ZPS1 = Zone Player 1
-                # If it's the bridge, then it's not a speaker and shouldn't
-                # be returned
-                if (model and model != "BR100"):
-                    speakers.append(addr[0])
-            else:
-                break
-        return speakers
+    @staticmethod
+    def get_speaker_ips():
+        """ Deprecated in favour of discover() """
+        import warnings
+        warnings.warn("get_speaker_ips is deprecated. Use discover instead.")
+        return [i.ip_address for i in discover()]
 
 
-class SoCo(object):  # pylint: disable=R0904
-    """A simple class for controlling a Sonos speaker
+class _ArgsSingleton(type):
+    """ A metaclass which permits only a single instance of each derived class
+    to exist for any given set of positional arguments.
+
+    Attempts to instantiate a second instance of a derived class will return
+    the existing instance.
+
+    For example:
+
+    >>> class ArgsSingletonBase(object):
+    ...     __metaclass__ = _ArgsSingleton
+    ...
+    >>> class First(ArgsSingletonBase):
+    ...     def __init__(self, param):
+    ...         pass
+    ...
+    >>> assert First('hi') is First('hi')
+    >>> assert First('hi') is First('bye')
+    AssertionError
+
+     """
+    _instances = {}
+
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = {}
+        if args not in cls._instances[cls]:
+            cls._instances[cls][args] = super(_ArgsSingleton, cls).__call__(
+                *args, **kwargs)
+        return cls._instances[cls][args]
+
+
+class _SocoSingletonBase(  # pylint: disable=too-few-public-methods
+        _ArgsSingleton(str('ArgsSingletonMeta'), (object,), {})):
+    """ The base class for the SoCo class.
+
+    Uses a Python 2 and 3 compatible method of declaring a metaclass. See, eg,
+    here: http://www.artima.com/weblogs/viewpost.jsp?thread=236234 and
+    here: http://mikewatkins.ca/2008/11/29/python-2-and-3-metaclasses/
+
+    """
+    pass
+
+
+# pylint: disable=R0904,too-many-instance-attributes
+class SoCo(_SocoSingletonBase):
+    """A simple class for controlling a Sonos speaker.
+
+    For any given set of arguments to __init__, only one instance of this class
+    may be created. Subsequent attempts to create an instance with the same
+    arguments will return the previously created instance. This means that all
+    SoCo instances created with the same ip address are in fact the *same* SoCo
+    instance, reflecting the real world position.
 
     Public functions::
 
@@ -102,18 +178,17 @@ class SoCo(object):  # pylint: disable=R0904
         get_playlists -- Get playlists from the music library
         get_music_library_information -- Get information from the music library
         get_current_transport_info -- get speakers playing state
+        add_uri_to_queue -- Adds an URI to the queue
         add_to_queue -- Add a track to the end of the queue
         remove_from_queue -- Remove a track from the queue
         clear_queue -- Remove all tracks from queue
-        get_favorite_radio_shows -- Get favorite radio shows from Sonos' Radio app.
+        get_favorite_radio_shows -- Get favorite radio shows from Sonos'
+                                    Radio app.
         get_favorite_radio_stations -- Get favorite radio stations.
-        get_group_coordinator -- Get the coordinator for a grouped collection of
-                                 Sonos units.
-        get_speakers_ip -- Get the IP addresses of all the Sonos speakers in the
-                           network.
 
     Properties::
 
+        uid -- The speaker's unique identifier
         mute -- The speaker's mute status.
         volume -- The speaker's volume.
         bass -- The speaker's bass EQ.
@@ -130,33 +205,114 @@ class SoCo(object):  # pylint: disable=R0904
         may be a good idea for you to cache the value in your own code.
 
     """
-    # Stores the IP addresses of all the speakers in a network
-    speakers_ip = []
-    # Stores the topology of all Zones in the network
-    topology = {}
 
-    def __init__(self, speaker_ip=None):
+    def __init__(self, ip_address):
+        # Note: Creation of a SoCo instance should be as cheap and quick as
+        # possible. Do not make any network calls here
+        super(SoCo, self).__init__()
+        # Check if ip_address is a valid IPv4 representation.
+        # Sonos does not (yet) support IPv6
+        try:
+            socket.inet_aton(ip_address)
+        except socket.error:
+            raise ValueError("Not a valid IP address string")
         #: The speaker's ip address
-        self.speaker_ip = speaker_ip
+        self.ip_address = ip_address
         self.speaker_info = {}  # Stores information about the current speaker
-        self.deviceProperties = DeviceProperties(self)
-        self.contentDirectory = ContentDirectory(self)
-        self.renderingControl = RenderingControl(self)
+
+        # The services which we use
+        # pylint: disable=invalid-name
         self.avTransport = AVTransport(self)
+        self.contentDirectory = ContentDirectory(self)
+        self.deviceProperties = DeviceProperties(self)
+        self.renderingControl = RenderingControl(self)
+        self.zoneGroupTopology = ZoneGroupTopology(self)
+
+        # Some private attributes
+        self._all_zones = set()
+        self._groups = set()
+        self._is_bridge = None
+        self._player_name = None
+        self._uid = None
+        self._visible_zones = set()
+        self._zgs_cache = None
+
+    def __str__(self):
+        return "<SoCo object at ip {}>".format(self.ip_address)
+
+    def __repr__(self):
+        return '{}("{}")'.format(self.__class__.__name__, self.ip_address)
 
     @property
     def player_name(self):
         """  The speaker's name. A string. """
-        result = self.deviceProperties.GetZoneAttributes()
-        return result["CurrentZoneName"]
+        # We could get the name like this:
+        # result = self.deviceProperties.GetZoneAttributes()
+        # return result["CurrentZoneName"]
+        # but it is probably quicker to get it from the group topology
+        # and take advantage of any caching
+        self._parse_zone_group_state()
+        return self._player_name
 
     @player_name.setter
     def player_name(self, playername):
+        """ Set the speaker's name """
         self.deviceProperties.SetZoneAtrributes([
             ('DesiredZoneName', playername),
             ('DesiredIcon', ''),
             ('DesiredConfiguration', '')
             ])
+
+    @property
+    def uid(self):
+        """ A unique identifier.  Looks like: RINCON_000XXXXXXXXXX1400 """
+        # Since this does not change over time (?) check whether we already
+        # know the answer. If so, there is no need to go further
+        if self._uid is not None:
+            return self._uid
+        # if not, we have to get it from the zone topology, which
+        # is probably quicker than any alternative, since the zgt is probably
+        # cached. This will set self._uid for us for next time, so we won't
+        # have to do this again
+        self._parse_zone_group_state()
+        return self._uid
+        # An alternative way of getting the uid is as follows:
+        # self.device_description_url = \
+        #    'http://{}:1400/xml/device_description.xml'.format(
+        #     self.ip_address)
+        # response = requests.get(self.device_description_url).text
+        # tree = XML.fromstring(response.encode('utf-8'))
+        # udn = tree.findtext('.//{urn:schemas-upnp-org:device-1-0}UDN')
+        # # the udn has a "uuid:" prefix before the uid, so we need to strip it
+        # self._uid = uid = udn[5:]
+        # return uid
+
+    @property
+    def is_visible(self):
+        """ Is this zone visible? A zone might be invisible if, for example it
+        is a bridge, or the slave part of stereo pair.
+
+        return True or False
+
+        """
+        # We could do this:
+        # invisible = self.deviceProperties.GetInvisible()['CurrentInvisible']
+        # but it is better to do it in the following way, which uses the
+        # zone group topology, to capitalise on any caching.
+        return self in self.visible_zones
+
+    @property
+    def is_bridge(self):
+        """ Is this zone a bridge? """
+        # Since this does not change over time (?) check whether we already
+        # know the answer. If so, there is no need to go further
+        if self._is_bridge is not None:
+            return self._is_bridge
+        # if not, we have to get it from the zone topology. This will set
+        # self._is_bridge for us for next time, so we won't have to do this
+        # again
+        self._parse_zone_group_state()
+        return self._is_bridge
 
     @property
     def play_mode(self):
@@ -175,9 +331,10 @@ class SoCo(object):  # pylint: disable=R0904
 
     @play_mode.setter
     def play_mode(self, playmode):
+        """ Set the speaker's mode """
         modes = ('NORMAL', 'SHUFFLE_NOREPEAT', 'SHUFFLE', 'REPEAT_ALL')
         playmode = playmode.upper()
-        if not playmode in modes:
+        if playmode not in modes:
             raise KeyError('invalid play mode')
 
         self.avTransport.SetPlayMode([
@@ -185,9 +342,24 @@ class SoCo(object):  # pylint: disable=R0904
             ('NewPlayMode', playmode)
             ])
 
-    def play_from_queue(self, queue_index):
-        """ Play an item from the queue. The track number is required as an
-        argument, where the first track is 0.
+    @property
+    def speaker_ip(self):
+        """Retained for backward compatibility only. Will be removed in future
+        releases
+
+        .. deprecated:: 0.7
+           Use :attr:`ip_address` instead.
+
+        """
+        import warnings
+        warnings.warn("speaker_ip is deprecated. Use ip_address instead.")
+        return self.ip_address
+
+    def play_from_queue(self, index):
+        """ Play a track from the queue by index. The index number is
+        required as an argument, where the first index is 0.
+
+        index: the index of the track to play; first item in the queue is 0
 
         Returns:
         True if the Sonos speaker successfully started playing the track.
@@ -201,7 +373,7 @@ class SoCo(object):  # pylint: disable=R0904
             self.get_speaker_info()
 
         # first, set the queue itself as the source URI
-        uri = 'x-rincon-queue:{0}#0'.format(self.speaker_info['uid'])
+        uri = 'x-rincon-queue:{0}#0'.format(self.uid)
         self.avTransport.SetAVTransportURI([
             ('InstanceID', 0),
             ('CurrentURI', uri),
@@ -212,7 +384,7 @@ class SoCo(object):  # pylint: disable=R0904
         self.avTransport.Seek([
             ('InstanceID', 0),
             ('Unit', 'TRACK_NR'),
-            ('Target', queue_index + 1)
+            ('Target', index + 1)
             ])
 
         # finally, just play what's set
@@ -251,7 +423,7 @@ class SoCo(object):  # pylint: disable=R0904
             ('CurrentURI', uri),
             ('CurrentURIMetaData', meta)
             ])
-            # The track is enqueued, now play it.
+        # The track is enqueued, now play it.
         return self.play()
 
     def pause(self):
@@ -353,6 +525,7 @@ class SoCo(object):  # pylint: disable=R0904
 
     @mute.setter
     def mute(self, mute):
+        """ Mute (or unmute) the speaker """
         mute_value = '1' if mute else '0'
         self.renderingControl.SetMute([
             ('InstanceID', 0),
@@ -373,6 +546,7 @@ class SoCo(object):  # pylint: disable=R0904
 
     @volume.setter
     def volume(self, volume):
+        """ Set the speaker's volume """
         volume = int(volume)
         volume = max(0, min(volume, 100))  # Coerce in range
         self.renderingControl.SetVolume([
@@ -394,6 +568,7 @@ class SoCo(object):  # pylint: disable=R0904
 
     @bass.setter
     def bass(self, bass):
+        """ Set the speaker's bass """
         bass = int(bass)
         bass = max(-10, min(bass, 10))  # Coerce in range
         self.renderingControl.SetBass([
@@ -414,6 +589,7 @@ class SoCo(object):  # pylint: disable=R0904
 
     @treble.setter
     def treble(self, treble):
+        """ Set the speaker's treble """
         treble = int(treble)
         treble = max(-10, min(treble, 10))  # Coerce in range
         self.renderingControl.SetTreble([
@@ -439,12 +615,149 @@ class SoCo(object):  # pylint: disable=R0904
 
     @loudness.setter
     def loudness(self, loudness):
+        """ Switch on/off the speaker's loudness compensation """
         loudness_value = '1' if loudness else '0'
         self.renderingControl.SetLoudness([
             ('InstanceID', 0),
             ('Channel', 'Master'),
             ('DesiredLoudness', loudness_value)
             ])
+
+    def _parse_zone_group_state(self):
+        """ The Zone Group State contains a lot of useful information. Retrieve
+        and parse it, and populate the relevant properties. """
+
+# zoneGroupTopology.GetZoneGroupState()['ZoneGroupState'] returns XML like
+# this:
+#
+# <ZoneGroups>
+#   <ZoneGroup Coordinator="RINCON_000XXX1400" ID="RINCON_000XXXX1400:0">
+#     <ZoneGroupMember
+#         BootSeq="33"
+#         Configuration="1"
+#         Icon="x-rincon-roomicon:zoneextender"
+#         Invisible="1"
+#         IsZoneBridge="1"
+#         Location="http://192.168.1.100:1400/xml/device_description.xml"
+#         MinCompatibleVersion="22.0-00000"
+#         SoftwareVersion="24.1-74200"
+#         UUID="RINCON_000ZZZ1400"
+#         ZoneName="BRIDGE"/>
+#   </ZoneGroup>
+#   <ZoneGroup Coordinator="RINCON_000XXX1400" ID="RINCON_000XXX1400:46">
+#     <ZoneGroupMember
+#         BootSeq="44"
+#         Configuration="1"
+#         Icon="x-rincon-roomicon:living"
+#         Location="http://192.168.1.101:1400/xml/device_description.xml"
+#         MinCompatibleVersion="22.0-00000"
+#         SoftwareVersion="24.1-74200"
+#         UUID="RINCON_000XXX1400"
+#         ZoneName="Living Room"/>
+#     <ZoneGroupMember
+#         BootSeq="52"
+#         Configuration="1"
+#         Icon="x-rincon-roomicon:kitchen"
+#         Location="http://192.168.1.102:1400/xml/device_description.xml"
+#         MinCompatibleVersion="22.0-00000"
+#         SoftwareVersion="24.1-74200"
+#         UUID="RINCON_000YYY1400"
+#         ZoneName="Kitchen"/>
+#   </ZoneGroup>
+# </ZoneGroups>
+#
+
+        # This is called quite frequently, so it is worth optimising it.
+        # Maintain a private cache. If the zgt has not changed, there is no
+        # need to repeat all the XML parsing. In addition, switch on network
+        # caching for a short interval (5 secs).
+        zgs = self.zoneGroupTopology.GetZoneGroupState(
+            cache_timeout=5)['ZoneGroupState']
+        if zgs == self._zgs_cache:
+            return
+        self._zgs_cache = zgs
+        tree = XML.fromstring(zgs.encode('utf-8'))
+        # Empty the set of all zone_groups
+        self._groups.clear()
+        # and the set of all members
+        self._all_zones.clear()
+        self._visible_zones.clear()
+        # Loop over each ZoneGroup Element
+        for group_element in tree.iter('ZoneGroup'):
+            coordinator_uid = group_element.attrib['Coordinator']
+            group_uid = group_element.attrib['ID']
+            members = set()
+            for member_element in group_element.iter('ZoneGroupMember'):
+                # Create a SoCo instance for each member. Because SoCo
+                # instances are singletons, this is cheap if they have already
+                # been created, and useful if they haven't. We can then
+                # update various properties for that instance.
+                member_attribs = member_element.attrib
+                ip_addr = member_attribs['Location'].\
+                    split('//')[1].split(':')[0]
+                zone = SoCo(ip_addr)
+                zone._uid = member_attribs['UUID']
+                # If this element has the same UUID as the coordinator, it is
+                # the coordinator
+                if zone._uid == coordinator_uid:
+                    group_coordinator = zone
+                zone._player_name = member_attribs['ZoneName']
+                # uid and is_bridge do not change, but it does no real harm to
+                # set/reset them here, just in case the zone has not been seen
+                # before
+                zone._is_bridge = True if member_attribs.get(
+                    'IsZoneBridge') == '1' else False
+                is_visible = False if member_attribs.get(
+                    'Invisible') == '1' else True
+                # add the zone to the members for this group, and to the set of
+                # all members, and to the set of visible members if appropriate
+                members.add(zone)
+                self._all_zones.add(zone)
+                if is_visible:
+                    self._visible_zones.add(zone)
+                # Now create a ZoneGroup with this info and add it to the list
+                # of groups
+            self._groups.add(ZoneGroup(group_uid, group_coordinator, members))
+
+    @property
+    def all_groups(self):
+        """  Return a set of all the available groups"""
+        self._parse_zone_group_state()
+        return self._groups
+
+    @property
+    def group(self):
+        """The Zone Group of which this device is a member.
+
+        group will be None if this zone is a slave in a stereo pair."""
+
+        for group in self.all_groups:
+            if self in group:
+                return group
+        return None
+
+        # To get the group directly from the network, try the code below
+        # though it is probably slower than that above
+        # current_group_id = self.zoneGroupTopology.GetZoneGroupAttributes()[
+        #     'CurrentZoneGroupID']
+        # if current_group_id:
+        #     for group in self.all_groups:
+        #         if group.uid == current_group_id:
+        #             return group
+        # else:
+        #     return None
+
+    @property
+    def all_zones(self):
+        """ Return a set of all the available zones"""
+        self._parse_zone_group_state()
+        return self._all_zones
+
+    @property
+    def visible_zones(self):
+        """ Return an set of all visible zones"""
+        self._parse_zone_group_state()
+        return self._visible_zones
 
     def partymode(self):
         """ Put all the speakers in the network in the same group, a.k.a Party
@@ -457,42 +770,22 @@ class SoCo(object):  # pylint: disable=R0904
         speaker which to join. There's probably a bit more to it if multiple
         groups have been defined.
 
-        Code contributed by Thomas Bartvig (thomas.bartvig@gmail.com)
-
-        Returns:
-        True if partymode is set
-
-        Raises SoCoException (or a subclass) upon errors.
-
         """
-        master_speaker_info = self.get_speaker_info()
-        ips = self.get_speakers_ip()
+        # Tell every other visible zone to join this one
+        # pylint: disable = expression-not-assigned
+        [zone.join(self) for zone in self.visible_zones if zone is not self]
 
-        return_status = True
-        # loop through all IP's in topology and make them join this master
-        for ip in ips:  # pylint: disable=C0103
-            if not (ip == self.speaker_ip):
-                slave = SoCo(ip)
-                ret = slave.join(master_speaker_info["uid"])
-                if ret is False:
-                    return_status = False
-
-        return return_status
-
-    def join(self, master_uid):
+    def join(self, master):
         """ Join this speaker to another "master" speaker.
 
-        Code contributed by Thomas Bartvig (thomas.bartvig@gmail.com)
-
-        Returns:
-        True if this speaker has joined the master speaker
-
-        Raises SoCoException (or a subclass) upon errors.
+        ..  note:: The signature of this method has changed in 0.8. It now
+            requires a SoCo instance to be passed as `master`, not an IP
+            address
 
         """
         self.avTransport.SetAVTransportURI([
             ('InstanceID', 0),
-            ('CurrentURI', 'x-rincon:{}'.format(master_uid)),
+            ('CurrentURI', 'x-rincon:{}'.format(master.uid)),
             ('CurrentURIMetaData', '')
             ])
 
@@ -511,8 +804,7 @@ class SoCo(object):  # pylint: disable=R0904
         """
 
         self.avTransport.BecomeCoordinatorOfStandaloneGroup([
-            ('InstanceID', 0),
-            ('Speed', '1')
+            ('InstanceID', 0)
             ])
 
     def switch_to_line_in(self):
@@ -528,11 +820,10 @@ class SoCo(object):  # pylint: disable=R0904
         Raises SoCoException (or a subclass) upon errors.
 
         """
-        speaker_info = self.get_speaker_info()
-        speaker_uid = speaker_info['uid']
+
         self.avTransport.SetAVTransportURI([
             ('InstanceID', 0),
-            ('CurrentURI', 'x-rincon-stream:{}'.format(speaker_uid)),
+            ('CurrentURI', 'x-rincon-stream:{}'.format(self.uid)),
             ('CurrentURIMetaData', '')
             ])
 
@@ -549,11 +840,10 @@ class SoCo(object):  # pylint: disable=R0904
         Raises SoCoException (or a subclass) upon errors.
 
         """
-        speaker_info = self.get_speaker_info()
-        speaker_uid = speaker_info['uid']
+
         self.avTransport.SetAVTransportURI([
             ('InstanceID', 0),
-            ('CurrentURI', 'x-sonos-htastream:{}:spdif'.format(speaker_uid)),
+            ('CurrentURI', 'x-sonos-htastream:{}:spdif'.format(self.uid)),
             ('CurrentURIMetaData', '')
             ])
 
@@ -564,11 +854,12 @@ class SoCo(object):  # pylint: disable=R0904
 
         """
         result = self.deviceProperties.GetLEDState()
-        LEDState = result["CurrentLEDState"]
+        LEDState = result["CurrentLEDState"]  # pylint: disable=invalid-name
         return True if LEDState == "On" else False
 
     @status_light.setter
     def status_light(self, led_on):
+        """ Switch on/off the speaker's status light """
         led_state = 'On' if led_on else 'Off'
         self.deviceProperties.SetLEDState([
             ('DesiredLEDState', led_state),
@@ -594,17 +885,17 @@ class SoCo(object):  # pylint: disable=R0904
             ('Channel', 'Master')
             ])
 
-        track = {'title': '', 'artist': '', 'album': '', 'album_art': '', 'position': ''}
+        track = {'title': '', 'artist': '', 'album': '', 'album_art': '',
+                 'position': ''}
         track['playlist_position'] = response['Track']
         track['duration'] = response['TrackDuration']
         track['uri'] = response['TrackURI']
         track['position'] = response['RelTime']
-        metadata = response['TrackMetaData']
 
+        metadata = response['TrackMetaData']
         # Duration seems to be '0:00:00' when listening to radio
         if metadata != '' and track['duration'] == '0:00:00':
             metadata = XML.fromstring(really_utf8(metadata))
-
             # Try parse trackinfo
             trackinfo = metadata.findtext('.//{urn:schemas-rinconnetworks-com:'
                                           'metadata-1-0/}streamContent')
@@ -614,6 +905,7 @@ class SoCo(object):  # pylint: disable=R0904
                 track['artist'] = trackinfo[:index]
                 track['title'] = trackinfo[index + 3:]
             else:
+                LOGGER.warning('Could not handle track info: "%s"', trackinfo)
                 track['title'] = trackinfo
 
         # If the speaker is playing from the line-in source, querying for track
@@ -629,13 +921,13 @@ class SoCo(object):  # pylint: disable=R0904
                 './/{urn:schemas-upnp-org:metadata-1-0/upnp/}album')
 
             track['title'] = ""
-            if (md_title):
+            if md_title:
                 track['title'] = md_title
             track['artist'] = ""
-            if (md_artist):
+            if md_artist:
                 track['artist'] = md_artist
             track['album'] = ""
-            if (md_album):
+            if md_album:
                 track['album'] = md_album
 
             album_art = metadata.findtext(
@@ -646,8 +938,9 @@ class SoCo(object):  # pylint: disable=R0904
                 if url.startswith(('http:', 'https:')):
                     track['album_art'] = url
                 else:
-                    track['album_art'] = 'http://' + self.speaker_ip + ':1400'\
+                    track['album_art'] = 'http://' + self.ip_address + ':1400'\
                         + url
+
         return track
 
     def get_speaker_info(self, refresh=False):
@@ -664,7 +957,7 @@ class SoCo(object):  # pylint: disable=R0904
         if self.speaker_info and refresh is False:
             return self.speaker_info
         else:
-            response = requests.get('http://' + self.speaker_ip +
+            response = requests.get('http://' + self.ip_address +
                                     ':1400/status/zp')
             dom = XML.fromstring(response.content)
 
@@ -672,7 +965,7 @@ class SoCo(object):  # pylint: disable=R0904
             self.speaker_info['zone_name'] = \
                 dom.findtext('.//ZoneName')
             self.speaker_info['zone_icon'] = dom.findtext('.//ZoneIcon')
-            self.speaker_info['uid'] = dom.findtext('.//LocalUID')
+            self.speaker_info['uid'] = self.uid
             self.speaker_info['serial_number'] = \
                 dom.findtext('.//SerialNumber')
             self.speaker_info['software_version'] = \
@@ -683,91 +976,37 @@ class SoCo(object):  # pylint: disable=R0904
 
             return self.speaker_info
 
-    def get_group_coordinator(self, zone_name, refresh=False):
-        """ Get the IP address of the Sonos system that is coordinator for
-            the group containing zone_name
-
-        Code contributed by Aaron Daubman (daubman@gmail.com)
-
-        Arguments:
-        zone_name -- the name of the Zone to control for which you need the
-                     coordinator
-
-        refresh -- Refresh the topology cache prior to looking for coordinator
-
-        Returns:
-        The IP address of the coordinator or None of one can not be determined
+    def get_group_coordinator(self, zone_name):
+        """     .. deprecated:: 0.8
+                   Use :meth:`group` or :meth:`all_groups` instead.
 
         """
-        if not self.topology or refresh:
-            self.__get_topology(refresh=True)
-
-        # The zone name must be in the topology
-        if zone_name not in self.topology:
-            return None
-
-        zone_dict = self.topology[zone_name]
-        zone_group = zone_dict['group']
-        for zone_value in self.topology.values():
-            if zone_value['group'] == zone_group and zone_value['coordinator']:
-                return zone_value['ip']
-
-        # Not Found
+        import warnings
+        warnings.warn(
+            "get_group_coordinator is deprecated. "
+            "Use the group or all_groups methods instead")
+        for group in self.all_groups:
+            for member in group:
+                if member.player_name == zone_name:
+                    return group.coordinator.ip_address
         return None
-
-    def __get_topology(self, refresh=False):
-        """ Gets the topology if it is not already available or if refresh=True
-
-        Code contributed by Aaron Daubman (daubman@gmail.com)
-
-        Arguments:
-        refresh -- Refresh the topology cache
-
-        """
-        if not self.topology or refresh:
-            self.topology = {}
-            response = requests.get('http://' + self.speaker_ip +
-                                    ':1400/status/topology')
-            dom = XML.fromstring(really_utf8(response.content))
-            for player in dom.find('ZonePlayers'):
-                if player.text not in self.topology:
-                    self.topology[player.text] = {}
-                self.topology[player.text]['group'] = \
-                    player.attrib.get('group')
-                self.topology[player.text]['uuid'] = player.attrib.get('uuid')
-                self.topology[player.text]['coordinator'] = \
-                    (player.attrib.get('coordinator') == 'true')
-                # Split the IP out of the URL returned in location
-                # e.g. return '10.1.1.1' from 'http://10.1.1.1:1400/...'
-                self.topology[player.text]['ip'] = \
-                    player.attrib.get('location').split('//')[1].split(':')[0]
 
     def get_speakers_ip(self, refresh=False):
         """ Get the IP addresses of all the Sonos speakers in the network.
 
-        Code contributed by Thomas Bartvig (thomas.bartvig@gmail.com)
-
         Arguments:
-        refresh -- Refresh the speakers IP cache.
+        refresh -- Refresh the speakers IP cache. Ignored. For backward
+            compatibility only
 
         Returns:
-        IP addresses of the Sonos speakers.
+        a set of IP addresses of the Sonos speakers.
+
+        .. deprecated:: 0.8
+
 
         """
-        if self.speakers_ip and not refresh:
-            return self.speakers_ip
-        else:
-            response = requests.get('http://' + self.speaker_ip +
-                                    ':1400/status/topology')
-            text = response.text
-            grp = re.findall(r'(\d+\.\d+\.\d+\.\d+):1400', text)
-
-            for i in grp:
-                response = requests.get('http://' + i + ':1400/status')
-                if response.status_code == 200:
-                    self.speakers_ip.append(i)
-
-            return self.speakers_ip
+        # pylint: disable=star-args, unused-argument
+        return {zone.ip_address for zone in itertools.chain(*self.all_groups)}
 
     def get_current_transport_info(self):
         """ Get the current playback state
@@ -801,16 +1040,11 @@ class SoCo(object):  # pylint: disable=R0904
         return playstate
 
     def get_queue(self, start=0, max_items=100):
-        """ Get information about the queue.
+        """ Get information about the queue
 
-        Returns:
-        A list containing a dictionary for each track in the queue. The track
-        dictionary contains the following information about the track: title,
-        artist, album, album_art, uri
-
-        If we're unable to return data for a field, we'll return an empty
-        list. This can happen for all kinds of reasons so be sure to check
-        values.
+        :param start: Starting number of returned matches
+        :param max_items: Maximum number of returned matches
+        :returns: A list of :py:class:`~.soco.data_structures.QueueItem`.
 
         This method is heavly based on Sam Soffes (aka soffes) ruby
         implementation
@@ -828,52 +1062,40 @@ class SoCo(object):  # pylint: disable=R0904
         result = response['Result']
         if not result:
             return queue
-        try:
-            result_dom = XML.fromstring(really_utf8(result))
-            for element in result_dom.findall(
-                    './/{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}item'):
-                try:
-                    item = {'title': None,
-                            'artist': None,
-                            'album': None,
-                            'album_art': None,
-                            'uri': None
-                            }
 
-                    item['title'] = element.findtext(
-                        '{http://purl.org/dc/elements/1.1/}title')
-                    item['artist'] = element.findtext(
-                        '{http://purl.org/dc/elements/1.1/}creator')
-                    item['album'] = element.findtext(
-                        '{urn:schemas-upnp-org:metadata-1-0/upnp/}album')
-                    item['album_art'] = element.findtext(
-                        '{urn:schemas-upnp-org:metadata-1-0/upnp/}albumArtURI')
-                    item['uri'] = element.findtext(
-                        '{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}res')
-
-                    queue.append(item)
-                except:  # pylint: disable=W0702
-                    LOGGER.warning('Could not handle item: %s', element)
-                    LOGGER.error(traceback.format_exc())
-
-        except:  # pylint: disable=W0702
-            LOGGER.error('Could not handle result from Sonos')
-            LOGGER.error(traceback.format_exc())
+        result_dom = XML.fromstring(really_utf8(result))
+        for element in result_dom.findall(
+                './/{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}item'):
+            item = QueueItem.from_xml(element)
+            queue.append(item)
 
         return queue
 
+    def get_sonos_playlists(self, start=0, max_items=100):
+        """ Convenience method for:
+            get_music_library_information('sonos_playlists')
+            Refer to the docstring for that method
+
+        """
+        out = self.get_music_library_information(
+            'sonos_playlists',
+            start,
+            max_items)
+        return out
+
     def get_artists(self, start=0, max_items=100):
-        """ Convinience method for: get_music_library_information('artists')
-        Refer to the docstring for that method
+        """ Convinience method for :py:meth:`get_music_library_information`
+        with `search_type='artists'`. For details on remaining arguments refer
+        to the docstring for that method.
 
         """
         out = self.get_music_library_information('artists', start, max_items)
         return out
 
     def get_album_artists(self, start=0, max_items=100):
-        """ Convinience method for:
-        get_music_library_information('album_artists')
-        Refer to the docstring for that method
+        """ Convinience method for :py:meth:`get_music_library_information`
+        with `search_type='album_artists'`. For details on remaining arguments
+        refer to the docstring for that method.
 
         """
         out = self.get_music_library_information('album_artists',
@@ -881,42 +1103,48 @@ class SoCo(object):  # pylint: disable=R0904
         return out
 
     def get_albums(self, start=0, max_items=100):
-        """ Convinience method for: get_music_library_information('albums')
-        Refer to the docstring for that method
+        """ Convinience method for :py:meth:`get_music_library_information`
+        with `search_type='albums'`. For details on remaining arguments refer
+        to the docstring for that method.
 
         """
         out = self.get_music_library_information('albums', start, max_items)
         return out
 
     def get_genres(self, start=0, max_items=100):
-        """ Convinience method for: get_music_library_information('genres')
-        Refer to the docstring for that method.
+        """ Convinience method for :py:meth:`get_music_library_information`
+        with `search_type='genres'`. For details on remaining arguments refer
+        to the docstring for that method.
 
         """
         out = self.get_music_library_information('genres', start, max_items)
         return out
 
     def get_composers(self, start=0, max_items=100):
-        """ Convinience method for: get_music_library_information('composers')
-        Refer to the docstring for that method
+        """ Convinience method for :py:meth:`get_music_library_information`
+        with `search_type='composers'`. For details on remaining arguments
+        refer to the docstring for that method.
 
         """
         out = self.get_music_library_information('composers', start, max_items)
         return out
 
     def get_tracks(self, start=0, max_items=100):
-        """ Convinience method for: get_music_library_information('tracks')
-        Refer to the docstring for that method
+        """ Convinience method for :py:meth:`get_music_library_information`
+        with `search_type='tracks'`. For details on remaining arguments refer
+        to the docstring for that method.
 
         """
         out = self.get_music_library_information('tracks', start, max_items)
         return out
 
     def get_playlists(self, start=0, max_items=100):
-        """ Convinience method for: get_music_library_information('playlists')
-        Refer to the docstring for that method. NOTE: The playlists that are
-        referred to here are the playlist (files) imported from the music
-        library, they are not the Sonos playlists.
+        """ Convinience method for :py:meth:`get_music_library_information`
+        with `search_type='playlists'`. For details on remaining arguments
+        refer to the docstring for that method.
+
+        NOTE: The playlists that are referred to here are the playlist (files)
+        imported from the music library, they are not the Sonos playlists.
 
         """
         out = self.get_music_library_information('playlists', start, max_items)
@@ -926,28 +1154,35 @@ class SoCo(object):  # pylint: disable=R0904
                                       max_items=100):
         """ Retrieve information about the music library
 
-        Arguments:
-        search      The kind of information to retrieve. Can be one of:
-                    'artists', 'album_artists', 'albums', 'genres', 'composers'
-                    'tracks', 'share' and 'playlists', where playlists are the
-                    imported file based playlists from the music library
-        start       starting number of returned matches
-        max_items   maximum number of returned matches. NOTE: The maximum
-                    may be restricted by the unit, presumably due to transfer
-                    size consideration, so check the returned number against
-                    the requested.
-
-        Returns a dictionary with metadata for the search, with the keys
-        'number_returned', 'update_id', 'total_matches' and an 'item' list with
-        the search results. The search results are instances of one of the
-        subclasses of MusicLibraryItem depending on the search class. See the
-        docs for those class for the details on the available information.
+        :param search_type: The kind of information to retrieve. Can be one of:
+            'artists', 'album_artists', 'albums', 'genres', 'composers',
+            'tracks', 'share', 'sonos_playlists', and 'playlists', where
+            playlists are the imported file based playlists from the
+            music library
+        :param start: Starting number of returned matches
+        :param max_items: Maximum number of returned matches. NOTE: The maximum
+            may be restricted by the unit, presumably due to transfer
+            size consideration, so check the returned number against the
+            requested.
+        :returns: A dictionary with metadata for the search, with the
+            keys 'number_returned', 'update_id', 'total_matches' and an
+            'item_list' list with the search results. The search results
+            are instances of one of
+            :py:class:`~.soco.data_structures.MLArtist`,
+            :py:class:`~.soco.data_structures.MLAlbumArtist`,
+            :py:class:`~.soco.data_structures.MLAlbum`,
+            :py:class:`~.soco.data_structures.MLGenre`,
+            :py:class:`~.soco.data_structures.MLComposer`,
+            :py:class:`~.soco.data_structures.MLTrack`,
+            :py:class:`~.soco.data_structures.MLShare`,
+            :py:class:`~.soco.data_structures.MLSonosPlaylist and
+            :py:class:`~.soco.data_structures.MLPlaylist` depending on the
+            type of the search.
+        :raises: :py:class:`SoCoException` upon errors
 
         NOTE: The playlists that are returned with the 'playlists' search, are
         the playlists imported from (files in) the music library, they are not
         the Sonos playlists.
-
-        Raises SoCoException (or a subclass) upon errors.
 
         The information about the which searches can be performed and the form
         of the query has been gathered from the Janos project:
@@ -959,7 +1194,8 @@ class SoCo(object):  # pylint: disable=R0904
                               'album_artists': 'A:ALBUMARTIST',
                               'albums': 'A:ALBUM', 'genres': 'A:GENRE',
                               'composers': 'A:COMPOSER', 'tracks': 'A:TRACKS',
-                              'playlists': 'A:PLAYLISTS', 'share': 'S:'}
+                              'playlists': 'A:PLAYLISTS', 'share': 'S:',
+                              'sonos_playlists': 'SQ:'}
         search = search_translation[search_type]
         response = self.contentDirectory.Browse([
             ('ObjectID', search),
@@ -985,6 +1221,15 @@ class SoCo(object):  # pylint: disable=R0904
 
         return out
 
+    def add_uri_to_queue(self, uri):
+        """Adds the URI to the queue
+
+        :param uri: The URI to be added to the queue
+        :type uri: str
+        """
+        item = URI(uri)
+        self.add_to_queue(item)
+
     def add_to_queue(self, queueable_item):
         """ Adds a queueable item to the queue """
         # Check if teh required attributes are there
@@ -999,9 +1244,10 @@ class SoCo(object):  # pylint: disable=R0904
         except CannotCreateDIDLMetadata as exception:
             message = ('The queueable item could not be enqueued, because it '
                        'raised a CannotCreateDIDLMetadata exception with the '
-                       'following message:\n{0}').format(exception.message)
+                       'following message:\n{0}').format(str(exception))
             raise ValueError(message)
-        metadata = xml.sax.saxutils.escape(metadata).encode('utf-8')
+        if isinstance(metadata, str):
+            metadata = metadata.encode('utf-8')
 
         response = self.avTransport.AddURIToQueue([
             ('InstanceID', 0),
@@ -1014,19 +1260,20 @@ class SoCo(object):  # pylint: disable=R0904
         return int(qnumber)
 
     def remove_from_queue(self, index):
-        """ Removes a track from the queue.
+        """ Remove a track from the queue by index. The index number is
+        required as an argument, where the first index is 0.
 
-        index: the index of the track to remove; first item in the queue is 1
+        index: the index of the track to remove; first item in the queue is 0
 
         Returns:
-        True if the Sonos speaker successfully removed the track
+            True if the Sonos speaker successfully removed the track
 
         Raises SoCoException (or a subclass) upon errors.
 
         """
         # TODO: what do these parameters actually do?
         updid = '0'
-        objid = 'Q:0/' + str(index)
+        objid = 'Q:0/' + str(index + 1)
         self.avTransport.RemoveTrackFromQueue([
             ('InstanceID', 0),
             ('ObjectID', objid),
@@ -1124,15 +1371,6 @@ class SoCo(object):  # pylint: disable=R0904
 
 
 # definition section
-
-PLAYER_SEARCH = """M-SEARCH * HTTP/1.1
-HOST: 239.255.255.250:reservedSSDPport
-MAN: ssdp:discover
-MX: 1
-ST: urn:schemas-upnp-org:device:ZonePlayer:1"""
-
-MCAST_GRP = "239.255.255.250"
-MCAST_PORT = 1900
 
 RADIO_STATIONS = 0
 RADIO_SHOWS = 1

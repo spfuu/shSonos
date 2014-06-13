@@ -1,5 +1,19 @@
 #Release
 
+v0.2.0      2014-06-06
+
+    -- Command: added join command (joins the speaker to another speaker)
+    -- Command: added unjoin command (unjoins the speaker from the current group)
+    -- Command: added partymode command (joins all speaker to one group)
+    -- Command: added volume_up command (+2 volume, this is the default sonos speaker behaviour)
+    -- Command: added volume_down command (-2 volume, this is the default sonos speaker behaviour)
+    -- Event handling now based on soco core functionality
+    -- added ZoneGroup event handling
+    -- changed commands pause, play, stop, led, mute to toggle commands (no arguments necessary)
+    -- fixed bug in play_snippet and play_uri command (case sensitive uri)
+    -- speaker metadata will only be send, if something has changed
+    -- many many code improvements
+
 v0.1.9      2014-04-27
 
     -- removed startup parameters
@@ -31,10 +45,6 @@ v0.1.7      2014-03-09
      -- easier to configure sonos speaker in conf-file
      -- better radio integration
      -- new commands
-
-v0.1.6      2014-02-18
-
-    -- minor bugfix: changed EOL (end-of-line) from '\r\n' to '\n' in sonos_command method
 
 
 #Overview
@@ -215,25 +225,55 @@ to get a short overview of your sonos speakers in the network and to retrieve th
 
 ##Speaker commands
 
+
+    current_state
+
+        get:
+            http://<sonos_server:port>/speaker/<sonos_uid>/current_state
+
+            Dumps the current sonos player state with all values
+
+        response (udp):
+            JSON speaker structure
+
+
 	volume
 
 		set:
 			http://<sonos_server:port>/speaker/<sonos_uid>/volume/<value:0-100>
 		
-		get:
-			http://<sonos_server:port>/speaker/<sonos_uid>/volume
+		response (udp):
+	        JSON speaker structure
+
+
+    volume_up
+
+		set:
+			http://<sonos_server:port>/speaker/<sonos_uid>/volume_up
 
 		response (udp):
 	        JSON speaker structure
+
+        The volume_up commands triggers a +2 volume. This is the default sonos speaker behaviour, if the volume-up
+        button was pressed.
+
+
+    volume_down
+
+		set:
+			http://<sonos_server:port>/speaker/<sonos_uid>/volume_down
+
+		response (udp):
+	        JSON speaker structure
+
+        The volume_down commands triggers a -2 volume. This is the default sonos speaker behaviour, if the volume-down
+        button was pressed.
 
 
     maxvolume
 
 		set:
 			http://<sonos_server:port>/speaker/<sonos_uid>/maxvolume/<value:-1-100>
-
-		get:
-			http://<sonos_server:port>/speaker/<sonos_uid>/maxvolume
 
 		response (udp):
 	        JSON speaker structure
@@ -247,11 +287,10 @@ to get a short overview of your sonos speakers in the network and to retrieve th
 	mute
 
 		set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/mute/<value:0|1>
-			
-		get:
 			http://<sonos_server:port>/speaker/<sonos_uid>/mute
-			
+
+		    mute: command is a toggle command
+
 		response (udp)
 			JSON speaker structure
 
@@ -260,9 +299,9 @@ to get a short overview of your sonos speakers in the network and to retrieve th
 
 		set:
 
-			http://<sonos_server:port>/speaker/<sonos_uid>/led/<value:0|1>
-		get:
 			http://<sonos_server:port>/speaker/<sonos_uid>/led
+
+		    led: command is a toggle command
 
 		response (udp)
 		    JSON speaker structure
@@ -271,10 +310,9 @@ to get a short overview of your sonos speakers in the network and to retrieve th
 	play
 
 	    set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/play/<value:0|1>
-
-		get:
 			http://<sonos_server:port>/speaker/<sonos_uid>/play
+
+            play: command is a toggle command
 
 		response (udp)
 		    JSON speaker structure
@@ -283,10 +321,9 @@ to get a short overview of your sonos speakers in the network and to retrieve th
     pause
 
         set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/pause/<value:0|1>
-
-		get:
 			http://<sonos_server:port>/speaker/<sonos_uid>/pause
+
+            pause: command is a toggle command
 
 		response (udp)
 			JSON speaker structure
@@ -295,10 +332,9 @@ to get a short overview of your sonos speakers in the network and to retrieve th
     stop
 
         set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/stop/<value:0|1>
-
-		get:
 			http://<sonos_server:port>/speaker/<sonos_uid>/stop
+
+            stop: command is a toggle command
 
 		response (udp)
 			JSON speaker structure
@@ -339,45 +375,6 @@ to get a short overview of your sonos speakers in the network and to retrieve th
 		response (udp)
 			response:
 			no explicit response, but events will be triggered, if new track title
-
-
-    track
-
-        get:
-		    http://<sonos_server:port>/speaker/<sonos_uid>/track
-
-		response (udp)
-			JSON speaker structure
-
-
-    track_duration
-
-        get:
-			http://<sonos_server:port>/speaker/<sonos_uid>/track_duration   #HH:MM:ss
-
-		response (udp)
-			JSON speaker structure
-
-
-    track_info
-
-        get:
-			http://<sonos_server:port>/speaker/<sonos_uid>/track_info
-
-		response (udp)
-            JSON speaker structure
-
-            Gets the current track info. Only usefull to get the current track position. You need to poll this value,
-            since there is no event for this property
-
-
-    streamtype
-
-        get:
-			http://<sonos_server:port>/speaker/<sonos_uid>/streamtype
-
-		response (udp)
-			JSON speaker structure
 
 
     play_uri
@@ -430,15 +427,45 @@ to get a short overview of your sonos speakers in the network and to retrieve th
 			no explicit response, but events will be triggered, if the tts_snippet is played
 
 
-    current_state
+    track_info
 
         get:
-            http://<sonos_server:port>/speaker/<sonos_uid>/current_state
+            http://<sonos_server:port>/speaker/<sonos_uid>/track_info
 
-            Dumps the current sonos player state.
-
-        response (udp):
+        response (udp)
             JSON speaker structure
+
+            Gets the current track info. Only usefull to get the current track position. You need to poll this value,
+            since there is no event for this property
+
+
+    join
+
+        set:
+			http://<sonos_server:port>/speaker/<sonos_uid>/join/<sonos_uid_to_join>
+
+			<sonos_uid_to_join> the uid of the sonos speaker to join
+
+		response:
+			no explicit response, but events will be triggered, if the zone group has been changed
+
+
+    unjoin
+
+        set:
+			http://<sonos_server:port>/speaker/<sonos_uid>/unjoin
+
+		response:
+			no explicit response, but events will be triggered, if the zone group has been changed
+
+
+    partymode
+
+        set:
+			http://<sonos_server:port>/speaker/<sonos_uid>/partymode
+
+		response:
+			no explicit response, but events will be triggered, if the zone group has been changed
 
 
 	list
@@ -448,14 +475,11 @@ to get a short overview of your sonos speakers in the network and to retrieve th
 
 		response (http)
 			<html code ....
-				uid : rincon_000e58c3892e01400
-
-				ip : 192.168.178.40
-
-				model : ZPS1
-				.
-				.
-			... htmlcode>
+				uid             : rincon_000f44c3892e01400
+                ip              : 192.168.0.40
+                model           : ZPS1
+                current zone    : child room
+			/>
 
 
 ###Response:
@@ -464,32 +488,35 @@ In almost any cases, you will get the appropriate response in the following JSON
 
     {
         "hardware_version": "1.8.3.7-2",
-        "ip": "192.168.0.10",
+        "ip": "192.168.0.40",
         "led": 1,
-        "mac_address": "00:0E:59:D4:89:2F",
+        "mac_address": "00:0F:12:D4:88:2F",
+        "max_volume": -1,
         "model": "ZPS1",
-        "mute": 0,
-        "max_volume" : 0
+        "mute": "0",
         "pause": 0,
         "play": 1,
-        "playlist_position": "1",
+        "playlist_position": "10",
         "radio_show": "",
-        "radio_station": "95.5 Charivari",
-        "serial_number": "00-0E-59-D4-89-2F:7",
-        "software_version": "24.0-71060",
+        "radio_station": "",
+        "serial_number": "00-0F-12-D4-88-2F:1",
+        "software_version": "26.1-76230",
+        "status": true,
         "stop": 0,
-        "status" : 1                    #speaker online / offline?
-        "streamtype": "radio",
-        "track_album_art": "http://192.168.0.10:1400/getaa?s=1&u=x-sonosapi-stream%3as17488%3fsid%3d254%26flags%3d32",
-        "track_artist": "RADIO CHARIVARI 95.5",
-        "track_duration": "0:00:00",
-        "track_position": "0:02:16",
-        "track_title": "LIVE",
-        "track_uri": "",
-        "uid": "rincon_000e58c3e01451",
-        "volume": 11,
-        "zone_icon": "x-rincon-roomicon:living",
-        "zone_name": "Kitchen"
+        "streamtype": "music",
+        "track_album_art": "http://192.168.0.40:1400/getaa?s=1&u=x-sonos-spotify%3aspotify%253atrack%253a3ZJSDh87VrZXvJGwZ82zQu%3fsid%3d9%26flags%3d32",
+        "track_artist": "Herbert Grönemeyer",
+        "track_duration": "0:03:30",
+        "track_position": "0:02:21",
+        "track_title": "Halt Mich",
+        "track_uri": "x-sonos-spotify:spotify%3atrack%3a3ZJSDh87VrZXvJGwZ82zQu?sid=9&flags=32",
+        "uid": "rincon_000f44c3892e01400",
+        "volume": "2",
+        "zone_coordinator": "rincon_000f44c3892e01400",
+        "zone_icon": "x-rincon-roomicon:bedroom",
+        "zone_id": "RINCON_B9E94030D19801400:19",
+        "additional zone_members": "rincon_000f44c3892e01400,rincon_b9e94030d19801400"
+        "zone_name": "child room"
     }
 
 
@@ -528,8 +555,6 @@ In almost any cases, you will get the appropriate response in the following JSON
 
 ##TO DO:
 
-
 	* full SoCo command implementation
 	* documentation
 	* and many more
-    	* Sonos Group Management
