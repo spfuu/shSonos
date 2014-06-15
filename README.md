@@ -1,6 +1,6 @@
 #Release
 
-v0.2.1      2014-06-13
+v0.2.1      2014-06-15
 
     --  stop, play, pause, led, mute command now supports two value behaviours:
             -- toggle mode [if no parameter was passed]
