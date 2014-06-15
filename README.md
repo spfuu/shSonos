@@ -1,59 +1,75 @@
 #Release
 
+v0.2.1      2014-06-13
+
+    --  stop, play, pause, led, mute command now supports two value behaviours:
+            -- toggle mode [if no parameter was passed]
+            -- direct mode [if parameter was passed]
+    --  Command: added bass command
+    --  Command: added treble command
+    --  Command: added loudness command (direct / toggle mode)
+    --  Command: added playmode command ('normal', 'shuffle_norepeat', 'shuffle', 'repeat_all')
+    --  changed pause command behaviour, if radio is played (wrapped to stop command). This is the default sonos app
+        behaviour.
+    --  bugifx: additional_zone_member_property was not set correctly
+    --  some minor soco framework updates
+        
+
 v0.2.0      2014-06-06
 
-    -- Command: added join command (joins the speaker to another speaker)
-    -- Command: added unjoin command (unjoins the speaker from the current group)
-    -- Command: added partymode command (joins all speaker to one group)
-    -- Command: added volume_up command (+2 volume, this is the default sonos speaker behaviour)
-    -- Command: added volume_down command (-2 volume, this is the default sonos speaker behaviour)
-    -- Event handling now based on soco core functionality
-    -- added ZoneGroup event handling
-    -- changed commands pause, play, stop, led, mute to toggle commands (no arguments necessary)
-    -- fixed bug in play_snippet and play_uri command (case sensitive uri)
-    -- speaker metadata will only be send, if something has changed
-    -- many many code improvements
+    --  Command: added join command (joins the speaker to another speaker)
+    --  Command: added unjoin command (unjoins the speaker from the current group)
+    --  Command: added partymode command (joins all speaker to one group)
+    --  Command: added volume_up command (+2 volume, this is the default sonos speaker behaviour)
+    --  Command: added volume_down command (-2 volume, this is the default sonos speaker behaviour)
+    --  Event handling now based on soco core functionality
+    --  added ZoneGroup event handling
+    --  changed commands pause, play, stop, led, mute to toggle commands (no arguments necessary)
+    --  fixed bug in play_snippet and play_uri command (case sensitive uri)
+    --  speaker metadata will only be send, if something has changed
+    --  many many code improvements
 
 v0.1.9      2014-04-27
 
-    -- removed startup parameters
-    -- sonos broker is now configured by a config file
-    -- Google-TTS: removed the requirement for a working smb share
-    -- Google-TTS: removed auto config for smb shares (not necessary any more)
-    -- Command: added favorite radiostation command
-    -- Command: added maxvolume command
+    --  removed startup parameters
+    --  sonos broker is now configured by a config file
+    --  Google-TTS: removed the requirement for a working smb share
+    --  Google-TTS: removed auto config for smb shares (not necessary any more)
+    --  Command: added favorite radiostation command
+    --  Command: added maxvolume command
 
 v0.1.8.1    2014-03-27
 
-    -- bugfix: server does not start correctly if no local share for Google TTS was found
+    --  bugfix: server does not start correctly if no local share for Google TTS was found
 
 v0.1.8      2014-03-26
 
-    -- add Google Text-To-Speech suppor (see documentation)
-    -- minor bugfixes
+    --  add Google Text-To-Speech suppor (see documentation)
+    --  minor bugfixes
 
 v0.1.7.1    2014-03-09
 
-    -- fix: track_uri now shown
-    -- socket now closed correctly
+    --  fix: track_uri now shown
+    --  socket now closed correctly
 
 v0.1.7      2014-03-09
 
-     -- audio snippet integration
-     -- many many code improvements
-     -- JSON format, less network traffic
-     -- easier to configure sonos speaker in conf-file
-     -- better radio integration
-     -- new commands
+    --  audio snippet integration
+    --  many many code improvements
+    --  JSON format, less network traffic
+    --  easier to configure sonos speaker in conf-file
+    --  better radio integration
+    --  new commands
 
 
 #Overview
 
 	
-The shSonos project is primary a simple (python) sonos control server, mainly based on the brilliant SoCo project https://github.com/SoCo/SoCo). 
-It implements a lightweight http server, which is controlled by simple commands.
+The shSonos project is primary a simple (python) sonos control server, mainly based on the brilliant SoCo project 
+https://github.com/SoCo/SoCo). It implements a lightweight http server, which is controlled by simple url commands.
  
-In addition , i decided to write a plugin for the fantastic "Smarthome.py Project" to control sonos speakers in a smart home. (https://github.com/mknx/smarthome/)
+In addition , i decided to write a plugin for the fantastic "Smarthome.py Project" to control sonos speakers in a 
+smart home environment (https://github.com/mknx/smarthome/).
 
  
 #Requirements
@@ -69,7 +85,7 @@ within smarthome.py
 
 ##Setup
 
-Under the github folder "server.sonos/dist/" you'll find the actual release as a tar.gz file
+Under the github folder "server.sonos/dist/" you'll find the actual release as a tar.gz file.
 Unzip this file with:
 
     tar -xvf sonos_broker_release.tar.gz
@@ -83,8 +99,9 @@ Go to the unpacked folder and run setup.py with:
 This command will install all the python packages and places the start script to the python folder
 "/user/local/bin"
 
-Run the file sonos_broker with:
+Make the file executable run the sonos_broker with:
 
+    chmod +x sonos_broker
     ./sonos_broker
 
 Normally, the script finds the interal ip address of your computer. If not, you have to edit your sonos_broker.cfg.
@@ -145,8 +162,8 @@ Sonos broker features the Google Text-To-Speech API. You can play any text limit
 If a text is given to the google tts function, sonos broker makes a http request to the Google API. The response is
 stored as a mp3-file to local mounted samba share. Before the request is made, the broker checks whether a file exists
 with the name. The file name of a tts-file is always:  BASE64(<tts_txt>_<tts_language>).mp3
-You can set a file quota in the config file. This limits the amount of disk space the broker can use to save tts files. If the quota
-exceeds, you will receive a message. By default the quota is set to 100 mb.
+You can set a file quota in the config file. This limits the amount of disk space the broker can use to save tts files. 
+If the quota exceeds, you will receive a message. By default the quota is set to 100 mb.
 
     sonos_broker.cfg:
 
@@ -278,19 +295,55 @@ to get a short overview of your sonos speakers in the network and to retrieve th
 		response (udp):
 	        JSON speaker structure
 
-        Sets the maximum volume for the sonos speaker. This setting also affects other sonos clients (iPad, Android etc).
+        Sets the maximum volume for a sonos speaker. This setting also affects other sonos clients (iPad, Android etc).
         If a volume greater than maxvolume is set, the volume is set to maxvolume.
         The maximum volume will be ignored if play_snippet or play_tts are used.
         To unset maxvolume, set the value to -1.
 
 
+    bass
+
+		set:
+			http://<sonos_server:port>/speaker/<sonos_uid>/bass/<value:-10-10>
+			
+			value: sonos default setting is 0
+		
+		response (udp):
+	        JSON speaker structure
+	        
+	
+	treble
+
+		set:
+			http://<sonos_server:port>/speaker/<sonos_uid>/treble/<value:-10-10>
+		
+		    value: sonos default setting is 0 
+		    
+		response (udp):
+	        JSON speaker structure
+	        
+	        
+	loudness
+
+		set:
+			http://<sonos_server:port>/speaker/<sonos_uid>/loudness/<optiona value: 0|1>
+			
+			loudness: by default, the command is a toggle command
+            optional value: set the value directly [no toggle behaviour]  
+			value: sonos default setting is 1
+		
+		response (udp):
+	        JSON speaker structure
+
+
 	mute
 
 		set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/mute
+			http://<sonos_server:port>/speaker/<sonos_uid>/mute/<optional value: 0|1>
 
-		    mute: command is a toggle command
-
+		    mute: by default, the command is a toggle command
+            optional value: set the value directly [no toggle behaviour]  
+    
 		response (udp)
 			JSON speaker structure
 
@@ -299,9 +352,10 @@ to get a short overview of your sonos speakers in the network and to retrieve th
 
 		set:
 
-			http://<sonos_server:port>/speaker/<sonos_uid>/led
+			http://<sonos_server:port>/speaker/<sonos_uid>/led/<optional value: 0|1>
 
-		    led: command is a toggle command
+		    led: by default, the command is a toggle command
+            optional value: set the value directly [no toggle behaviour]  
 
 		response (udp)
 		    JSON speaker structure
@@ -332,9 +386,10 @@ to get a short overview of your sonos speakers in the network and to retrieve th
     stop
 
         set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/stop
+			http://<sonos_server:port>/speaker/<sonos_uid>/stop/[optional value: 0|1]
 
-            stop: command is a toggle command
+            stop: by default, the command is a toggle command
+            optional value: set the value directly [no toggle behaviour]  
 
 		response (udp)
 			JSON speaker structure
@@ -459,6 +514,18 @@ to get a short overview of your sonos speakers in the network and to retrieve th
 			no explicit response, but events will be triggered, if the zone group has been changed
 
 
+    playmode
+
+        set:
+			http://<sonos_server:port>/speaker/<sonos_uid>/playmode/<value>
+
+            value:  'normal', 'shuffle_norepeat', 'shuffle', 'repeat_all'
+                    If no parameter was passed, the default value is 'normal'
+            
+		response:
+			no explicit response, but events will be triggered, if the zone group has been changed
+
+
     partymode
 
         set:
@@ -489,20 +556,20 @@ In almost any cases, you will get the appropriate response in the following JSON
     {
         "hardware_version": "1.8.3.7-2",
         "ip": "192.168.0.40",
-        "led": 1,
+        "led": true,
         "mac_address": "00:0F:12:D4:88:2F",
         "max_volume": -1,
         "model": "ZPS1",
-        "mute": "0",
-        "pause": 0,
-        "play": 1,
+        "mute": false,
+        "pause": false,
+        "play": true,
         "playlist_position": "10",
         "radio_show": "",
         "radio_station": "",
         "serial_number": "00-0F-12-D4-88-2F:1",
         "software_version": "26.1-76230",
         "status": true,
-        "stop": 0,
+        "stop": false,
         "streamtype": "music",
         "track_album_art": "http://192.168.0.40:1400/getaa?s=1&u=x-sonos-spotify%3aspotify%253atrack%253a3ZJSDh87VrZXvJGwZ82zQu%3fsid%3d9%26flags%3d32",
         "track_artist": "Herbert Grönemeyer",
@@ -516,7 +583,11 @@ In almost any cases, you will get the appropriate response in the following JSON
         "zone_icon": "x-rincon-roomicon:bedroom",
         "zone_id": "RINCON_B9E94030D19801400:19",
         "additional zone_members": "rincon_000f44c3892e01400,rincon_b9e94030d19801400"
-        "zone_name": "child room"
+        "zone_name": "child room",
+        "bass": "5",
+        "treble": "2",
+        "loudness": true,
+        "playmode": "shuffle_norepeat"
     }
 
 

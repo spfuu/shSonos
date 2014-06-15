@@ -23,4 +23,4 @@ class SonosLibrary:
         if not found:
             raise Exception("Couldn't fetch favorite radio stations. All speakers offline?")
 
-        return utils.to_JSON(stations)
+        return utils.to_json(stations)

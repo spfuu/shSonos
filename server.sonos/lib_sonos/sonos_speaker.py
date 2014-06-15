@@ -14,6 +14,7 @@ except ImportError:
 
 sonos_speakers = {}
 
+
 class SonosSpeaker():
     def __init__(self, soco):
         self._soco = soco
@@ -40,6 +41,10 @@ class SonosSpeaker():
         self._zone_icon = self.soco.speaker_info['zone_icon']
         self._zone_name = soco.speaker_info['zone_name']
         self._led = True
+        self._bass = self.soco.bass
+        self._treble = self.soco.treble
+        self._loudness = self.soco.loudness
+        self._playmode = self.soco.play_mode
         self._max_volume = -1
         self._playlist_position = 0
         self._model = ''
@@ -115,6 +120,48 @@ class SonosSpeaker():
     def led(self, value):
         self.soco.status_light = value
         self._led = value
+
+    @property
+    def bass(self):
+        return self._bass
+
+    @bass.setter
+    def bass(self, value):
+        self.soco.bass = value
+        self._bass = value
+
+    @property
+    def treble(self):
+        return self._treble
+
+    @treble.setter
+    def treble(self, value):
+        self.soco.treble = value
+        self._treble = value
+
+    @property
+    def loudness(self):
+        return self._loudness
+
+    @loudness.setter
+    def loudness(self, value):
+        self.soco.loudness = value
+        self._loudness = value
+
+    @property
+    def playmode(self):
+        if self.speaker_zone_coordinator is not None:
+            return self.speaker_zone_coordinator.playmode
+        return self._playmode.lower()
+
+    @playmode.setter
+    def playmode(self, value):
+        if self.speaker_zone_coordinator is not None:
+            self.speaker_zone_coordinator.playmode = value
+            self.speaker_zone_coordinator._playmode = value
+        else:
+            self.soco.play_mode = value
+            self._playmode = value
 
     @property
     def zone_id(self):
@@ -232,17 +279,17 @@ class SonosSpeaker():
         if self.speaker_zone_coordinator is not None:
             if value:
                 self.speaker_zone_coordinator.soco.stop()
-                self.speaker_zone_coordinator._stop = 1
-                self.speaker_zone_coordinator._play = 0
-                self.speaker_zone_coordinator._pause = 0
+                self.speaker_zone_coordinator._stop = True
+                self.speaker_zone_coordinator._play = False
+                self.speaker_zone_coordinator._pause = False
             else:
                 self._speaker_zone_coordinator.play = True
         else:
             if value:
                 self.soco.stop()
-                self._stop = 1
-                self._play = 0
-                self._pause = 0
+                self._stop = True
+                self._play = False
+                self._pause = False
             else:
                 self.play = True
 
@@ -257,17 +304,17 @@ class SonosSpeaker():
         if self.speaker_zone_coordinator is not None:
             if value:
                 self.speaker_zone_coordinator.soco.play()
-                self.speaker_zone_coordinator._stop = 0
-                self.speaker_zone_coordinator._play = 1
-                self.speaker_zone_coordinator._pause = 0
+                self.speaker_zone_coordinator._stop = False
+                self.speaker_zone_coordinator._play = True
+                self.speaker_zone_coordinator._pause = False
             else:
                 self.speaker_zone_coordinator.pause = True
         else:
             if value:
                 self.soco.play()
-                self._stop = 0
-                self._play = 1
-                self._pause = 0
+                self._stop = False
+                self._play = True
+                self._pause = False
             else:
                 self.pause = True
 
@@ -279,23 +326,23 @@ class SonosSpeaker():
 
     @pause.setter
     def pause(self, value):
+
         if self.speaker_zone_coordinator is not None:
             if value:
                 self.speaker_zone_coordinator.soco.pause()
-                self.speaker_zone_coordinator._stop = 0
-                self.speaker_zone_coordinator._play = 0
-                self.speaker_zone_coordinator._pause = 1
+                self.speaker_zone_coordinator._stop = False
+                self.speaker_zone_coordinator._play = False
+                self.speaker_zone_coordinator._pause = True
             else:
                 self.speaker_zone_coordinator.play = True
         else:
             if value:
                 self.soco.pause()
-                self._stop = 0
-                self._play = 0
-                self._pause = 1
+                self._stop = False
+                self._play = False
+                self._pause = True
             else:
                 self.play = True
-
 
     @property
     def radio_station(self):
@@ -340,7 +387,7 @@ class SonosSpeaker():
         m_volume = int(value)
         if m_volume is not -1:
             self._max_volume = m_volume
-            if(utils.check_volume_range(self._max_volume)):
+            if utils.check_volume_range(self._max_volume):
                 if self.volume > self._max_volume:
                     self.volume = self._max_volume
         else:
@@ -352,17 +399,21 @@ class SonosSpeaker():
 
     @status.setter
     def status(self, value):
-        #status == 0 -> speaker offline:
+        # status == 0 -> speaker offline:
         self._status = value
 
         if self._status == 0:
             self._streamtype = ''
             self._volume = 0
-            self._mute = 0
-            self._led = 1
-            self._stop = False  #don't use setter, triggers soco to play = true
-            self._play = False  #don't use setter, triggers soco to pause = true
-            self._pause = False #don't use setter, triggers soco to play = true
+            self._bass = 0
+            self._treble = 0
+            self._loudness = 0
+            self._additional_zone_members = ''
+            self._mute = False
+            self._led = True
+            self._stop = False
+            self._play = False
+            self._pause = False
             self._track_title = "No track title"
             self._track_artist = "No track artist"
             self._track_duration = "00:00:00"
@@ -376,10 +427,10 @@ class SonosSpeaker():
             self._zone_id = ''
             self._zone_name = ''
             self._zone_coordinator = ''
-            self._zone_members = ''
             self._zone_icon = ''
+            self._playmode = ''
 
-    #---------------------------------------------------------------------------------
+    # ---------------------------------------------------------------------------------
     #
     #          FUNCTIONS
     #
@@ -437,39 +488,44 @@ class SonosSpeaker():
 
     @property
     def properties_dict(self):
-        return  \
+        return \
             {
-            'uid'                       : self.uid,
-            'ip'                        : self.ip,
-            'mac_address'               : self.mac_address,
-            'software_version'          : self.software_version,
-            'hardware_version'          : self.hardware_version,
-            'serial_number'             : self.serial_number,
-            'led'                       : self.led,
-            'volume'                    : self.volume,
-            'play'                      : self.play,
-            'pause'                     : self.pause,
-            'stop'                      : self.stop,
-            'mute'                      : self.mute,
-            'track_title'               : self.track_title,
-            'track_uri'                 : self.track_uri,
-            'track_duration'            : self.track_duration,
-            'track_position'            : self.track_position,
-            'track_artist'              : self.track_artist,
-            'track_album_art'           : self.track_album_art,
-            'radio_station'             : self.radio_station,
-            'radio_show'                : self.radio_show,
-            'playlist_position'         : self.playlist_position,
-            'streamtype'                : self.streamtype,
-            'zone_name'                 : self.zone_name,
-            'zone_icon'                 : self.zone_icon,
-            'additional_zone_members'   : ','.join(self.additional_zone_members),
-            'status'                    : self.status,
-            'model'                     : self.model
-        }
+                'uid': self.uid,
+                'ip': self.ip,
+                'mac_address': self.mac_address,
+                'software_version': self.software_version,
+                'hardware_version': self.hardware_version,
+                'serial_number': self.serial_number,
+                'led': self.led,
+                'volume': self.volume,
+                'play': self.play,
+                'pause': self.pause,
+                'stop': self.stop,
+                'mute': self.mute,
+                'track_title': self.track_title,
+                'track_uri': self.track_uri,
+                'track_duration': self.track_duration,
+                'track_position': self.track_position,
+                'track_artist': self.track_artist,
+                'track_album_art': self.track_album_art,
+                'radio_station': self.radio_station,
+                'radio_show': self.radio_show,
+                'playlist_position': self.playlist_position,
+                'streamtype': self.streamtype,
+                'zone_name': self.zone_name,
+                'zone_icon': self.zone_icon,
+                'additional_zone_members': ','.join(str(speaker.uid) for speaker in self.additional_zone_members),
+                'status': self.status,
+                'model': self.model,
+                'bass': self.bass,
+                'treble': self.treble,
+                'loudness': self.loudness,
+                'playmode': self.playmode
+            }
 
-    def to_JSON(self):
-        return json.dumps(self, default=lambda o: self.properties_dict, sort_keys=True, ensure_ascii=False, indent=4, separators=(',', ': '))
+    def to_json(self):
+        return json.dumps(self, default=lambda o: self.properties_dict, sort_keys=True, ensure_ascii=False, indent=4,
+                          separators=(',', ': '))
 
     def play_snippet(self, uri, volume):
         if self._speaker_zone_coordinator is not None:
@@ -482,7 +538,8 @@ class SonosSpeaker():
         if self._speaker_zone_coordinator is not None:
             self._speaker_zone_coordinator.play_tts(tts, volume, smb_url, local_share, language, quota)
         else:
-            t = threading.Thread(target=self._play_tts_thread, args=(tts, volume, smb_url, local_share, language, quota))
+            t = threading.Thread(target=self._play_tts_thread,
+                                 args=(tts, volume, smb_url, local_share, language, quota))
             t.start()
 
     def set_add_to_queue(self, uri):
@@ -490,15 +547,15 @@ class SonosSpeaker():
 
     def send_data(self, force=False):
         #only send data, if something has changed
-        data = self.to_JSON()
+        data = self.to_json()
 
         hash_data = sha1(data.encode('utf-8')).hexdigest()
         if hash_data != self._properties_hash:
             self._properties_hash = hash_data
-            udp_broker.UdpBroker.udp_send(self.to_JSON())
+            udp_broker.UdpBroker.udp_send(self.to_json())
         else:
-            if force == True:
-                udp_broker.UdpBroker.udp_send(self.to_JSON())
+            if force:
+                udp_broker.UdpBroker.udp_send(self.to_json())
 
         #if speaker instance is coordinator and data has changed, send also data for additional group members
         #slaves don't send data in most of the sonos events
@@ -526,11 +583,11 @@ class SonosSpeaker():
     def event_subscription(self, event_queue, renew=False):
 
         if self.sub_zone_group is None:
-            self._sub_zone_group = self.soco.zoneGroupTopology.subscribe(None,event_queue)
+            self._sub_zone_group = self.soco.zoneGroupTopology.subscribe(None, event_queue)
         else:
             time_left = int(self.sub_zone_group.time_left)
             if time_left == 0:
-                self._sub_zone_group = self.soco.zoneGroupTopology.subscribe(None,event_queue)
+                self._sub_zone_group = self.soco.zoneGroupTopology.subscribe(None, event_queue)
             else:
                 if renew:
                     self.sub_zone_group.renew()
@@ -560,7 +617,7 @@ class SonosSpeaker():
             fname = utils.save_google_tts(local_share, tts, language, quota)
 
             if smb_url.endswith('/'):
-                smb_url =smb_url[:-1]
+                smb_url = smb_url[:-1]
 
             url = '{}/{}'.format(smb_url, fname)
             self._play_snippet_thread(url, volume)
@@ -594,7 +651,7 @@ class SonosSpeaker():
         self.track_info()
 
         h, m, s = self.track_duration.split(":")
-        seconds = int(h)*3600+int(m)*60+int(s) + 1
+        seconds = int(h) * 3600 + int(m) * 60 + int(s) + 1
         time.sleep(seconds)
 
         self.max_volume = queued_max_volume
@@ -606,7 +663,7 @@ class SonosSpeaker():
         if queued_playlist_position:
             try:
                 if queued_streamtype == "music":
-                    self.soco.play_from_queue(int(queued_playlist_position)-1)
+                    self.soco.play_from_queue(int(queued_playlist_position) - 1)
                     self.seek(queued_track_position)
                 else:
                     self.play_uri(queued_uri, queued_metadata)
@@ -620,4 +677,3 @@ class SonosSpeaker():
                     raise err
 
         self.volume = queued_volume
-
