@@ -9,8 +9,8 @@ v0.2.1      2014-06-13
     --  Command: added treble command
     --  Command: added loudness command (direct / toggle mode)
     --  Command: added playmode command ('normal', 'shuffle_norepeat', 'shuffle', 'repeat_all')
-    --  changed pause command behaviour, if radio is played (wrapped to stop command). This is the default sonos app
-        behaviour.
+    --  changed pause command behaviour, if radio is played (wrapped to stop command). 
+        This is the default sonos app behaviour.
     --  bugifx: additional_zone_member_property was not set correctly
     --  some minor soco framework updates
         
@@ -46,20 +46,6 @@ v0.1.8      2014-03-26
 
     --  add Google Text-To-Speech suppor (see documentation)
     --  minor bugfixes
-
-v0.1.7.1    2014-03-09
-
-    --  fix: track_uri now shown
-    --  socket now closed correctly
-
-v0.1.7      2014-03-09
-
-    --  audio snippet integration
-    --  many many code improvements
-    --  JSON format, less network traffic
-    --  easier to configure sonos speaker in conf-file
-    --  better radio integration
-    --  new commands
 
 
 #Overview
