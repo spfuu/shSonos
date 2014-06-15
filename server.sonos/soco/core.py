@@ -97,10 +97,12 @@ class SonosDiscovery(object):  # pylint: disable=R0903
 
 class _ArgsSingleton(type):
     """ A metaclass which permits only a single instance of each derived class
-    to exist for any given set of positional arguments.
+    sharing the same `_class_group` class attribute to exist for any given set
+    of positional arguments.
 
-    Attempts to instantiate a second instance of a derived class will return
-    the existing instance.
+    Attempts to instantiate a second instance of a derived class, or another
+    class with the same `_class_group`, with the same args will return the
+    existing instance.
 
     For example:
 
@@ -108,23 +110,30 @@ class _ArgsSingleton(type):
     ...     __metaclass__ = _ArgsSingleton
     ...
     >>> class First(ArgsSingletonBase):
+    ...     _class_group = "greeting"
     ...     def __init__(self, param):
     ...         pass
     ...
+    >>> class Second(ArgsSingletonBase):
+    ...     _class_group = "greeting"
+    ...     def __init__(self, param):
+    ...         pass
     >>> assert First('hi') is First('hi')
     >>> assert First('hi') is First('bye')
     AssertionError
+    >>> assert First('hi') is Second('hi')
 
      """
     _instances = {}
 
     def __call__(cls, *args, **kwargs):
-        if cls not in cls._instances:
-            cls._instances[cls] = {}
-        if args not in cls._instances[cls]:
-            cls._instances[cls][args] = super(_ArgsSingleton, cls).__call__(
+        key = cls._class_group if hasattr(cls, '_class_group') else cls
+        if key not in cls._instances:
+            cls._instances[key] = {}
+        if args not in cls._instances[key]:
+            cls._instances[key][args] = super(_ArgsSingleton, cls).__call__(
                 *args, **kwargs)
-        return cls._instances[cls][args]
+        return cls._instances[key][args]
 
 
 class _SocoSingletonBase(  # pylint: disable=too-few-public-methods
@@ -206,6 +215,8 @@ class SoCo(_SocoSingletonBase):
 
     """
 
+    _class_group = 'SoCo'
+
     def __init__(self, ip_address):
         # Note: Creation of a SoCo instance should be as cheap and quick as
         # possible. Do not make any network calls here
@@ -232,16 +243,18 @@ class SoCo(_SocoSingletonBase):
         self._all_zones = set()
         self._groups = set()
         self._is_bridge = None
+        self._is_coordinator = False
         self._player_name = None
         self._uid = None
         self._visible_zones = set()
         self._zgs_cache = None
 
     def __str__(self):
-        return "<SoCo object at ip {}>".format(self.ip_address)
+        return "<{0} object at ip {1}>".format(
+            self.__class__.__name__, self.ip_address)
 
     def __repr__(self):
-        return '{}("{}")'.format(self.__class__.__name__, self.ip_address)
+        return '{0}("{1}")'.format(self.__class__.__name__, self.ip_address)
 
     @property
     def player_name(self):
@@ -278,7 +291,7 @@ class SoCo(_SocoSingletonBase):
         return self._uid
         # An alternative way of getting the uid is as follows:
         # self.device_description_url = \
-        #    'http://{}:1400/xml/device_description.xml'.format(
+        #    'http://{0}:1400/xml/device_description.xml'.format(
         #     self.ip_address)
         # response = requests.get(self.device_description_url).text
         # tree = XML.fromstring(response.encode('utf-8'))
@@ -315,6 +328,20 @@ class SoCo(_SocoSingletonBase):
         return self._is_bridge
 
     @property
+    def is_coordinator(self):
+        """ Return True if this zone is a group coordinator, otherwise False.
+
+        return True or False
+
+        """
+        # We could do this:
+        # invisible = self.deviceProperties.GetInvisible()['CurrentInvisible']
+        # but it is better to do it in the following way, which uses the
+        # zone group topology, to capitalise on any caching.
+        self._parse_zone_group_state()
+        return self._is_coordinator
+
+    @property
     def play_mode(self):
         """ The queue's play mode. Case-insensitive options are::
 
@@ -340,6 +367,26 @@ class SoCo(_SocoSingletonBase):
         self.avTransport.SetPlayMode([
             ('InstanceID', 0),
             ('NewPlayMode', playmode)
+            ])
+
+    @property
+    def cross_fade(self):
+        """ The speaker's cross fade state.
+        True if enabled, False otherwise """
+
+        response = self.avTransport.GetCrossfadeMode([
+            ('InstanceID', 0),
+            ])
+        cross_fade_state = response['CrossfadeMode']
+        return True if int(cross_fade_state) else False
+
+    @cross_fade.setter
+    def cross_fade(self, crossfade):
+        """ Set the speaker's cross fade state. """
+        crossfade_value = '1' if crossfade else '0'
+        self.avTransport.SetCrossfadeMode([
+            ('InstanceID', 0),
+            ('CrossfadeMode', crossfade_value)
             ])
 
     @property
@@ -683,11 +730,11 @@ class SoCo(_SocoSingletonBase):
         self._all_zones.clear()
         self._visible_zones.clear()
         # Loop over each ZoneGroup Element
-        for group_element in tree.iter('ZoneGroup'):
+        for group_element in tree.findall('ZoneGroup'):
             coordinator_uid = group_element.attrib['Coordinator']
             group_uid = group_element.attrib['ID']
             members = set()
-            for member_element in group_element.iter('ZoneGroupMember'):
+            for member_element in group_element.findall('ZoneGroupMember'):
                 # Create a SoCo instance for each member. Because SoCo
                 # instances are singletons, this is cheap if they have already
                 # been created, and useful if they haven't. We can then
@@ -701,6 +748,9 @@ class SoCo(_SocoSingletonBase):
                 # the coordinator
                 if zone._uid == coordinator_uid:
                     group_coordinator = zone
+                    zone._is_coordinator = True
+                else:
+                    zone._is_coordinator = False
                 zone._player_name = member_attribs['ZoneName']
                 # uid and is_bridge do not change, but it does no real harm to
                 # set/reset them here, just in case the zone has not been seen
@@ -785,7 +835,7 @@ class SoCo(_SocoSingletonBase):
         """
         self.avTransport.SetAVTransportURI([
             ('InstanceID', 0),
-            ('CurrentURI', 'x-rincon:{}'.format(master.uid)),
+            ('CurrentURI', 'x-rincon:{0}'.format(master.uid)),
             ('CurrentURIMetaData', '')
             ])
 
@@ -823,7 +873,7 @@ class SoCo(_SocoSingletonBase):
 
         self.avTransport.SetAVTransportURI([
             ('InstanceID', 0),
-            ('CurrentURI', 'x-rincon-stream:{}'.format(self.uid)),
+            ('CurrentURI', 'x-rincon-stream:{0}'.format(self.uid)),
             ('CurrentURIMetaData', '')
             ])
 
@@ -843,7 +893,7 @@ class SoCo(_SocoSingletonBase):
 
         self.avTransport.SetAVTransportURI([
             ('InstanceID', 0),
-            ('CurrentURI', 'x-sonos-htastream:{}:spdif'.format(self.uid)),
+            ('CurrentURI', 'x-sonos-htastream:{0}:spdif'.format(self.uid)),
             ('CurrentURIMetaData', '')
             ])
 
@@ -1006,7 +1056,7 @@ class SoCo(_SocoSingletonBase):
 
         """
         # pylint: disable=star-args, unused-argument
-        return {zone.ip_address for zone in itertools.chain(*self.all_groups)}
+        return set(z.ip_address for z in itertools.chain(*self.all_groups))
 
     def get_current_transport_info(self):
         """ Get the current playback state
@@ -1065,7 +1115,7 @@ class SoCo(_SocoSingletonBase):
 
         result_dom = XML.fromstring(really_utf8(result))
         for element in result_dom.findall(
-                './/{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}item'):
+                '{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}item'):
             item = QueueItem.from_xml(element)
             queue.append(item)
 
@@ -1235,7 +1285,7 @@ class SoCo(_SocoSingletonBase):
         # Check if teh required attributes are there
         for attribute in ['didl_metadata', 'uri']:
             if not hasattr(queueable_item, attribute):
-                message = 'queueable_item has no attribute {}'.\
+                message = 'queueable_item has no attribute {0}'.\
                     format(attribute)
                 raise AttributeError(message)
         # Get the metadata
@@ -1339,7 +1389,7 @@ class SoCo(_SocoSingletonBase):
             favorite_type = RADIO_STATIONS
 
         response = self.contentDirectory.Browse([
-            ('ObjectID', 'R:0/{}'.format(favorite_type)),
+            ('ObjectID', 'R:0/{0}'.format(favorite_type)),
             ('BrowseFlag', 'BrowseDirectChildren'),
             ('Filter', '*'),
             ('StartingIndex', start),
@@ -1355,12 +1405,12 @@ class SoCo(_SocoSingletonBase):
             metadata = XML.fromstring(really_utf8(results_xml))
 
             for item in metadata.findall(
-                    './/{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}item'):
+                    '{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}item'):
                 favorite = {}
                 favorite['title'] = item.findtext(
-                    './/{http://purl.org/dc/elements/1.1/}title')
+                    '{http://purl.org/dc/elements/1.1/}title')
                 favorite['uri'] = item.findtext(
-                    './/{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}res')
+                    '{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}res')
                 favorites.append(favorite)
 
         result['total'] = response['TotalMatches']

@@ -3,16 +3,10 @@ from __future__ import unicode_literals
 # -*- coding: utf-8 -*-
 import base64
 import ctypes
-import hashlib
 import json
 import os
 import platform
 import requests
-
-
-__author__ = 'pfischi'
-
-
 import re
 import urllib
 import urllib.request
@@ -163,7 +157,17 @@ def url_fix(s, charset='utf-8'):
 
 def check_max_volume_exceeded(volume, max_volume):
     volume = int(volume)
-    if max_volume  > -1:
+    if max_volume > -1:
         if volume > max_volume:
             return True
     return False
+
+def check_bass_range(value):
+    if value < -10 or value > 10:
+        return False
+    return True
+
+def check_treble_range(value):
+    if value < -10 or value > 10:
+        return False
+    return True

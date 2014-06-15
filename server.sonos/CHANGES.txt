@@ -1,78 +1,92 @@
+v0.2.1      2014-06-13
+
+    --  stop, play, pause, led, mute command now supports two value behaviours:
+            -- toggle mode [if no parameter was passed]
+            -- direct mode [if parameter was passed]
+    --  Command: added bass command
+    --  Command: added treble command
+    --  Command: added loudness command (direct / toggle mode)
+    --  Command: added playmode command ('normal', 'shuffle_norepeat', 'shuffle', 'repeat_all')
+    --  changed pause command behaviour, if radio is played (wrapped to stop command). This is the default sonos app
+        behaviour.
+    --  bugifx: additional_zone_member_property was not set correctly
+    --  some minor soco framework updates
+
 v0.2.0      2014-06-06
 
--- Command: added join command (joins the speaker to another speaker)
--- Command: added unjoin command (unjoins the speaker from the current group)
--- Command: added partymode command (joins all speaker to one group)
--- Command: added volume_up command (+2 volume, this is the default sonos speaker behaviour)
--- Command: added volume_down command (-2 volume, this is the default sonos speaker behaviour)
--- Event handling now based on soco core functionality
--- added ZoneGroup event handling
--- changed commands pause, play, stop, led, mute to toggle commands (no arguments necessary)
--- fixed bug in play_snippet and play_uri command (case sensitive uri)
--- speaker metadata will only be send, if something has changed
--- many many code improvements
+    -- Command: added join command (joins the speaker to another speaker)
+    -- Command: added unjoin command (unjoins the speaker from the current group)
+    -- Command: added partymode command (joins all speaker to one group)
+    -- Command: added volume_up command (+2 volume, this is the default sonos speaker behaviour)
+    -- Command: added volume_down command (-2 volume, this is the default sonos speaker behaviour)
+    -- Event handling now based on soco core functionality
+    -- added ZoneGroup event handling
+    -- changed commands pause, play, stop, led, mute to toggle commands (no arguments necessary)
+    -- fixed bug in play_snippet and play_uri command (case sensitive uri)
+    -- speaker metadata will only be send, if something has changed
+    -- many many code improvements
 
 v0.1.9      2014-04-27
 
--- removed startup parameters for a config file
--- Google-TTS: removed the requirement for a working smb share
--- Google-TTS: removed auto config for smb shares (not necessary any more)
--- Command: added favorite radiostation command
--- Command: added maxvolume command
+    -- removed startup parameters for a config file
+    -- Google-TTS: removed the requirement for a working smb share
+    -- Google-TTS: removed auto config for smb shares (not necessary any more)
+    -- Command: added favorite radiostation command
+    -- Command: added maxvolume command
 
 v0.1.8.1    2014-03-27
 
--- bugfix: server does not start correctly if no local share for Google TTS was found
+    -- bugfix: server does not start correctly if no local share for Google TTS was found
 
 v0.8        2014-03-26
 
--- add Google Text-To-Speech suppor (see documentation)
--- minor bugfixes
+    -- add Google Text-To-Speech suppor (see documentation)
+    -- minor bugfixes
 
 v0.1.7.1    2014-03-09
 
--- fix: track_uri now shown
--- socket now closed correctly
+    -- fix: track_uri now shown
+    -- socket now closed correctly
 
 v0.1.7      2014-03-09
 
--- audio snippet integration
--- many many code improvements
--- JSON format, less network traffic
--- easier to configure sonos speaker in conf-file
--- better radio integration
--- new commands
+    -- audio snippet integration
+    -- many many code improvements
+    -- JSON format, less network traffic
+    -- easier to configure sonos speaker in conf-file
+    -- better radio integration
+    -- new commands
 
 v0.1.6      2014-02-18
 
--- minor bugfix: changed EOL (end-of-line) from '\r\n' to '\n' in sonos_command method
+    -- minor bugfix: changed EOL (end-of-line) from '\r\n' to '\n' in sonos_command method
 
 v0.1.5      2014-02-12
 
--- bugfix in pause command
+    -- bugfix in pause command
 
 v0.1.4      2014-02-09
 
--- added command 'next'
--- added command 'previous'
+    -- added command 'next'
+    -- added command 'previous'
 
 v0.1.3      2014-02-02
 
--- changed package name from lib to lib_sonos due to incompatibility to smarthome.py
--- fixed small issue in command get_clients
+    -- changed package name from lib to lib_sonos due to incompatibility to smarthome.py
+    -- fixed small issue in command get_clients
 
 v0.1.2      2014-01-31
 
--- added track_duration (get command / event parsing)
--- added track_postion (get command)
--- added seek (set command)
+    -- added track_duration (get command / event parsing)
+    -- added track_postion (get command)
+    -- added seek (set command)
 
 
 v0.1.1      2014-01-30
 
--- bugfix in sonos_command
+    -- bugfix in sonos_command
 
 
 v0.1        2014-01-28
 
--- Initial release
+    -- Initial release

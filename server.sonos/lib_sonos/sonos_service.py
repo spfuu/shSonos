@@ -3,9 +3,6 @@ from __future__ import unicode_literals
 # -*- coding: utf-8 -*-
 import queue
 import requests
-
-__author__ = 'pfischi'
-
 from collections import namedtuple
 import threading
 from lib_sonos import sonos_speaker
@@ -227,6 +224,18 @@ class SonosServerService():
             else:
                 speaker._track_duration = "00:00:00"
 
+############ CurrentPlayMode
+
+        current_play_mode_element = dom.find(".//%sCurrentPlayMode" % namespace)
+
+        if current_play_mode_element is not None:
+
+            current_play_mode = current_play_mode_element.get('val')
+
+            if current_play_mode:
+                speaker._playmode = current_play_mode.lower()
+
+
 ############ TRANSPORTSTATE
 
         transport_state_element = dom.find(".//%sTransportState" % namespace)
@@ -243,19 +252,19 @@ class SonosServerService():
 
                 #don't use property setter here. This would trigger a soco action. Use class variable instead!
                 if transport_state.lower() == "stopped":
-                    speaker._stop = 1
-                    speaker._play = 0
-                    speaker._pause = 0
+                    speaker._stop = True
+                    speaker._play = False
+                    speaker._pause = False
 
                 if transport_state.lower() == "paused_playback":
-                    speaker._stop = 0
-                    speaker._play = 0
-                    speaker._pause = 1
+                    speaker._stop = False
+                    speaker._play = False
+                    speaker._pause = True
 
                 if transport_state.lower() == "playing":
-                    speaker._stop = 0
-                    speaker._play = 1
-                    speaker._pause = 0
+                    speaker._stop = False
+                    speaker._play = True
+                    speaker._pause = False
 
                     #get current track info, if new track is played or resumed to get track_uri, track_album_art
                     speaker.track_info()
@@ -323,7 +332,38 @@ class SonosServerService():
 
             #don't use property setter here. This would trigger a soco action. Use class variable instead!
             if mute:
-                speaker._mute = int(mute)
+                if mute == '1':
+                    speaker._mute = True
+                else:
+                    speaker._mute = False
+
+        bass_state_element = dom.find(".//%sBass" % namespace)
+        if bass_state_element is not None:
+            bass = bass_state_element.get('val')
+
+            #don't use property setter here. This would trigger a soco action. Use class variable instead!
+            if bass:
+                speaker._bass = int(bass)
+
+        treble_state_element = dom.find(".//%sTreble" % namespace)
+        if treble_state_element is not None:
+            treble = treble_state_element.get('val')
+
+            #don't use property setter here. This would trigger a soco action. Use class variable instead!
+            if treble:
+                speaker._treble = int(treble)
+
+        loudness_state_element = dom.find(".//%sLoudness[@channel='Master']" % namespace)
+        if loudness_state_element is not None:
+            loudness = loudness_state_element.get('val')
+
+            #don't use property setter here. This would trigger a soco action. Use class variable instead!
+            if loudness is not None:
+                if loudness == '1':
+                    speaker._loudness = True
+                else:
+                    speaker._loudness = False
+
 
     @staticmethod
     def parse_track_metadata(speaker, dom):

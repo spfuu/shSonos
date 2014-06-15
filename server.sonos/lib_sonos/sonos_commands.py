@@ -7,6 +7,7 @@ from lib_sonos.udp_broker import UdpBroker
 from lib_sonos.definitions import SCAN_TIMEOUT
 from lib_sonos import utils
 
+
 class Command():
     def __init__(self, service):
         self.sonos_service = service
@@ -84,7 +85,8 @@ class Command():
             return True, "CURRENTSTATE command was processed successfully for speaker with uid '{}'.".format(uid)
 
         except Exception as err:
-            return False, Exception("CURRENTSTATE command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
+            return False, Exception(
+                "CURRENTSTATE command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
 
     def speaker_trackinfo(self, ip, arguments):
         try:
@@ -99,7 +101,8 @@ class Command():
             return True, "TRACKINFO command was processed successfully for speaker with uid '{}'.".format(uid)
 
         except Exception as err:
-            return False, Exception("TRACKINFO command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
+            return False, Exception(
+                "TRACKINFO command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
 
     def speaker_play_uri(self, ip, arguments):
         try:
@@ -115,7 +118,7 @@ class Command():
             else:
                 raise Exception("Missing arguments")
 
-            #we need no explicit response here, play uri event triggers the update
+            # we need no explicit response here, play uri event triggers the update
             return True, "PLAYURI command was processed successfully for speaker with uid '{}'.".format(uid)
 
         except Exception as err:
@@ -142,12 +145,13 @@ class Command():
 
             sonos_speaker.sonos_speakers[uid].play_snippet(uri.decode(), volume)
 
-            #we need no explicit response here, playsnippet event triggers the update
+            # we need no explicit response here, playsnippet event triggers the update
 
             return True, "PLAYSNIPPET command was processed successfully for speaker with uid '{}'.".format(uid)
 
         except Exception as err:
-            return False, Exception("PLAYSNIPPET command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
+            return False, Exception(
+                "PLAYSNIPPET command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
 
     def speaker_play_tts(self, ip, arguments):
         try:
@@ -182,8 +186,9 @@ class Command():
                     volume = -1
 
             sonos_speaker.sonos_speakers[uid].play_tts(tts, volume, self.sonos_service.smb_url,
-                                                       self.sonos_service.local_share, language, self.sonos_service.quota)
-            #we need no explicit response here, playtts event triggers the update
+                                                       self.sonos_service.local_share, language,
+                                                       self.sonos_service.quota)
+            # we need no explicit response here, playtts event triggers the update
 
             return True, "PLAYTTS command was processed successfully for speaker with uid '{}'.".format(uid)
 
@@ -199,7 +204,7 @@ class Command():
 
             sonos_speaker.sonos_speakers[uid].next()
 
-            #we need no explicit response here, next title event triggers the update
+            # we need no explicit response here, next title event triggers the update
 
             return True, "NEXT command was processed successfully for speaker with uid '{}'.".format(uid)
 
@@ -215,12 +220,13 @@ class Command():
 
             sonos_speaker.sonos_speakers[uid].previous()
 
-            #we need no explicit response here, previous title event triggers the update
+            # we need no explicit response here, previous title event triggers the update
 
             return True, "PREVIOUS command was processed successfully for speaker with uid '{}'.".format(uid)
 
         except Exception as err:
-            return False, Exception("PREVIOUS command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
+            return False, Exception(
+                "PREVIOUS command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
 
     def speaker_seek(self, ip, arguments):
         try:
@@ -233,7 +239,7 @@ class Command():
                 timestamp = arguments[1]
                 sonos_speaker.sonos_speakers[uid].seek(timestamp)
 
-            #we need no explicit response here, next title event triggers the update
+            # we need no explicit response here, next title event triggers the update
 
             return True, "SEEK command was processed successfully for speaker with uid '{}'.".format(uid)
 
@@ -247,13 +253,28 @@ class Command():
             if not uid in sonos_speaker.sonos_speakers:
                 raise Exception("Couldn't find any speaker with uid '%s'!" % uid)
 
-            sonos_speaker.sonos_speakers[uid].stop = not sonos_speaker.sonos_speakers[uid].stop
-            sonos_speaker.sonos_speakers[uid].send_data()
+            if len(arguments) > 1:
+                value = arguments[1].lower()
+                if value == '1':
+                    sonos_speaker.sonos_speakers[uid].stop = True
+                elif value == '0':
+                    sonos_speaker.sonos_speakers[uid].stop = False
+                else:
+                    raise Exception('Unknown parameter {value} for STOP command!'.format(value=value))
+            else:
+                sonos_speaker.sonos_speakers[uid].stop = not sonos_speaker.sonos_speakers[uid].stop
+
+            # we need no explicit response here, stop event triggers the update
 
             return True, "STOP command was processed successfully for speaker with uid '{}'.".format(uid)
 
         except Exception as err:
-            return False, Exception("STOP command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
+            if err.error_code != '701':
+                return False, Exception(
+                    "STOP command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
+            else:
+                # 701 happens, if no title is in current playlist
+                return True, "STOP command was processed successfully for speaker with uid '{}'.".format(uid)
 
     def speaker_play(self, ip, arguments):
         try:
@@ -262,13 +283,28 @@ class Command():
             if not uid in sonos_speaker.sonos_speakers:
                 raise Exception("Couldn't find any speaker with uid '%s'!" % uid)
 
-            sonos_speaker.sonos_speakers[uid].play = not sonos_speaker.sonos_speakers[uid].play
-            sonos_speaker.sonos_speakers[uid].send_data()
+            if len(arguments) > 1:
+                value = arguments[1].lower()
+                if value == '1':
+                    sonos_speaker.sonos_speakers[uid].play = True
+                elif value == '0':
+                    sonos_speaker.sonos_speakers[uid].play = False
+                else:
+                    raise Exception('Unknown parameter {value} for PLAY command!'.format(value=value))
+            else:
+                sonos_speaker.sonos_speakers[uid].play = not sonos_speaker.sonos_speakers[uid].play
+
+            # we need no explicit response here, play event triggers the update
 
             return True, "PLAY command was processed successfully for speaker with uid '{}'.".format(uid)
 
         except Exception as err:
-            return False, Exception("PLAY command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
+            if err.error_code != '701':
+                return False, Exception(
+                    "PLAY command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
+            else:
+                # 701 happens, if no title is in current playlist
+                return True, "PLAY command was processed successfully for speaker with uid '{}'.".format(uid)
 
     def speaker_pause(self, ip, arguments):
         try:
@@ -277,13 +313,40 @@ class Command():
             if not uid in sonos_speaker.sonos_speakers:
                 raise Exception("Couldn't find any speaker with uid '%s'!" % uid)
 
-            sonos_speaker.sonos_speakers[uid].pause = not sonos_speaker.sonos_speakers[uid].pause
-            sonos_speaker.sonos_speakers[uid].send_data()
+            # some sonos specific adjustments here:
+            # if a radio stream is played, the pause function is internally handled as a stop command
+            # we're doing the same
+
+            if len(arguments) > 1:
+                value = arguments[1].lower()
+                if value == '1':
+                    value = True
+                elif value == '0':
+                    value = False
+                else:
+                    raise Exception('Unknown parameter {value} for PAUSE command!'.format(value=value))
+            else:
+                if sonos_speaker.sonos_speakers[uid].streamtype == 'radio':
+                    value = not sonos_speaker.sonos_speakers[uid].stop
+                else:
+                    value = not sonos_speaker.sonos_speakers[uid].pause
+
+            if sonos_speaker.sonos_speakers[uid].streamtype == 'radio':
+                sonos_speaker.sonos_speakers[uid].stop = value
+            else:
+                sonos_speaker.sonos_speakers[uid].pause = value
+
+            # we need no explicit response here, pause event triggers the update
 
             return True, "PAUSE command was processed successfully for speaker with uid '{}'.".format(uid)
 
         except Exception as err:
-            return False, Exception("PAUSE command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
+            if err.error_code != '701':
+                return False, Exception(
+                    "PAUSE command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
+            else:
+                # 701 happens, if no title is in current playlist
+                return True, "PAUSE command was processed successfully for speaker with uid '{}'.".format(uid)
 
     def speaker_mute(self, ip, arguments):
         try:
@@ -292,9 +355,18 @@ class Command():
             if not uid in sonos_speaker.sonos_speakers:
                 raise Exception("Couldn't find any speaker with uid '%s'!" % uid)
 
-            sonos_speaker.sonos_speakers[uid].mute = not sonos_speaker.sonos_speakers[uid].mute
-            sonos_speaker.sonos_speakers[uid].send_data()
+            if len(arguments) > 1:
+                value = arguments[1].lower()
+                if value == '1':
+                    sonos_speaker.sonos_speakers[uid].mute = True
+                elif value == '0':
+                    sonos_speaker.sonos_speakers[uid].mute = False
+                else:
+                    raise Exception('Unknown parameter {value} for MUTE command!'.format(value=value))
+            else:
+                sonos_speaker.sonos_speakers[uid].mute = not sonos_speaker.sonos_speakers[uid].mute
 
+            # we need no explicit response here, mute event triggers the update
             return True, "MUTE command was processed successfully for speaker with uid '{}'.".format(uid)
 
         except Exception as err:
@@ -307,7 +379,17 @@ class Command():
             if not uid in sonos_speaker.sonos_speakers:
                 raise Exception("Couldn't find any speaker with uid '%s'!" % uid)
 
-            sonos_speaker.sonos_speakers[uid].led = not sonos_speaker.sonos_speakers[uid].led
+            if len(arguments) > 1:
+                value = arguments[1].lower()
+                if value == '1':
+                    sonos_speaker.sonos_speakers[uid].led = True
+                elif value == '0':
+                    sonos_speaker.sonos_speakers[uid].led = False
+                else:
+                    raise Exception('Unknown parameter {value} for LED command!'.format(value=value))
+            else:
+                sonos_speaker.sonos_speakers[uid].led = not sonos_speaker.sonos_speakers[uid].led
+
             sonos_speaker.sonos_speakers[uid].send_data()
 
             return True, "LED command was processed successfully for speaker with uid '{}'.".format(uid)
@@ -324,10 +406,12 @@ class Command():
 
             sonos_speaker.sonos_speakers[uid].volume_up()
 
+            # we need no explicit response here, volume up event triggers the update
             return True, "VOLUME_UP command was processed successfully for speaker with uid '{}'.".format(uid)
 
         except Exception as err:
-            return False, Exception("VOLUME_UP command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
+            return False, Exception(
+                "VOLUME_UP command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
 
     def speaker_volume_down(self, ip, arguments):
         try:
@@ -338,10 +422,12 @@ class Command():
 
             sonos_speaker.sonos_speakers[uid].volume_down()
 
+            # we need no explicit response here, volume down event triggers the update
             return True, "VOLUME_DOWN command was processed successfully for speaker with uid '{}'.".format(uid)
 
         except Exception as err:
-            return False, Exception("VOLUME_DOWN command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
+            return False, Exception(
+                "VOLUME_DOWN command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
 
     def speaker_volume(self, ip, arguments):
         try:
@@ -354,8 +440,7 @@ class Command():
                 value = int(arguments[1])
                 sonos_speaker.sonos_speakers[uid].volume = value
 
-            sonos_speaker.sonos_speakers[uid].send_data()
-
+            # we need no explicit response here, volume event triggers the update
             return True, "VOLUME command was processed successfully for speaker with uid '{}'.".format(uid)
 
         except Exception as err:
@@ -377,7 +462,8 @@ class Command():
             return True, "MAXVOLUME command was processed successfully for speaker with uid '{}'.".format(uid)
 
         except Exception as err:
-            return False, Exception("MAXVOLUME command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
+            return False, Exception(
+                "MAXVOLUME command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
 
     def speaker_join(selfself, ip, arguments):
         try:
@@ -415,9 +501,100 @@ class Command():
         except Exception as err:
             return False, Exception("UNJOIN command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
 
-    def partymode(self, ip, arguments):
+    def speaker_bass(self, ip, arguments):
         try:
 
+            uid = arguments[0].lower()
+
+            if not uid in sonos_speaker.sonos_speakers:
+                raise Exception("Couldn't find any speaker with uid '%s'!" % uid)
+
+            if len(arguments) > 1:
+                value = int(arguments[1])
+                if not utils.check_bass_range(value):
+                    raise Exception('Bass has to be a value between -10 and 10!')
+                sonos_speaker.sonos_speakers[uid].bass = value
+
+            # we need no explicit response here, bass event triggers the update
+            return True, "BASS command was processed successfully."
+
+        except Exception as err:
+            return False, Exception("BASS command failed!\nException: {}".format(err))
+
+    def speaker_treble(self, ip, arguments):
+        try:
+            uid = arguments[0].lower()
+
+            if not uid in sonos_speaker.sonos_speakers:
+                raise Exception("Couldn't find any speaker with uid '%s'!" % uid)
+
+            if len(arguments) > 1:
+                value = int(arguments[1])
+                if not utils.check_treble_range(value):
+                    raise Exception('Treble has to be a value between -10 and 10!')
+                sonos_speaker.sonos_speakers[uid].treble = value
+
+            # we need no explicit response here, treble event triggers the update
+            return True, "TREBLE command was processed successfully."
+
+        except Exception as err:
+            return False, Exception("TREBLE command failed!\nException: {}".format(err))
+
+    def speaker_loudness(self, ip, arguments):
+        try:
+            uid = arguments[0].lower()
+
+            if not uid in sonos_speaker.sonos_speakers:
+                raise Exception("Couldn't find any speaker with uid '%s'!" % uid)
+
+            if len(arguments) > 1:
+                value = arguments[1].lower()
+                if value == '1':
+                    sonos_speaker.sonos_speakers[uid].loudness = True
+                elif value == '0':
+                    sonos_speaker.sonos_speakers[uid].loudness = False
+                else:
+                    raise Exception('Unknown parameter {value} for LOUDNESS command!'.format(value=value))
+            else:
+                sonos_speaker.sonos_speakers[uid].loudness = not sonos_speaker.sonos_speakers[uid].loudness
+
+            # we need no explicit response here, loudness event triggers the update
+
+            return True, "LOUDNESS command was processed successfully for speaker with uid '{}'.".format(uid)
+
+        except Exception as err:
+            return False, Exception("LOUDNESS command failed!\nException: {}".format(err))
+
+    def speaker_playmode(self, ip, arguments):
+        try:
+            uid = arguments[0].lower()
+
+            valid = ['normal', 'shuffle_norepeat', 'shuffle', 'repeat_all']
+
+            if not uid in sonos_speaker.sonos_speakers:
+                raise Exception("Couldn't find any speaker with uid '%s'!" % uid)
+
+            if len(arguments) > 1:
+                value = arguments[1].lower()
+
+                if value not in valid:
+                    raise Exception(
+                        'Unknown parameter {value} for PLAYMODE command!\nValid options: {valid}'.format(value=value,
+                                                                                                         valid=valid))
+                else:
+                    sonos_speaker.sonos_speakers[uid].playmode = value
+            else:
+                sonos_speaker.sonos_speakers[uid].playmode = 'normal'
+
+            # we need no explicit response here, playmode event triggers the update
+
+            return True, "PLAYMODE command was processed successfully for speaker with uid '{}'.".format(uid)
+
+        except Exception as err:
+            return False, Exception("PLAYMODE command failed!\nException: {}".format(err))
+
+    def partymode(self, ip, arguments):
+        try:
             uid = arguments[0].lower()
 
             if not uid in sonos_speaker.sonos_speakers:
@@ -430,7 +607,6 @@ class Command():
         except Exception as err:
             return False, Exception("PARTYMODE command failed!\nException: {}".format(err))
 
-    #ok
     def library_favradio(self, ip, arguments):
         try:
             start_item = 0

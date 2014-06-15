@@ -9,7 +9,7 @@
 
 # Will be parsed by setup.py to determine package metadata
 __author__ = 'The SoCo-Team <python-soco@googlegroups.com>'
-__version__ = '0.7'
+__version__ = '0.8'
 __website__ = 'https://github.com/SoCo/SoCo'
 __license__ = 'MIT License'
 
@@ -30,4 +30,6 @@ __all__ = [
 # http://docs.python.org/2/howto/logging.html#library-config
 # Avoids spurious error messages if no logger is configured by the user
 import logging
-logging.getLogger(__name__).addHandler(logging.NullHandler())
+from .compat import NullHandler
+
+logging.getLogger(__name__).addHandler(NullHandler())
