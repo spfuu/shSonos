@@ -4,14 +4,16 @@ The plugin is designed to control the sonos speakers in connection with the sono
 
 ##Release
     
-  v0.9    2014-06-13
+  v0.9    2014-06-15
     
-    --  changed values play, pause, stop, led back to normal values (no toggle values). It makes logics easier to write.
-    --  new command_
+    --  changed values play, pause, stop, led back to normal values (no toggle values). 
+        It makes logics easier to write.
+    --  new commands:
         -   bass [read/write]: sets the bass for a speaker (value between -10 and 10)
         -   treble [read/write]: sets the treble value for a speaker (value between -10 and 10)
         -   loudness [read/write]: sets the loudness compensation for a speaker (value 0|1)
-        -   playmode [read/write] sets the playmode for a sonos speaker (values: 'normal', 'shuffle_norepeat', 'shuffle', 'repeat_all')
+        -   playmode [read/write] sets the playmode for a sonos speaker 
+            values: 'normal', 'shuffle_norepeat', 'shuffle', 'repeat_all'
     
   v0.8.1  2014-06-07
     
