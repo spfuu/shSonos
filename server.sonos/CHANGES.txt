@@ -7,8 +7,8 @@ v0.2.1      2014-06-13
     --  Command: added treble command
     --  Command: added loudness command (direct / toggle mode)
     --  Command: added playmode command ('normal', 'shuffle_norepeat', 'shuffle', 'repeat_all')
-    --  changed pause command behaviour, if radio is played (wrapped to stop command). This is the default sonos app
-        behaviour.
+    --  changed pause command behaviour, if radio is played (wrapped to stop command).
+        This is the default sonos app behaviour.
     --  bugifx: additional_zone_member_property was not set correctly
     --  some minor soco framework updates
 
