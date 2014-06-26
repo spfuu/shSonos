@@ -1,157 +1,221 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+# ####################################################################
+# Imports
+# ####################################################################
+
+import datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
+import locale
 import os
-import socket
 import socketserver
-import argparse
+import logging
+import logging.handlers
 from time import sleep
 import configparser
+import signal
 from lib_sonos import utils
 from lib_sonos import definitions
-
-if os.name != "nt":
-    import fcntl
-    import struct
-
 from lib_sonos.sonos_commands import Command
 from lib_sonos.sonos_service import SonosServerService
 
+# ####################################################################
+# GLOBALS
+# ####################################################################
 
-def get_interface_ip(ifname):
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    return socket.inet_ntoa(fcntl.ioctl(s.fileno(), 0x8915, struct.pack('256s', ifname[:15].encode('utf-8')))[20:24])
+logger = logging.getLogger('')
+command_service = None
 
 
-def get_lan_ip():
-    ip = socket.gethostbyname(socket.gethostname())
-    if ip.startswith("127.") and os.name != "nt":
-        interfaces = ["eth0", "eth1", "eth2", "wlan0", "wlan1", "wifi0", "ath0", "ath1", "ppp0"]
-        for ifname in interfaces:
-            try:
-                ip = get_interface_ip(ifname)
-                break;
-            except IOError:
-                pass
-    return ip
+class LogHandler(logging.StreamHandler):
+    def __init__(self, log):
+        logging.StreamHandler.__init__(self)
+        self._log = log
+
+    def emit(self, record):
+        timestamp = datetime.datetime.fromtimestamp(record.created, 'UTC')
+        self._log.add([timestamp, record.threadName, record.levelname, record.message])
 
 
 class SonosHttpHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
-            result, response = command.do_work(self.client_address[0], self.path)
-
-            status = 'Error'
+            global command_service
+            result, response = command_service.do_work(self.client_address[0], self.path)
             if result:
                 self.send_response(definitions.HTTP_SUCCESS, 'OK')
-                status = 'Success'
             else:
                 self.send_response(definitions.HTTP_ERROR, 'Bad request')
-
             self.send_header("Content-type", "text/html")
             self.end_headers()
-            #self.wfile.write("<html><head><title>{}</title></head>".format(status).encode('utf-8'))
-            #self.wfile.write("<body><p>{}</p></body>".format(response).encode('utf-8'))
             self.wfile.write("{}".format(response).encode('utf-8'))
         finally:
             self.connection.close()
-
-    def do_NOTIFY(self):
-        try:
-            self.send_response(definitions.HTTP_SUCCESS, "OK")
-            #get subscription id and find the connected speaker uid
-            sid = self.headers['SID']
-            content_len = int(self.headers['content-length'])
-            post_body = self.rfile.read(content_len).decode('utf-8')
-            sonos_service.response_parser(sid, post_body)
-        finally:
-            self.connection.close
 
 
 class ThreadedHTTPServer(socketserver.ThreadingMixIn, HTTPServer):
     """Handle requests in a separate thread."""
 
-config = configparser.ConfigParser()
-config.read(definitions.DEFAULT_CFG)
 
-server_ip = None
-port = definitions.DEFAULT_PORT
-host = definitions.DEFAULT_HOST
+class SonosBroker():
+    def __init__(self):
+        global command_service
+        self._host = ''
+        self._port = ''
+        self._tts_enabled = False
+        self._save_path = None
+        self._server_url = None
+        self._quota = None
+        self._server_ip = None
+        self._logfile = None
+        self._port = definitions.DEFAULT_PORT
+        self._host = definitions.DEFAULT_HOST
 
-if config.has_section('sonos_broker'):
-    if config.has_option('sonos_broker', 'server_ip'):
-        server_ip = config.get('sonos_broker', 'server_ip')
+        #############################################################
+        # Signal Handling
+        #############################################################
+        signal.signal(signal.SIGHUP, self.stop)
+        signal.signal(signal.SIGINT, self.stop)
+        signal.signal(signal.SIGTERM, self.stop)
 
-    if config.has_option('sonos_broker', 'host'):
-        host = config.get('sonos_broker', 'host')
+        # ####################################################################
+        # Logging
+        # ####################################################################
 
-    if config.has_option('sonos_broker', 'port'):
-        port = config.getint('sonos_broker', 'port')
+        config = configparser.ConfigParser()
+        config.read(definitions.DEFAULT_CFG)
 
-if not server_ip:
-    server_ip = get_lan_ip()
-    if not server_ip:
-        raise ('Couldn\'t detect the internal server ip automatically! Set the ip address manually (see config file).')
+        if config.has_section('logging'):
+            if config.has_option('logging', 'loglevel'):
+                loglevel = config.get('logging', 'loglevel')
+            else:
+                loglevel = 'warning'
 
+            if config.has_option('logging', 'logfile'):
+                self._logfile = config.get('logging', 'logfile').strip("\"").strip("'")
 
-tts_enabled = False
-save_path = None
-server_url = None
-quota = None
+            numeric_level = getattr(logging, loglevel.upper(), None)
+            if not isinstance(numeric_level, int):
+                raise ValueError('Invalid log level: %s' % loglevel)
 
-if config.has_section('google_tts'):
-    if config.has_option('google_tts', 'enabled'):
-        tts_enabled = config.getboolean('google_tts', 'enabled')
+            _logdate = "%Y-%m-%d %H:%M:%S"
+            _logformat = "%(asctime)s %(levelname)-8s %(threadName)-12s %(message)s"
 
-    if tts_enabled:
-        if config.has_option('google_tts', 'save_path'):
-            save_path = config.get('google_tts', 'save_path')
+            if numeric_level == logging.DEBUG:
+                _logdate = None
+                _logformat = "%(asctime)s %(levelname)-" \
+                             "8s %(threadName)-12s %(message)s -- %(filename)s:%(funcName)s:%(lineno)d"
 
-        if config.has_option('google_tts', 'server_url'):
-            server_url = config.get('google_tts', 'server_url')
+            logging.basicConfig(level=numeric_level, format=_logformat, datefmt=_logdate)
 
-        if config.has_option('google_tts', 'quota'):
-            quota = config.getint('google_tts', 'quota')
+            #############################################################
+            # logfile write test
+            #############################################################
 
-if tts_enabled and not save_path:
-    print('No local save path given!')
-    tts_enabled = False
+            if self._logfile:
+                os.umask(0o002)
+                try:
+                    with open(self._logfile, 'a') as f:
+                        f.write("Init sonos broker {0}\n".format('v0.2.2'))
+                except IOError as e:
+                    print("Error creating logfile {}: {}".format(self._logfile, e))
 
-if tts_enabled and not server_url:
-    print('No local server url given!')
-    tts_enabled = False
+                try:
+                    formatter = logging.Formatter(_logformat, _logdate)
+                    log_file = logging.handlers.TimedRotatingFileHandler(self._logfile, when='midnight', backupCount=7)
+                    log_file.setLevel(numeric_level)
+                    log_file.setFormatter(formatter)
+                    if numeric_level == logging.DEBUG:  # clean log
+                        log_file.doRollover()
+                    logging.getLogger('').addHandler(log_file)
+                except IOError as e:
+                    print("Error creating logfile {}: {}".format(self._logfile, e))
 
-if tts_enabled and not quota:
-    quota = definitions.DEFAULT_QUOTA
+        if config.has_section('sonos_broker'):
+            if config.has_option('sonos_broker', 'server_ip'):
+                self._server_ip = config.get('sonos_broker', 'server_ip')
 
-if tts_enabled:
-    if not utils.check_directory_permissions(save_path):
-        print('No sufficient folder permissions in \'{}\'!'.format(save_path))
-        tts_enabled = False
+            if config.has_option('sonos_broker', 'host'):
+                self._host = config.get('sonos_broker', 'host')
+
+            if config.has_option('sonos_broker', 'port'):
+                self._port = config.getint('sonos_broker', 'port')
+
+        if not self._server_ip:
+            self._server_ip = utils.get_lan_ip()
+            if not self._server_ip:
+                raise Exception("Could not detect the internal server ip automatically! Set the ip address "
+                                "manually (see config file)")
+
+        if config.has_section('google_tts'):
+            if config.has_option('google_tts', 'enabled'):
+                self._tts_enabled = config.getboolean('google_tts', 'enabled')
+
+            if self._tts_enabled:
+                if config.has_option('google_tts', 'save_path'):
+                    self._save_path = config.get('google_tts', 'save_path')
+
+                if config.has_option('google_tts', 'server_url'):
+                    self._server_url = config.get('google_tts', 'server_url')
+
+                if config.has_option('google_tts', 'quota'):
+                    self._quota = config.getint('google_tts', 'quota')
+
+        if self._tts_enabled and not self._save_path:
+            logging.warning('No local save path given!')
+            self._tts_enabled = False
+
+        if self._tts_enabled and not self._server_url:
+            logging.warning('No local server url given!')
+            self._tts_enabled = False
+
+        if self._tts_enabled and not self._quota:
+            self._quota = definitions.DEFAULT_QUOTA
+
+        if self._tts_enabled:
+            if not utils.check_directory_permissions(self._save_path):
+                logger.warning('No sufficient folder permissions in \'{}\'!'.format(self._save_path))
+                self._tts_enabled = False
+            else:
+                free_diskspace = utils.get_free_space_mb(self._save_path)
+                logger.info('Free diskspace: {} mb'.format(free_diskspace))
+
+                if free_diskspace < self._quota:
+                    logger.warning(
+                        'Not enough diskspace left on \'{}\'. At least {} mb of free diskspace required!'.format(
+                            self._save_path,
+                            self._quota))
+                    self._tts_enabled = False
+
+        if not self._tts_enabled:
+            logger.info('Google-TTS disabled!')
+        else:
+            logger.info('Google-TTS enabled!')
+            logger.info('server_url:\t\t{}'.format(self._server_url))
+            logger.info('save_path:\t\t{}'.format(self._save_path))
+
+    def start(self):
+        global command_service
+        logger.info("Sonos Broker v{version}".format(definitions.VERSION))
+        logger.info("Starting server with ip address {ip} ... be sure this is correct.".format(ip=self._server_ip))
+        sleep(1)
+
+        sonos_service = SonosServerService(self._server_ip, self._port, self._server_url, self._save_path,
+                                           self._quota, self._tts_enabled)
+        command_service = Command(sonos_service)
+        http_server = ThreadedHTTPServer((self._host, self._port), SonosHttpHandler)
+        logger.info('Starting http server, use <Ctrl-C> to stop')
+        http_server.serve_forever()
+
+    def stop(self):
+        logger.debug("SIGNAL stop")
+
+if __name__ == '__main__':
+
+    if locale.getdefaultlocale() == (None, None):
+        locale.setlocale(locale.LC_ALL, 'C')
     else:
-        free_diskspace = utils.get_free_space_mb(save_path)
-        print('Free diskspace: {} mb'.format(free_diskspace))
-
-        if free_diskspace < quota:
-            print('Not enough diskspace left on \'{}\'. At least {} mb of free diskspace required!'.format(save_path, quota))
-            tts_enabled = False
-
-if not tts_enabled:
-    print('Google-TTS disabled!')
-else:
-    print('Google-TTS enabled!')
-    print('server_url:\t\t{}'.format(server_url))
-    print('save_path:\t\t{}'.format(save_path))
-
-
-print("Starting server with ip address %s ... be sure this is correct." % server_ip)
-sleep(1)
-
-sonos_service = SonosServerService(server_ip, port, server_url, save_path, quota, tts_enabled)
-command = Command(sonos_service)
-
-if __name__ == "__main__":
-    http_server = ThreadedHTTPServer((host, port), SonosHttpHandler)
-    print('Starting http server, use <Ctrl-C> to stop')
-    http_server.serve_forever()
+        locale.setlocale(locale.LC_ALL, '')
+    broker = SonosBroker()
+    broker.start()
