@@ -1,10 +1,18 @@
 #Release
 
+v0.2.2-beta 2014-06-26
+    
+    -- logger functionality added (see sonos_broker.cfg and documentation)
+    -- added radio station parser to get normalized artist and track titles
+        -- you can add more regular expressions to lib_sonos/radio_parser.py to handle your stations
+    -- some adjustments to thread-safe event handling
+    -- bug: now exceptions in event subscriptions handled as was intended 
+
 v0.2.1      2014-06-15
 
     --  stop, play, pause, led, mute command now supports two value behaviours:
-            -- toggle mode [if no parameter was passed]
-            -- direct mode [if parameter was passed]
+        -- toggle mode [if no parameter was passed]
+        -- direct mode [if parameter was passed]
     --  Command: added bass command
     --  Command: added treble command
     --  Command: added loudness command (direct / toggle mode)
@@ -120,17 +128,14 @@ Start service with:
 To autostart the service on system boot, please follow the instruction for your linux distribution and put this
 script in the right place.
 
-Attention!! Please notice that the script is running as with the 'background' flag. In order that, there is
-no debug or error output. To get these hints in failure cases, remove this flag in sonos_broker.sh
+To get some debug output, please edit the sonos_broker.cf and uncomment this line in the logging section:
 
-from:
+    loglevel = debug
 
-    start-stop-daemon -v --start --pidfile $PIDFILE --background --make-pidfile --startas $DAEMON --
+You can set the debug level to debug, info, warning, error, critical.
+Additionally, you can specify a file to pipe the debug log to this file.
 
-to:
-
-    start-stop-daemon -v --start --pidfile $PIDFILE --make-pidfile --startas $DAEMON --
-
+    logfile = 'log.txt'
 
 
 ##Google TTS Support
