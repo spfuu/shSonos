@@ -62,6 +62,7 @@ class ThreadedHTTPServer(socketserver.ThreadingMixIn, HTTPServer):
 class SonosBroker():
     def __init__(self):
         global command_service
+        self._http_server = None
         self._host = ''
         self._port = ''
         self._tts_enabled = False
@@ -205,13 +206,14 @@ class SonosBroker():
         sonos_service = SonosServerService(self._server_ip, self._port, self._server_url, self._save_path,
                                            self._quota, self._tts_enabled)
         command_service = Command(sonos_service)
-        http_server = ThreadedHTTPServer((self._host, self._port), SonosHttpHandler)
+        self._http_server = ThreadedHTTPServer((self._host, self._port), SonosHttpHandler)
         logger.info('Starting http server, use <Ctrl-C> to stop')
-        http_server.serve_forever()
+        self._http_server.serve_forever()
 
-    def stop(self):
+    def stop(self, signum=None, frame=None):
         logger.debug("SIGNAL stop")
-
+        if self._http_server:
+            self._http_server.server_close()
         for thread in threading.enumerate():
             try:
                 thread.join(1)
