@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import logging
 from soco.exceptions import SoCoUPnPException
 import threading
 import time
@@ -12,8 +13,9 @@ try:
 except ImportError:
     import xml.etree.ElementTree as XML
 
+logger = logging.getLogger('')
 sonos_speakers = {}
-
+_sonos_lock = threading.Lock()
 
 class SonosSpeaker():
     def __init__(self, soco):
@@ -151,12 +153,16 @@ class SonosSpeaker():
     @property
     def playmode(self):
         if self.speaker_zone_coordinator is not None:
+            logger.debug("forwarding playmode getter to coordinator with uid {uid}".
+                         format(uid=self.speaker_zone_coordinator.uid))
             return self.speaker_zone_coordinator.playmode
         return self._playmode.lower()
 
     @playmode.setter
     def playmode(self, value):
         if self.speaker_zone_coordinator is not None:
+            logger.debug("forwarding playmode setter to coordinator with uid {uid}".
+                         format(uid=self.speaker_zone_coordinator.uid))
             self.speaker_zone_coordinator.playmode = value
             self.speaker_zone_coordinator._playmode = value
         else:
@@ -170,12 +176,16 @@ class SonosSpeaker():
     @property
     def zone_name(self):
         if self.speaker_zone_coordinator is not None:
+            logger.debug("forwarding zone_name getter to coordinator with uid {uid}".
+                         format(uid=self.speaker_zone_coordinator.uid))
             return self.speaker_zone_coordinator.zone_name
         return self._zone_name
 
     @property
     def zone_icon(self):
         if self.speaker_zone_coordinator is not None:
+            logger.debug("forwarding zone_icon getter to coordinator with uid {uid}".
+                         format(uid=self.speaker_zone_coordinator.uid))
             return self.speaker_zone_coordinator.zone_icon
         return self._zone_icon
 
@@ -209,17 +219,21 @@ class SonosSpeaker():
 
     @property
     def uid(self):
-        return self._uid
+        return self._uid.lower()
 
     @property
     def mute(self):
         if self.speaker_zone_coordinator is not None:
+            logger.debug("forwarding mute getter to coordinator with uid {uid}".
+                         format(uid=self.speaker_zone_coordinator.uid))
             return self.speaker_zone_coordinator.mute
         return self._mute
 
     @mute.setter
     def mute(self, value):
         if self.speaker_zone_coordinator is not None:
+            logger.debug("forwarding mute setter to coordinator with uid {uid}".
+                         format(uid=self.speaker_zone_coordinator.uid))
             self.speaker_zone_coordinator.soco.mute = value
             self.speaker_zone_coordinator._mute = int(value)
         else:
@@ -229,12 +243,16 @@ class SonosSpeaker():
     @property
     def track_uri(self):
         if self.speaker_zone_coordinator is not None:
+            logger.debug("forwarding track_uri getter to coordinator with uid {uid}".
+                         format(uid=self.speaker_zone_coordinator.uid))
             return self.speaker_zone_coordinator.track_uri
         return self._track_uri
 
     @property
     def track_duration(self):
         if self.speaker_zone_coordinator is not None:
+            logger.debug("forwarding track_duration getter to coordinator with uid {uid}".
+                         format(uid=self.speaker_zone_coordinator.uid))
             return self.speaker_zone_coordinator.track_duration
         if not self._track_duration:
             return "00:00:00"
@@ -243,6 +261,8 @@ class SonosSpeaker():
     @property
     def track_position(self):
         if self.speaker_zone_coordinator is not None:
+            logger.debug("forwarding track_position getter to coordinator with uid {uid}".
+                         format(uid=self.speaker_zone_coordinator.uid))
             return self.speaker_zone_coordinator.track_position
         if not self._track_position:
             return "00:00:00"
@@ -255,6 +275,8 @@ class SonosSpeaker():
     @property
     def playlist_position(self):
         if self.speaker_zone_coordinator is not None:
+            logger.debug("forwarding playlist_position getter to coordinator with uid {uid}".
+                         format(uid=self.speaker_zone_coordinator.uid))
             return self.speaker_zone_coordinator.playlist_position
         return self._playlist_position
 
@@ -265,18 +287,24 @@ class SonosSpeaker():
     @property
     def streamtype(self):
         if self.speaker_zone_coordinator is not None:
+            logger.debug("forwarding streamtype getter to coordinator with uid {uid}".
+                         format(uid=self.speaker_zone_coordinator.uid))
             return self.speaker_zone_coordinator.streamtype
         return self._streamtype
 
     @property
     def stop(self):
         if self.speaker_zone_coordinator is not None:
+            logger.debug("forwarding stop getter to coordinator with uid {uid}".
+                         format(uid=self.speaker_zone_coordinator.uid))
             return self.speaker_zone_coordinator.stop
         return self._stop
 
     @stop.setter
     def stop(self, value):
         if self.speaker_zone_coordinator is not None:
+            logger.debug("forwarding stop setter to coordinator with uid {uid}".
+                         format(uid=self.speaker_zone_coordinator.uid))
             if value:
                 self.speaker_zone_coordinator.soco.stop()
                 self.speaker_zone_coordinator._stop = True
@@ -296,12 +324,16 @@ class SonosSpeaker():
     @property
     def play(self):
         if self.speaker_zone_coordinator is not None:
+            logger.debug("forwarding play getter to coordinator with uid {uid}".
+                         format(uid=self.speaker_zone_coordinator.uid))
             return self.speaker_zone_coordinator.play
         return self._play
 
     @play.setter
     def play(self, value):
         if self.speaker_zone_coordinator is not None:
+            logger.debug("forwarding play setter to coordinator with uid {uid}".
+                         format(uid=self.speaker_zone_coordinator.uid))
             if value:
                 self.speaker_zone_coordinator.soco.play()
                 self.speaker_zone_coordinator._stop = False
@@ -321,6 +353,8 @@ class SonosSpeaker():
     @property
     def pause(self):
         if self.speaker_zone_coordinator is not None:
+            logger.debug("forwarding pause getter to coordinator with uid {uid}".
+                         format(uid=self.speaker_zone_coordinator.uid))
             return self.speaker_zone_coordinator.pause
         return self._pause
 
@@ -328,6 +362,8 @@ class SonosSpeaker():
     def pause(self, value):
 
         if self.speaker_zone_coordinator is not None:
+            logger.debug("forwarding pause setter to coordinator with uid {uid}".
+                         format(uid=self.speaker_zone_coordinator.uid))
             if value:
                 self.speaker_zone_coordinator.soco.pause()
                 self.speaker_zone_coordinator._stop = False
@@ -347,24 +383,32 @@ class SonosSpeaker():
     @property
     def radio_station(self):
         if self.speaker_zone_coordinator is not None:
+            logger.debug("forwarding radio_station getter to coordinator with uid {uid}".
+                         format(uid=self.speaker_zone_coordinator.uid))
             return self.speaker_zone_coordinator.radio_station
         return self._radio_station
 
     @property
     def radio_show(self):
         if self.speaker_zone_coordinator is not None:
+            logger.debug("forwarding radio_show getter to coordinator with uid {uid}".
+                         format(uid=self.speaker_zone_coordinator.uid))
             return self.speaker_zone_coordinator.radio_show
         return self._radio_show
 
     @property
     def track_album_art(self):
         if self.speaker_zone_coordinator is not None:
+            logger.debug("forwarding track_album_art getter to coordinator with uid {uid}".
+                         format(uid=self.speaker_zone_coordinator.uid))
             return self.speaker_zone_coordinator.track_album_art
         return self._track_album_art
 
     @property
     def track_title(self):
         if self.speaker_zone_coordinator is not None:
+            logger.debug("forwarding track_title getter to coordinator with uid {uid}".
+                         format(uid=self.speaker_zone_coordinator.uid))
             return self.speaker_zone_coordinator.track_title
         if not self._track_title:
             return "No track title"
@@ -373,6 +417,8 @@ class SonosSpeaker():
     @property
     def track_artist(self):
         if self.speaker_zone_coordinator is not None:
+            logger.debug("forwarding track_artist getter to coordinator with uid {uid}".
+                         format(uid=self.speaker_zone_coordinator.uid))
             return self.speaker_zone_coordinator.track_artist
         if not self._track_artist:
             return "No track artist"
@@ -454,24 +500,32 @@ class SonosSpeaker():
 
     def next(self):
         if self.speaker_zone_coordinator is not None:
+            logger.debug("forwarding next command to coordinator with uid {uid}".
+                         format(uid=self.speaker_zone_coordinator.uid))
             self.speaker_zone_coordinator.next()
         else:
             self.soco.next()
 
     def previous(self):
         if self.speaker_zone_coordinator is not None:
+            logger.debug("forwarding previous command to coordinator with uid {uid}".
+                         format(uid=self.speaker_zone_coordinator.uid))
             self.speaker_zone_coordinator.previous()
         else:
             self.soco.previous()
 
     def seek(self, timestamp):
         if self.speaker_zone_coordinator is not None:
+            logger.debug("forwarding seek command to coordinator with uid {uid}".
+                         format(uid=self.speaker_zone_coordinator.uid))
             self.speaker_zone_coordinator.seek(timestamp)
         else:
             self.soco.seek(timestamp)
 
     def track_info(self):
         if self.speaker_zone_coordinator is not None:
+            logger.debug("forwarding track_info command to coordinator with uid {uid}".
+                         format(uid=self.speaker_zone_coordinator.uid))
             track_info = self._speaker_zone_coordinator.soco.get_current_track_info()
             self.speaker_zone_coordinator.track_position = track_info['position']
             self.speaker_zone_coordinator.playlist_position = int(track_info['playlist_position'])
@@ -482,6 +536,8 @@ class SonosSpeaker():
 
     def play_uri(self, uri, metadata=None):
         if self.speaker_zone_coordinator is not None:
+            logger.debug("forwarding play_uri command to coordinator with uid {uid}".
+                         format(uid=self.speaker_zone_coordinator.uid))
             self.speaker_zone_coordinator.play_uri(uri, metadata)
         else:
             self.soco.play_uri(uri, metadata)
@@ -529,6 +585,8 @@ class SonosSpeaker():
 
     def play_snippet(self, uri, volume):
         if self._speaker_zone_coordinator is not None:
+            logger.debug("forwarding play_snippet command to coordinator with uid {uid}".
+                         format(uid=self.speaker_zone_coordinator.uid))
             self._speaker_zone_coordinator.play_snippet(uri, volume)
         else:
             t = threading.Thread(target=self._play_snippet_thread, args=(uri, volume))
@@ -536,6 +594,8 @@ class SonosSpeaker():
 
     def play_tts(self, tts, volume, smb_url, local_share, language, quota):
         if self._speaker_zone_coordinator is not None:
+            logger.debug("forwarding play_tts command to coordinator with uid {uid}".
+                         format(uid=self.speaker_zone_coordinator.uid))
             self._speaker_zone_coordinator.play_tts(tts, volume, smb_url, local_share, language, quota)
         else:
             t = threading.Thread(target=self._play_tts_thread,
@@ -573,44 +633,51 @@ class SonosSpeaker():
         self.soco.partymode()
 
     def event_unsubscribe(self):
-        if self.sub_zone_group is not None:
-            self.sub_zone_group.unsubscribe()
-        if self.sub_av_transport is not None:
-            self.sub_av_transport.unsubscribe()
-        if self.sub_rendering_control is not None:
-            self.sub_rendering_control.unsubscribe()
+        try:
+            if self.sub_zone_group is not None:
+                self.sub_zone_group.unsubscribe()
+            if self.sub_av_transport is not None:
+                self.sub_av_transport.unsubscribe()
+            if self.sub_rendering_control is not None:
+                self.sub_rendering_control.unsubscribe()
+        except Exception as err:
+            logger.exception(err)
 
     def event_subscription(self, event_queue, renew=False):
 
-        if self.sub_zone_group is None:
-            self._sub_zone_group = self.soco.zoneGroupTopology.subscribe(None, event_queue)
-        else:
-            time_left = int(self.sub_zone_group.time_left)
-            if time_left == 0:
+        try:
+            if self.sub_zone_group is None:
                 self._sub_zone_group = self.soco.zoneGroupTopology.subscribe(None, event_queue)
             else:
-                if renew:
-                    self.sub_zone_group.renew()
+                time_left = int(self.sub_zone_group.time_left)
+                if time_left <= 0:
+                    self._sub_zone_group = self.soco.zoneGroupTopology.subscribe(None, event_queue)
+                else:
+                    if renew:
+                        self.sub_zone_group.renew()
 
-        if self.sub_av_transport is None:
-            self._sub_av_transport = self.soco.avTransport.subscribe(None, event_queue)
-        else:
-            time_left = int(self.sub_av_transport.time_left)
-            if time_left == 0:
+            if self.sub_av_transport is None:
                 self._sub_av_transport = self.soco.avTransport.subscribe(None, event_queue)
             else:
-                if renew:
-                    self.sub_av_transport.renew()
+                time_left = int(self.sub_av_transport.time_left)
+                if time_left <= 0:
+                    self._sub_av_transport = self.soco.avTransport.subscribe(None, event_queue)
+                else:
+                    if renew:
+                        self.sub_av_transport.renew()
 
-        if self.sub_rendering_control is None:
-            self._sub_rendering_control = self.soco.renderingControl.subscribe(None, event_queue)
-        else:
-            time_left = int(self.sub_rendering_control.time_left)
-            if time_left == 0:
+            if self.sub_rendering_control is None:
                 self._sub_rendering_control = self.soco.renderingControl.subscribe(None, event_queue)
             else:
-                if renew:
-                    self.sub_rendering_control.renew()
+                time_left = int(self.sub_rendering_control.time_left)
+                if time_left <= 0:
+                    self._sub_rendering_control = self.soco.renderingControl.subscribe(None, event_queue)
+                else:
+                    if renew:
+                        self.sub_rendering_control.renew()
+
+        except Exception as err:
+            logger.exception(err)
 
     def _play_tts_thread(self, tts, volume, smb_url, local_share, language, quota):
         try:

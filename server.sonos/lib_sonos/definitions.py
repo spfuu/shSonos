@@ -21,12 +21,14 @@ NS = {'dc': '{http://purl.org/dc/elements/1.1/}',
 
 ip_pattern = '^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$'
 
+VERSION = "0.2.2-beta"
+
 DEFAULT_HOST = '0.0.0.0'
 DEFAULT_PORT = 12900
-DEFAULT_CFG = 'sonos_broker.cfg'
 DEFAULT_QUOTA = 100
+DEFAULT_CFG = 'sonos_broker.cfg'
 
 HTTP_SUCCESS = 200
 HTTP_ERROR = 400
-SCAN_TIMEOUT = 30
-RENEW_SUBSCRIPTION_COUNT = 10 #time for renewing the subscriptions: SCAN_TIMOUT (s) * RENEW_SUBSCRIPTION_COUNT
+SCAN_TIMEOUT = 60
+RENEW_SUBSCRIPTION_COUNT = 10 #time for renewing the subscriptions: SCAN_TIMEOUT (s) * RENEW_SUBSCRIPTION_COUNT

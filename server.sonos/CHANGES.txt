@@ -1,3 +1,11 @@
+v0.2.2-beta 2014-06-26
+
+    -- logger functionality added (see sonos_broker.cfg and documentation)
+    -- added radio station parser to get normalized artist and track titles
+        -- you can add more regular expressions to lib_sonos/radio_parser.py to handle your stations
+    -- some adjustments to thread-safe event handling
+    -- bug: now exceptions in event subscriptions handled as was intended
+
 v0.2.1      2014-06-15
 
     --  stop, play, pause, led, mute command now supports two value behaviours:
