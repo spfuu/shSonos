@@ -54,8 +54,8 @@ class SonosServerService():
         self.quota = quota
         self.tts_enabled = tts_enabled
         self.event_queue = queue.Queue()
-        threading.Thread(target=self.process_events).start()
-        threading.Thread(target=self.get_speakers_periodically).start()
+        threading.Thread(target=self.process_events, daemon=True).start()
+        threading.Thread(target=self.get_speakers_periodically, daemon=True).start()
 
     def get_speakers_periodically(self):
 
