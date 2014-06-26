@@ -12,6 +12,7 @@ import os
 import socketserver
 import logging
 import logging.handlers
+import threading
 from time import sleep
 import configparser
 import signal
@@ -197,7 +198,7 @@ class SonosBroker():
 
     def start(self):
         global command_service
-        logger.info("Sonos Broker v{version}".format(definitions.VERSION))
+        logger.info("Sonos Broker v{version}".format(version=definitions.VERSION))
         logger.info("Starting server with ip address {ip} ... be sure this is correct.".format(ip=self._server_ip))
         sleep(1)
 
@@ -210,6 +211,19 @@ class SonosBroker():
 
     def stop(self):
         logger.debug("SIGNAL stop")
+
+        for thread in threading.enumerate():
+            try:
+                thread.join(1)
+            except:
+                pass
+        if threading.active_count() > 1:
+            for thread in threading.enumerate():
+                logger.info("Thread: {}, still alive".format(thread.name))
+        else:
+            logger.info("Sonos Broker stopped")
+        logging.shutdown()
+        exit()
 
 if __name__ == '__main__':
 
