@@ -210,7 +210,7 @@ class SonosBroker():
         logger.info('Starting http server, use <Ctrl-C> to stop')
         self._http_server.serve_forever()
 
-    def stop(self, signum=None, frame=None):
+    def stop(self, signal, frame):
         logger.debug("SIGNAL stop")
         if self._http_server:
             self._http_server.server_close()

@@ -1,5 +1,10 @@
 #Release
 
+v0.2.2.1    2014-06-28
+
+    -- bug: thread start as daemon didn't work properly
+    -- minor bug in radio parser
+
 v0.2.2-beta 2014-06-26
     
     -- logger functionality added (see sonos_broker.cfg and documentation)
