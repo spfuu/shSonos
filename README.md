@@ -1,6 +1,6 @@
 #Release
 
-v0.2.2.1    2014-06-28
+v0.2.2.1-beta   2014-06-28
 
     -- bug: thread start as daemon didn't work properly
     -- minor bug in radio parser
