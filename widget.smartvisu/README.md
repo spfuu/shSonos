@@ -28,7 +28,7 @@ default path is:
 /var/www/smartvisu/widgets
 ```
 
-Add following line to the end of the files **widgets.js** and **widgets.min.js** (also locatet in teh widgets folder)
+Add following line to the end of the files **widgets.js** and **widgets.min.js** (also located in teh widgets folder)
 
 ```JavaScript
 $(document).delegate('[data-widget="sonos.music"]',{update:function(e,r){document.getElementById(this.id).src=r.toString()+'?_=' + new Date().getTime();}});
