@@ -19,9 +19,10 @@
 * @param the gad/item for volume_down (optional)
 * @param the gad/item for the volume (optional)
 * @param the gad/item to mute the music (optional)
+* @param the gad/item for album cover
 * @param the gad/item for the song title (optional)
 * @param the gad/item for the song artist (optional)
-* @param the gad/item for album cover
+
 *
 * @author Axel Otterstätter
 */
@@ -57,7 +58,7 @@
                 </td>
                 <td/>
                 <td>
-                    <img id="{{ uid(page, id) }}" data-item="{{ gad_cover }}" data-widget="sonos.music" src="pages/base/pics/trans.png" />
+                    <img id="cover" data-item="{{ gad_cover }}" data-widget="sonos.music" src="pages/base/pics/trans.png" />
                 </td>
                 <td/>
                 <td/>

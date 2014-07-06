@@ -35,7 +35,7 @@ To make use of the auto-generation feature of smarthome.py and smartVISU, init t
 following syntax:
 
 ```
-sv_widget = {% import "sonos.html" as sonos %} {{ sonos.music(id, gad_play, gad_stop, gad_vol_up, gad_vol_down, gad_volume, gad_mute, gad_album_art, gad_artist, gad_title) }}
+sv_widget = {% import "sonos.html" as sonos %} {{ sonos.music(id, gad_play, gad_stop, gad_prev, gad_next, gad_vol_up, gad_vol_down, gad_volume, gad_mute, gad_album_art, gad_artist, gad_title) }}
 ```
 
 Change the gad items to your needs. Here is an example integration:
@@ -46,7 +46,7 @@ Change the gad items to your needs. Here is an example integration:
         name = Lautsprecher
         type = foo
         sv_page = room
-        sv_widget = {% import "sonos.html" as sonos %} {{ sonos.music('radio1', 'Kueche.play', 'Kueche.stop', 'Kueche.volume_up', 'Kueche.volume_down', 'Kueche.volume', 'Kueche.mute', 'Kueche.track_album_art', 'Kueche.track_artist', 'Kueche.track_title') }}
+        sv_widget = {% import "sonos.html" as sonos %} {{ sonos.music('Play3_Kueche', 'Kueche.play', 'Kueche.stop', 'Kueche.previous', 'Kueche.next', 'Kueche.volume_up', 'Kueche.volume_down', 'Kueche.volume', 'Kueche.mute', 'Kueche.track_album_art', 'Kueche.track_artist', 'Kueche.track_title') }}
 ```
 
 You can find an example configuration for the item 'Kueche' here:
