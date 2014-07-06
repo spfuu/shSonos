@@ -34,3 +34,28 @@ Add following line to the end of the files **widgets.js** and **widgets.min.js**
 $(document).delegate('[data-widget="sonos.music"]',{update:function(e,r){document.getElementById(this.id).src=r.toString()+'?_=' + new Date().getTime();}});
 ```
 
+##Integration in smarthome.py
+
+To use the auto-generation feature of smarthome.py and smartVISU init the widget in yout item.conf with the following
+syntax:
+
+```
+sv_widget = {% import "sonos.html" as sonos %} {{ sonos.music(id, gad_play, gad_stop, gad_vol_up, gad_vol_down, gad_volume, gad_album_art) }}
+```
+
+Change the gad items to your needs. Here is an example integration:
+
+```
+[floor1]
+    [[room1]]
+        name = Lautsprecher
+        type = foo
+        sv_page = room
+        sv_widget = {% import "sonos.html" as sonos %} {{ sonos.music('radio1', 'Kueche.play', 'Kueche.stop', 'Kueche.volume_up', 'Kueche.volume_down', 'Kueche.volume', 'Kueche.track_album_art') }}
+```
+
+You can find an example configuraion for the item 'Kueche' (english:kitchen) here:
+
+https://github.com/pfischi/shSonos/blob/develop/plugin.sonos/examples/sonos.conf
+
+ 
