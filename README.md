@@ -2,6 +2,7 @@
 
 v0.2.3      2014-07-08
 
+    -- sonos_broker start script now daemonized (use -d parameter to prevent daemonize behaviour)
     -- logger functionality added (see sonos_broker.cfg and documentation)
     -- added radio station parser to get normalized artist and track titles
         -- you can add more regular expressions to lib_sonos/radio_parser.py to handle your stations
@@ -118,18 +119,16 @@ You can edit the settings of Sonos Broker. Open 'sonos_broker.cfg' with your fav
 All values within the config file should be self-explaining. For Google-TTS options, see the appropriate section in this
 Readme.
 
-There is also a sh-script to daemonize the sonos_broker start named sonos_broker.sh.
-If you want to start sonos_broker as background service, edit sonos_broker.sh:
+If you start the sonos broker with
+```
+./sonos_broker
+```
+the server will be automatically daemonized.
 
-Edit DIR variable to /path/location/of/sonos_broker (default: /usr/local/bin)
-
-Make the file executable with:
-
-    chmod +x /usr/local/bin/sonos_broker.sh
-
-Start service with:
-
-    sudo ./path/to/sonos_broker.sh start
+You can add the -d (--debug) parameter to hold the process in the foreground.
+```
+./sonos_broker -d
+```
 
 To autostart the service on system boot, please follow the instruction for your linux distribution and put this
 script in the right place.
