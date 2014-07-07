@@ -34,8 +34,8 @@ class SonosSpeaker():
         self._radio_show = ''
         self._ip = self.soco.ip_address
         self._track_album_art = ''
-        self._track_title = "No track title"
-        self._track_artist = "No track artist"
+        self._track_title = ''
+        self._track_artist = ''
         self._zone_id = ''
         self._zone_name = ''
         self._zone_coordinator = ''
@@ -411,7 +411,7 @@ class SonosSpeaker():
                          format(uid=self.speaker_zone_coordinator.uid))
             return self.speaker_zone_coordinator.track_title
         if not self._track_title:
-            return "No track title"
+            return ''
         return self._track_title
 
     @property
@@ -421,7 +421,7 @@ class SonosSpeaker():
                          format(uid=self.speaker_zone_coordinator.uid))
             return self.speaker_zone_coordinator.track_artist
         if not self._track_artist:
-            return "No track artist"
+            return ''
         return self._track_artist
 
     @property
@@ -460,8 +460,8 @@ class SonosSpeaker():
             self._stop = False
             self._play = False
             self._pause = False
-            self._track_title = "No track title"
-            self._track_artist = "No track artist"
+            self._track_title = ''
+            self._track_artist = ''
             self._track_duration = "00:00:00"
             self._track_position = "00:00:00"
             self._playlist_position = 0
@@ -643,44 +643,23 @@ class SonosSpeaker():
         except Exception as err:
             logger.exception(err)
 
-    def event_subscription(self, event_queue, renew=False):
+    def event_subscription(self, event_queue):
 
         try:
-            if self.sub_zone_group is None:
-                self._sub_zone_group = self.soco.zoneGroupTopology.subscribe(None, event_queue)
-            else:
-                time_left = int(self.sub_zone_group.time_left)
-                if time_left <= 0:
-                    self._sub_zone_group = self.soco.zoneGroupTopology.subscribe(None, event_queue)
-                else:
-                    if renew:
-                        self.sub_zone_group.renew()
+            if self.sub_zone_group is None or self._sub_zone_group.time_left == 0:
+                self._sub_zone_group = self.soco.zoneGroupTopology.subscribe(None, True, event_queue)
 
-            if self.sub_av_transport is None:
-                self._sub_av_transport = self.soco.avTransport.subscribe(None, event_queue)
-            else:
-                time_left = int(self.sub_av_transport.time_left)
-                if time_left <= 0:
-                    self._sub_av_transport = self.soco.avTransport.subscribe(None, event_queue)
-                else:
-                    if renew:
-                        self.sub_av_transport.renew()
+            if self.sub_av_transport is None or self._sub_av_transport.time_left == 0:
+                self._sub_av_transport = self.soco.avTransport.subscribe(None, True, event_queue)
 
-            if self.sub_rendering_control is None:
-                self._sub_rendering_control = self.soco.renderingControl.subscribe(None, event_queue)
-            else:
-                time_left = int(self.sub_rendering_control.time_left)
-                if time_left <= 0:
-                    self._sub_rendering_control = self.soco.renderingControl.subscribe(None, event_queue)
-                else:
-                    if renew:
-                        self.sub_rendering_control.renew()
+            if self.sub_rendering_control is None or self._sub_rendering_control.time_left == 0:
+                self._sub_rendering_control = self.soco.renderingControl.subscribe(None, True, event_queue)
 
         except Exception as err:
             logger.exception(err)
 
     def _play_tts_thread(self, tts, volume, smb_url, local_share, language, quota):
-        try:
+        try:##
             fname = utils.save_google_tts(local_share, tts, language, quota)
 
             if smb_url.endswith('/'):

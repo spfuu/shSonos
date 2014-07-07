@@ -28,7 +28,6 @@ from lib_sonos.sonos_service import SonosServerService
 logger = logging.getLogger('')
 command_service = None
 
-
 class LogHandler(logging.StreamHandler):
     def __init__(self, log):
         logging.StreamHandler.__init__(self)
@@ -73,6 +72,7 @@ class SonosBroker():
         self._logfile = None
         self._port = definitions.DEFAULT_PORT
         self._host = definitions.DEFAULT_HOST
+        self._sonos_service = None
 
         #############################################################
         # Signal Handling
@@ -119,7 +119,7 @@ class SonosBroker():
                 os.umask(0o002)
                 try:
                     with open(self._logfile, 'a') as f:
-                        f.write("Init sonos broker {0}\n".format('v0.2.2'))
+                        f.write("Init sonos broker {version}\n".format(version=definitions.VERSION))
                 except IOError as e:
                     print("Error creating logfile {}: {}".format(self._logfile, e))
 
@@ -203,16 +203,21 @@ class SonosBroker():
         logger.info("Starting server with ip address {ip} ... be sure this is correct.".format(ip=self._server_ip))
         sleep(1)
 
-        sonos_service = SonosServerService(self._server_ip, self._port, self._server_url, self._save_path,
+        self._sonos_service = SonosServerService(self._server_ip, self._port, self._server_url, self._save_path,
                                            self._quota, self._tts_enabled)
-        command_service = Command(sonos_service)
+        command_service = Command(self._sonos_service)
         self._http_server = ThreadedHTTPServer((self._host, self._port), SonosHttpHandler)
         logger.info('Starting http server, use <Ctrl-C> to stop')
         self._http_server.serve_forever()
 
     def stop(self, signal, frame):
         logger.debug("SIGNAL stop")
+        logger.debug('unsubscribing from sonos speakers ...')
+        if self._sonos_service is not None:
+            self._sonos_service.unsubscribe_speaker_events()
+
         if self._http_server:
+            logger.debug('closing http server ...')
             self._http_server.server_close()
         for thread in threading.enumerate():
             try:

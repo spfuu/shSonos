@@ -7,7 +7,7 @@ from collections import namedtuple
 import threading
 from lib_sonos import sonos_speaker
 from lib_sonos.sonos_speaker import SonosSpeaker
-from lib_sonos.definitions import SCAN_TIMEOUT, RENEW_SUBSCRIPTION_COUNT
+from lib_sonos.definitions import SCAN_TIMEOUT
 from lib_sonos.radio_parser import title_artist_parser
 import socket
 import logging
@@ -62,36 +62,36 @@ class SonosServerService():
         g_t.daemon = True
         g_t.start()
 
+    def unsubscribe_speaker_events(self):
+        for speaker in sonos_speaker.sonos_speakers.values():
+            speaker.event_unsubscribe()
+
     def get_speakers_periodically(self):
 
         sleep_scan = SCAN_TIMEOUT
-        renew_subscription_timeout = RENEW_SUBSCRIPTION_COUNT
 
         while 1:
             try:
                 logger.debug('active threads: {}'.format(len(threading.enumerate())))
-                renew_subscription_timeout += 1
                 logger.info('scan devices ...')
-
                 zone_group_state_shared_cache.clear()
-
-                if renew_subscription_timeout < RENEW_SUBSCRIPTION_COUNT:
-                    self.discover(renew_subscription=False)
-                else:
-                    renew_subscription_timeout = 0
-                    logger.info('Renewing event subscriptions ...')
-                    self.discover(renew_subscription=True)
+                self.discover()
 
             except Exception as err:
                 logger.exception(err)
             finally:
-                sleep(sleep_scan)
+                 sleep(sleep_scan)
 
-    def discover(self, renew_subscription=False):
+    def discover(self):
         try:
             active_uids = []
 
-            for soco_speaker in discover():
+            soco_speakers = discover()
+
+            if soco_speakers is None:
+                return
+
+            for soco_speaker in soco_speakers:
                 uid = soco_speaker.uid.lower()
 
                 # new speaker found, update it
@@ -109,7 +109,7 @@ class SonosServerService():
                             sonos_speaker.sonos_speakers[uid].model = self.get_model_name(
                                 sonos_speaker.sonos_speakers[uid].ip)
                         except KeyError:
-                            pass  # speaker maybe deleted by another thread
+                            continue  # speaker maybe deleted by another thread
 
                 else:
                     try:
@@ -118,20 +118,20 @@ class SonosServerService():
                                 sonos_speaker.sonos_speakers[uid].soco.get_speaker_info(refresh=True)
                                 active_uids.append(uid)
                             except KeyError:
-                                pass  # speaker maybe deleted by another thread
+                                continue  # speaker maybe deleted by another thread
                     except Exception:
                         continue
                 with sonos_speaker._sonos_lock:
                     try:
-                        sonos_speaker.sonos_speakers[uid].event_subscription(self.event_queue, renew_subscription)
+                        sonos_speaker.sonos_speakers[uid].event_subscription(self.event_queue)
                     except KeyError:
-                        pass  # speaker maybe deleted by another thread
+                        continue  # speaker maybe deleted by another thread
 
             with sonos_speaker._sonos_lock:
                 try:
                     offline_uids = set(list(sonos_speaker.sonos_speakers.keys())) - set(active_uids)
                 except KeyError:
-                        pass  # speaker maybe deleted by another thread
+                    pass  # speaker maybe deleted by another thread
 
             for uid in offline_uids:
                 logger.info("offline speaker: {} -- removing from list".format(uid))
@@ -141,7 +141,7 @@ class SonosServerService():
                         sonos_speaker.sonos_speakers[uid].send_data()
                         del sonos_speaker.sonos_speakers[uid]
                     except KeyError:
-                            continue  # speaker maybe deleted by another thread
+                        continue  # speaker maybe deleted by another thread
 
             # add the sonos master speaker to all slaves in the group
             for speaker in sonos_speaker.sonos_speakers.values():
@@ -169,7 +169,6 @@ class SonosServerService():
         except Exception as err:
             logger.exception('Error in method discover()!\nError: {}'.format(err))
         finally:
-            #self.lock.release()
             pass
 
     def process_events(self):

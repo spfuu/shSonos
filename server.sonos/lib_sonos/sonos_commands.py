@@ -230,6 +230,13 @@ class Command():
 
             return True, "NEXT command was processed successfully for speaker with uid '{}'.".format(uid)
 
+        except SoCoUPnPException as err:
+            if err.error_code != '711':
+                return False, Exception(
+                    "NEXT command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
+            else:
+                # illegal seek action, no more items in playlist, uncritical
+                return True, "NEXT command was processed successfully for speaker with uid '{}'.".format(uid)
         except Exception as err:
             return False, Exception("NEXT command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
 
@@ -246,6 +253,14 @@ class Command():
             # we need no explicit response here, previous title event triggers the update
 
             return True, "PREVIOUS command was processed successfully for speaker with uid '{}'.".format(uid)
+
+        except SoCoUPnPException as err:
+            if err.error_code != '711':
+                return False, Exception(
+                    "PREVIOUS command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
+            else:
+                # illegal seek action, no more items in playlist, uncritical
+                return True, "PREVIOUS command was processed successfully for speaker with uid '{}'.".format(uid)
 
         except Exception as err:
             return False, Exception(
@@ -328,13 +343,10 @@ class Command():
             return True, "PLAY command was processed successfully for speaker with uid '{}'.".format(uid)
 
         except SoCoUPnPException as err:
-            print('test')
-            print(err.error_code)
             if err.error_code != '701':
                 return False, Exception(
                     "PLAY command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
             else:
-                print('blubba')
                 # 701 happens, if no title is in current playlist
                 # we're setting stop to 1
                 status = logger.warning("No items in playlist. Setting STOP for speaker with uid to 1'{}'.".format(uid))

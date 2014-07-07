@@ -67,11 +67,15 @@ class MusicInfoItem(object):
 
     def __eq__(self, playable_item):
         """Return the equals comparison result to another ``playable_item``."""
+        if not isinstance(playable_item, MusicInfoItem):
+            return False
         return self.content == playable_item.content
 
     def __ne__(self, playable_item):
         """Return the not equals comparison result to another ``playable_item``
         """
+        if not isinstance(playable_item, MusicInfoItem):
+            return True
         return self.content != playable_item.content
 
     def __repr__(self):
@@ -182,6 +186,8 @@ class MusicLibraryItem(MusicInfoItem):
         for key, value in cls._translation.items():
             result = xml.find(ns_tag(*value))
             if result is None:
+                content[key] = None
+            elif result.text is None:
                 content[key] = None
             else:
                 # The xml objects should contain utf-8 internally
