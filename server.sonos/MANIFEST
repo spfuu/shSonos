@@ -2,7 +2,6 @@
 setup.py
 sonos_broker
 sonos_broker.cfg
-sonos_broker.sh
 lib_sonos/__init__.py
 lib_sonos/daemon.py
 lib_sonos/definitions.py
