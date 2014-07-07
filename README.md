@@ -113,7 +113,7 @@ Normally, the script finds the interal ip address of your computer. If not, you 
 (x.x.x.x means your ip: run ifconfig - a to find it out)
 
 
-##Configuration (optional)
+##Configuration / Start options
 
 You can edit the settings of Sonos Broker. Open 'sonos_broker.cfg' with your favorite editor and edit the file.
 All values within the config file should be self-explaining. For Google-TTS options, see the appropriate section in this
@@ -133,7 +133,8 @@ You can add the -d (--debug) parameter to hold the process in the foreground.
 To autostart the service on system boot, please follow the instruction for your linux distribution and put this
 script in the right place.
 
-To get some debug output, please edit the sonos_broker.cf and uncomment this line in the logging section:
+To get some debug output, please edit the sonos_broker.cfg and uncomment this line in the logging section (or use the 
+-d start parameter):
 
     loglevel = debug
 
