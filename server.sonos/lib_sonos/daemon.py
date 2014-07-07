@@ -25,7 +25,6 @@ import os
 
 logger = logging.getLogger('')
 
-
 def daemonize():
     pid = os.fork()  # fork first child
     if pid == 0:
