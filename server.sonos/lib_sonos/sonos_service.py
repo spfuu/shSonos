@@ -7,18 +7,22 @@ from collections import namedtuple
 import threading
 from lib_sonos import sonos_speaker
 from lib_sonos.sonos_speaker import SonosSpeaker
-from lib_sonos.definitions import SCAN_TIMEOUT, RENEW_SUBSCRIPTION_COUNT
+from lib_sonos.definitions import SCAN_TIMEOUT
+from lib_sonos.radio_parser import title_artist_parser
 import socket
 import logging
 from time import sleep
 from soco import discover
 from threading import Lock
 from lib_sonos import utils
+from soco.services import zone_group_state_shared_cache
 
 try:
     import xml.etree.cElementTree as XML
 except ImportError:
     import xml.etree.ElementTree as XML
+
+logger = logging.getLogger('')
 
 NS = {
     'r': 'urn:schemas-rinconnetworks-com:metadata-1-0/',
@@ -50,94 +54,126 @@ class SonosServerService():
         self.quota = quota
         self.tts_enabled = tts_enabled
         self.event_queue = queue.Queue()
-        threading.Thread(target=self.process_events).start()
-        threading.Thread(target=self.get_speakers_periodically).start()
+        p_t = threading.Thread(target=self.process_events)
+        p_t.daemon = True
+        p_t.start()
+
+        g_t = threading.Thread(target=self.get_speakers_periodically)
+        g_t.daemon = True
+        g_t.start()
+
+    def unsubscribe_speaker_events(self):
+        for speaker in sonos_speaker.sonos_speakers.values():
+            speaker.event_unsubscribe()
 
     def get_speakers_periodically(self):
 
         sleep_scan = SCAN_TIMEOUT
-        renew_subscription_timeout = 0
 
         while 1:
             try:
-                renew_subscription_timeout += 1
-                print('scan devices ...')
-
-                if renew_subscription_timeout < RENEW_SUBSCRIPTION_COUNT:
-                    self.discover(renew_subscription=False)
-                else:
-                    renew_subscription_timeout = 0
-                    print('Renewing event subscriptions ...')
-                    self.discover(renew_subscription=True)
+                logger.debug('active threads: {}'.format(len(threading.enumerate())))
+                logger.info('scan devices ...')
+                zone_group_state_shared_cache.clear()
+                self.discover()
 
             except Exception as err:
-                print(err)
+                logger.exception(err)
             finally:
-                sleep(sleep_scan)
+                 sleep(sleep_scan)
 
-    def discover(self, renew_subscription=False):
+    def discover(self):
         try:
-            self.lock.acquire()
-
             active_uids = []
 
-            for soco_speaker in discover():
+            soco_speakers = discover()
+
+            if soco_speakers is None:
+                return
+
+            for soco_speaker in soco_speakers:
                 uid = soco_speaker.uid.lower()
 
-                #new speaker found, update it
+                # new speaker found, update it
                 if uid not in sonos_speaker.sonos_speakers:
                     try:
                         soco_speaker.get_speaker_info(refresh=True)
                         active_uids.append(uid)
-                    except Exception as err:
+                    except Exception:
                         #sometimes an offline speaker is cached and will be found by the discover function
                         continue
-                    sonos_speaker.sonos_speakers[uid] = SonosSpeaker(soco_speaker)
-                    sonos_speaker.sonos_speakers[uid].model = self.get_model_name(sonos_speaker.sonos_speakers[uid].ip)
+                    with sonos_speaker._sonos_lock:
+                        try:
+                            _sp = SonosSpeaker(soco_speaker)
+                            sonos_speaker.sonos_speakers[uid] = _sp
+                            sonos_speaker.sonos_speakers[uid].model = self.get_model_name(
+                                sonos_speaker.sonos_speakers[uid].ip)
+                        except KeyError:
+                            continue  # speaker maybe deleted by another thread
 
                 else:
                     try:
-                        sonos_speaker.sonos_speakers[uid].soco.get_speaker_info(refresh=True)
-                        active_uids.append(uid)
+                        with sonos_speaker._sonos_lock:
+                            try:
+                                sonos_speaker.sonos_speakers[uid].soco.get_speaker_info(refresh=True)
+                                active_uids.append(uid)
+                            except KeyError:
+                                continue  # speaker maybe deleted by another thread
                     except Exception:
                         continue
+                with sonos_speaker._sonos_lock:
+                    try:
+                        sonos_speaker.sonos_speakers[uid].event_subscription(self.event_queue)
+                    except KeyError:
+                        continue  # speaker maybe deleted by another thread
 
-                sonos_speaker.sonos_speakers[uid].event_subscription(self.event_queue, renew_subscription)
-
-            offline_uids = set(list(sonos_speaker.sonos_speakers.keys())) - set(active_uids)
+            with sonos_speaker._sonos_lock:
+                try:
+                    offline_uids = set(list(sonos_speaker.sonos_speakers.keys())) - set(active_uids)
+                except KeyError:
+                    pass  # speaker maybe deleted by another thread
 
             for uid in offline_uids:
-                print("offline speaker: {} -- removing from list".format(uid))
-                sonos_speaker.sonos_speakers[uid].status = False
-                sonos_speaker.sonos_speakers[uid].send_data()
-                del sonos_speaker.sonos_speakers[uid]
+                logger.info("offline speaker: {} -- removing from list".format(uid))
+                with sonos_speaker._sonos_lock:
+                    try:
+                        sonos_speaker.sonos_speakers[uid].status = False
+                        sonos_speaker.sonos_speakers[uid].send_data()
+                        del sonos_speaker.sonos_speakers[uid]
+                    except KeyError:
+                        continue  # speaker maybe deleted by another thread
 
-            #add the sonos master speaker to all slaves in the group
+            # add the sonos master speaker to all slaves in the group
             for speaker in sonos_speaker.sonos_speakers.values():
-                coordinator_uid = speaker.soco.group.coordinator.uid.lower()
+                with sonos_speaker._sonos_lock:
+                    try:
+                        coordinator_uid = speaker.soco.group.coordinator.uid.lower()
 
-                if coordinator_uid != speaker.uid:
-                    sonos_speaker.sonos_speakers[speaker.uid].speaker_zone_coordinator = sonos_speaker.sonos_speakers[coordinator_uid]
-                else:
-                    sonos_speaker.sonos_speakers[speaker.uid].speaker_zone_coordinator = None
+                        if coordinator_uid != speaker.uid:
+                            sonos_speaker.sonos_speakers[speaker.uid].speaker_zone_coordinator = \
+                                sonos_speaker.sonos_speakers[coordinator_uid]
+                        else:
+                            sonos_speaker.sonos_speakers[speaker.uid].speaker_zone_coordinator = None
 
-                #reset members
-                sonos_speaker.sonos_speakers[speaker.uid].additional_zone_members = []
+                        #reset members
+                        sonos_speaker.sonos_speakers[speaker.uid].additional_zone_members = []
 
-                for member in speaker.soco.group.members:
-                    member_uid = member.uid.lower()
-                    if member_uid != speaker.uid:
-                        sonos_speaker.sonos_speakers[speaker.uid].additional_zone_members.append(sonos_speaker.sonos_speakers[member_uid])
+                        for member in speaker.soco.group.members:
+                            member_uid = member.uid.lower()
+                            if member_uid != speaker.uid:
+                                sonos_speaker.sonos_speakers[speaker.uid].additional_zone_members.append(
+                                    sonos_speaker.sonos_speakers[member_uid])
+                    except KeyError:
+                        continue
 
         except Exception as err:
-            print('Error in method discover()!\nError: {}'.format(err))
+            logger.exception('Error in method discover()!\nError: {}'.format(err))
         finally:
-            self.lock.release()
+            pass
 
     def process_events(self):
         while True:
             try:
-
                 event = self.event_queue.get()
                 if event[2] is None:
                     return
@@ -161,11 +197,17 @@ class SonosServerService():
                     print("No sonos speaker found for subscription {}".format(event[0].lower()))
                     continue
 
-                speaker = sonos_speaker.sonos_speakers[uid]
+                with sonos_speaker._sonos_lock:
+                    try:
+                        speaker = sonos_speaker.sonos_speakers[uid]
+                    except KeyError:
+                        pass  # speaker maybe removed from another thread
 
                 if event[2].service_type == 'ZoneGroupTopology':
-                    #we're using the soco framework to discover new topology
-                    #this is a bit of network traffic overhead, but we don't nedd to do the same work
+                    # we're using the soco framework to discover new topology
+                    # this is a bit of network traffic overhead, but we don't nedd to do the same work
+                    # disable caching
+                    zone_group_state_shared_cache.clear()
                     self.discover()
 
                 if event[2].service_type == 'AVTransport':
@@ -183,7 +225,7 @@ class SonosServerService():
             finally:
                 self.event_queue.task_done()
 
-    #missing model name, not implemented in soco framework
+    # missing model name, not implemented in soco framework
     def get_model_name(self, ip):
 
         response = requests.get('http://' + ip + ':1400/xml/device_description.xml')
@@ -199,7 +241,7 @@ class SonosServerService():
         xml = variables['LastChange']
         dom = XML.fromstring(xml)
 
-############# CURRENT TRACK URI
+        ############# CURRENT TRACK URI
 
         track_uri_element = dom.find(".//%sCurrentTrackURI" % namespace)
         if track_uri_element is not None:
@@ -207,7 +249,7 @@ class SonosServerService():
 
         speaker._track_uri = track_uri
 
-############ CURRENT TRACK DURATION
+        ############ CURRENT TRACK DURATION
 
         #check whether radio or mp3 is played ---> CurrentTrackDuration > 0 is mp3
         track_duration_element = dom.find(".//%sCurrentTrackDuration" % namespace)
@@ -224,7 +266,7 @@ class SonosServerService():
             else:
                 speaker._track_duration = "00:00:00"
 
-############ CurrentPlayMode
+            ############ CurrentPlayMode
 
         current_play_mode_element = dom.find(".//%sCurrentPlayMode" % namespace)
 
@@ -236,7 +278,7 @@ class SonosServerService():
                 speaker._playmode = current_play_mode.lower()
 
 
-############ TRANSPORTSTATE
+            ############ TRANSPORTSTATE
 
         transport_state_element = dom.find(".//%sTransportState" % namespace)
 
@@ -269,18 +311,8 @@ class SonosServerService():
                     #get current track info, if new track is played or resumed to get track_uri, track_album_art
                     speaker.track_info()
 
-############ CURRENT TRACK METADATA
-
-        didl_element = dom.find(".//%sCurrentTrackMetaData" % namespace)
-
-        if didl_element is not None:
-            didl = didl_element.get('val')
-            if didl:
-                didl_dom = XML.fromstring(didl)
-                if didl_dom:
-                    self.parse_track_metadata(speaker, didl_dom)
-
         if speaker.streamtype == 'radio':
+
 
             r_namespace = '{urn:schemas-rinconnetworks-com:metadata-1-0/}'
             enqueued_data = dom.find(".//%sEnqueuedTransportURIMetaData" % r_namespace)
@@ -302,13 +334,25 @@ class SonosServerService():
 
                         speaker._radio_station = radio_station
 
-                except Exception: #raised, if enqued_data is empty
+                except Exception:  #raised, if enqued_data is empty
                     speaker._radio_show = ''
                     speaker._radio_station = ''
 
         else:
             speaker._radio_show = ''
             speaker._radio_station = ''
+
+                ############ CURRENT TRACK METADATA
+
+        didl_element = dom.find(".//%sCurrentTrackMetaData" % namespace)
+
+        if didl_element is not None:
+            didl = didl_element.get('val')
+            if didl:
+                didl_dom = XML.fromstring(didl)
+                if didl_dom:
+                    self.parse_track_metadata(speaker, didl_dom)
+
 
     def handle_RenderingControl_event(self, speaker, variables):
         namespace = '{urn:schemas-upnp-org:metadata-1-0/RCS/}'
@@ -382,22 +426,9 @@ class SonosServerService():
                     if not stream_content.startswith(ignore_title_string):
                         #if radio, in most cases the following format is used: artist - title
                         #if stream_content is not null, radio is assumed
-                        split_title = stream_content.split('-')
 
-                        if split_title:
-                            if len(split_title) == 1:
-                                title = split_title
-
-                            if len(split_title) == 2:
-                                artist = split_title[0].strip()
-                                title = split_title[1].strip()
-
-                            # mostly this happens during commercial breaks, news, weather etc
-                            if len(split_title) > 2:
-                                artist = split_title[0].strip()
-                                title = '-'.join(split_title[1:])
-                        else:
-                            title = stream_content
+                        if speaker._radio_station:
+                            artist, title = title_artist_parser(speaker._radio_station, stream_content)
 
             radio_show_element = dom.find('.//r:radioShowMd', NS)
             if radio_show_element is not None:

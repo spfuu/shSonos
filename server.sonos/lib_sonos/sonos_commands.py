@@ -1,11 +1,15 @@
 # -*- coding: utf-8 -*-
 import re
+import logging
 from urllib.parse import unquote_plus
+from soco.exceptions import SoCoUPnPException
 from lib_sonos import sonos_speaker
 from lib_sonos.sonos_library import SonosLibrary
 from lib_sonos.udp_broker import UdpBroker
 from lib_sonos.definitions import SCAN_TIMEOUT
 from lib_sonos import utils
+
+logger = logging.getLogger('')
 
 
 class Command():
@@ -37,27 +41,34 @@ class Command():
                 return do_work(client_ip, None)
 
         except Exception as err:
-            print(err)
+            logger.error(err)
             return False, response
 
     def client_subscribe(self, ip, arguments):
         try:
+            logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
             port = int(arguments[0])
             UdpBroker.subscribe_client(ip, port)
+
             return True, 'Successfully subscribed client {}:{}'.format(ip, port)
-        except:
+        except Exception as err:
+            logger.debug(err)
             return False, "Couldn't subscribe client {}:{}".format(ip, port)
 
     def client_unsubscribe(self, ip, arguments):
         try:
+            logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
             port = int(arguments[0])
             UdpBroker.unsubscribe_client(ip, port)
+            logger.debug("client unsubscribed: {host}:{port}".format(host=ip, port=port))
             return True, 'Successfully unsubscribed client {}:{}'.format(ip, port)
-        except:
+        except Exception as err:
+            logger.error(err)
             return False, "Couldn't unsubscribe client {}:{}".format(ip, port)
 
     def client_list(self, ip, arguments):
         try:
+            logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
             data = ''
             for uid, speaker in sonos_speaker.sonos_speakers.items():
                 data += "<p>uid             : {}</p>".format(speaker.uid)
@@ -66,15 +77,20 @@ class Command():
                 data += "<p>current zone    : {}</p>".format(speaker.zone_name)
                 data += "<p>-------------------------------------------</p><p></p><p></p>"
 
+                logger.debug("active speakers: {uid} | {ip} | {model} | {zone}".
+                             format(uid=speaker.uid, ip=speaker.ip, model=speaker.model, zone=speaker.zone_name))
             if not data:
+                logger.debug('no speakers online')
                 data = "No speakers online! Discover scan is performed every {} seconds.".format(SCAN_TIMEOUT)
 
             return True, data
-        except:
+        except Exception as err:
+            logger.error(err)
             return False, "Couldn't list speakers"
 
     def speaker_current_state(self, ip, arguments):
         try:
+            logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
             uid = arguments[0].lower()
 
             if not uid in sonos_speaker.sonos_speakers:
@@ -85,11 +101,13 @@ class Command():
             return True, "CURRENTSTATE command was processed successfully for speaker with uid '{}'.".format(uid)
 
         except Exception as err:
+            logger.error(err)
             return False, Exception(
                 "CURRENTSTATE command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
 
     def speaker_trackinfo(self, ip, arguments):
         try:
+            logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
             uid = arguments[0].lower()
 
             if not uid in sonos_speaker.sonos_speakers:
@@ -106,6 +124,7 @@ class Command():
 
     def speaker_play_uri(self, ip, arguments):
         try:
+            logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
             uid = arguments[0].lower()
 
             if not uid in sonos_speaker.sonos_speakers:
@@ -126,6 +145,7 @@ class Command():
 
     def speaker_play_snippet(self, ip, arguments):
         try:
+            logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
             volume = -1
             uid = arguments[0].lower()
 
@@ -155,6 +175,7 @@ class Command():
 
     def speaker_play_tts(self, ip, arguments):
         try:
+            logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
 
             if not self.sonos_service.tts_enabled:
                 return False, 'Google-TTS not active. Check server logs!'
@@ -197,6 +218,7 @@ class Command():
 
     def speaker_next(self, ip, arguments):
         try:
+            logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
             uid = arguments[0].lower()
 
             if not uid in sonos_speaker.sonos_speakers:
@@ -208,11 +230,19 @@ class Command():
 
             return True, "NEXT command was processed successfully for speaker with uid '{}'.".format(uid)
 
+        except SoCoUPnPException as err:
+            if err.error_code != '711':
+                return False, Exception(
+                    "NEXT command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
+            else:
+                # illegal seek action, no more items in playlist, uncritical
+                return True, "NEXT command was processed successfully for speaker with uid '{}'.".format(uid)
         except Exception as err:
             return False, Exception("NEXT command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
 
     def speaker_previous(self, ip, arguments):
         try:
+            logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
             uid = arguments[0].lower()
 
             if not uid in sonos_speaker.sonos_speakers:
@@ -224,12 +254,21 @@ class Command():
 
             return True, "PREVIOUS command was processed successfully for speaker with uid '{}'.".format(uid)
 
+        except SoCoUPnPException as err:
+            if err.error_code != '711':
+                return False, Exception(
+                    "PREVIOUS command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
+            else:
+                # illegal seek action, no more items in playlist, uncritical
+                return True, "PREVIOUS command was processed successfully for speaker with uid '{}'.".format(uid)
+
         except Exception as err:
             return False, Exception(
                 "PREVIOUS command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
 
     def speaker_seek(self, ip, arguments):
         try:
+            logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
             uid = arguments[0].lower()
 
             if not uid in sonos_speaker.sonos_speakers:
@@ -248,6 +287,7 @@ class Command():
 
     def speaker_stop(self, ip, arguments):
         try:
+            logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
             uid = arguments[0].lower()
 
             if not uid in sonos_speaker.sonos_speakers:
@@ -268,16 +308,20 @@ class Command():
 
             return True, "STOP command was processed successfully for speaker with uid '{}'.".format(uid)
 
-        except Exception as err:
+        except SoCoUPnPException as err:
             if err.error_code != '701':
                 return False, Exception(
                     "STOP command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
             else:
                 # 701 happens, if no title is in current playlist
                 return True, "STOP command was processed successfully for speaker with uid '{}'.".format(uid)
+        except Exception as err:
+            return False, Exception(
+                "STOP command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
 
     def speaker_play(self, ip, arguments):
         try:
+            logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
             uid = arguments[0].lower()
 
             if not uid in sonos_speaker.sonos_speakers:
@@ -298,16 +342,23 @@ class Command():
 
             return True, "PLAY command was processed successfully for speaker with uid '{}'.".format(uid)
 
-        except Exception as err:
+        except SoCoUPnPException as err:
             if err.error_code != '701':
                 return False, Exception(
                     "PLAY command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
             else:
                 # 701 happens, if no title is in current playlist
-                return True, "PLAY command was processed successfully for speaker with uid '{}'.".format(uid)
+                # we're setting stop to 1
+                status = logger.warning("No items in playlist. Setting STOP for speaker with uid to 1'{}'.".format(uid))
+                sonos_speaker.sonos_speakers[uid].stop = 1
+                return True, status
+        except Exception as err:
+            return False, Exception(
+                "PLAY command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
 
     def speaker_pause(self, ip, arguments):
         try:
+            logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
             uid = arguments[0].lower()
 
             if not uid in sonos_speaker.sonos_speakers:
@@ -340,16 +391,21 @@ class Command():
 
             return True, "PAUSE command was processed successfully for speaker with uid '{}'.".format(uid)
 
-        except Exception as err:
+        except SoCoUPnPException as err:
             if err.error_code != '701':
                 return False, Exception(
                     "PAUSE command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
             else:
                 # 701 happens, if no title is in current playlist
                 return True, "PAUSE command was processed successfully for speaker with uid '{}'.".format(uid)
+        except Exception as err:
+            return False, Exception(
+                "PAUSE command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
+
 
     def speaker_mute(self, ip, arguments):
         try:
+            logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
             uid = arguments[0].lower()
 
             if not uid in sonos_speaker.sonos_speakers:
@@ -374,6 +430,7 @@ class Command():
 
     def speaker_led(self, ip, arguments):
         try:
+            logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
             uid = arguments[0].lower()
 
             if not uid in sonos_speaker.sonos_speakers:
@@ -399,6 +456,7 @@ class Command():
 
     def speaker_volume_up(self, ip, arguments):
         try:
+            logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
             uid = arguments[0].lower()
 
             if not uid in sonos_speaker.sonos_speakers:
@@ -415,6 +473,7 @@ class Command():
 
     def speaker_volume_down(self, ip, arguments):
         try:
+            logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
             uid = arguments[0].lower()
 
             if not uid in sonos_speaker.sonos_speakers:
@@ -431,6 +490,7 @@ class Command():
 
     def speaker_volume(self, ip, arguments):
         try:
+            logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
             uid = arguments[0].lower()
 
             if not uid in sonos_speaker.sonos_speakers:
@@ -448,6 +508,7 @@ class Command():
 
     def speaker_maxvolume(self, ip, arguments):
         try:
+            logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
             uid = arguments[0].lower()
 
             if not uid in sonos_speaker.sonos_speakers:
@@ -467,6 +528,7 @@ class Command():
 
     def speaker_join(selfself, ip, arguments):
         try:
+            logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
             uid = arguments[0].lower()
 
             if not uid in sonos_speaker.sonos_speakers:
@@ -489,6 +551,7 @@ class Command():
 
     def speaker_unjoin(selfself, ip, arguments):
         try:
+            logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
             uid = arguments[0].lower()
 
             if not uid in sonos_speaker.sonos_speakers:
@@ -503,7 +566,7 @@ class Command():
 
     def speaker_bass(self, ip, arguments):
         try:
-
+            logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
             uid = arguments[0].lower()
 
             if not uid in sonos_speaker.sonos_speakers:
@@ -523,6 +586,7 @@ class Command():
 
     def speaker_treble(self, ip, arguments):
         try:
+            logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
             uid = arguments[0].lower()
 
             if not uid in sonos_speaker.sonos_speakers:
@@ -542,6 +606,7 @@ class Command():
 
     def speaker_loudness(self, ip, arguments):
         try:
+            logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
             uid = arguments[0].lower()
 
             if not uid in sonos_speaker.sonos_speakers:
@@ -567,6 +632,7 @@ class Command():
 
     def speaker_playmode(self, ip, arguments):
         try:
+            logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
             uid = arguments[0].lower()
 
             valid = ['normal', 'shuffle_norepeat', 'shuffle', 'repeat_all']
@@ -595,6 +661,7 @@ class Command():
 
     def partymode(self, ip, arguments):
         try:
+            logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
             uid = arguments[0].lower()
 
             if not uid in sonos_speaker.sonos_speakers:
@@ -609,6 +676,7 @@ class Command():
 
     def library_favradio(self, ip, arguments):
         try:
+            logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
             start_item = 0
             max_items = 10
 

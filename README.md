@@ -1,10 +1,25 @@
 #Release
 
+v0.2.3      2014-07-08
+
+    -- sonos_broker start script now daemonized (use -d parameter to prevent daemonize behaviour)
+    -- logger functionality added (see sonos_broker.cfg and documentation)
+    -- added radio station parser to get normalized artist and track titles
+        -- you can add more regular expressions to lib_sonos/radio_parser.py to handle your stations
+    -- system signal handling now implemented (signal.SIGHUP, signal.SIGINT, signal.SIGTERM)
+    -- better exception handling in cases of uncritical soco exceptions
+    -- small changes in sonos discover function
+    -- event subscription now processed by the soco library
+    -- some adjustments to thread-safe event handling
+    -- bug: now exceptions in event subscriptions handled as was intended 
+    -- bug: thread start as daemon didn't work properly
+
+
 v0.2.1      2014-06-15
 
     --  stop, play, pause, led, mute command now supports two value behaviours:
-            -- toggle mode [if no parameter was passed]
-            -- direct mode [if parameter was passed]
+        -- toggle mode [if no parameter was passed]
+        -- direct mode [if parameter was passed]
     --  Command: added bass command
     --  Command: added treble command
     --  Command: added loudness command (direct / toggle mode)
@@ -98,50 +113,48 @@ Normally, the script finds the interal ip address of your computer. If not, you 
 (x.x.x.x means your ip: run ifconfig - a to find it out)
 
 
-##Configuration (optional)
+##Configuration / Start options
 
 You can edit the settings of Sonos Broker. Open 'sonos_broker.cfg' with your favorite editor and edit the file.
 All values within the config file should be self-explaining. For Google-TTS options, see the appropriate section in this
 Readme.
 
-There is also a sh-script to daemonize the sonos_broker start named sonos_broker.sh.
-If you want to start sonos_broker as background service, edit sonos_broker.sh:
+If you start the sonos broker with
+```
+./sonos_broker
+```
+the server will be automatically daemonized.
 
-Edit DIR variable to /path/location/of/sonos_broker (default: /usr/local/bin)
-
-Make the file executable with:
-
-    chmod +x /usr/local/bin/sonos_broker.sh
-
-Start service with:
-
-    sudo ./path/to/sonos_broker.sh start
+You can add the -d (--debug) parameter to hold the process in the foreground.
+```
+./sonos_broker -d
+```
 
 To autostart the service on system boot, please follow the instruction for your linux distribution and put this
 script in the right place.
 
-Attention!! Please notice that the script is running as with the 'background' flag. In order that, there is
-no debug or error output. To get these hints in failure cases, remove this flag in sonos_broker.sh
+To get some debug output, please edit the sonos_broker.cfg and uncomment this line in the logging section (or use the 
+-d start parameter):
 
-from:
+    loglevel = debug
 
-    start-stop-daemon -v --start --pidfile $PIDFILE --background --make-pidfile --startas $DAEMON --
+You can set the debug level to debug, info, warning, error, critical.
+Additionally, you can specify a file to pipe the debug log to this file.
 
-to:
-
-    start-stop-daemon -v --start --pidfile $PIDFILE --make-pidfile --startas $DAEMON --
-
+    logfile = log.txt
 
 
 ##Google TTS Support
 
 Sonos broker features the Google Text-To-Speech API. You can play any text limited to 100 chars.
 
+
 ###Prerequisite:
 
 - local / remote mounted folder or share with read/write access
 - http access to this local folder (e.g. /var/www)
 - settings configured in sonos_broker.conf
+
 
 ###Internals
 
@@ -182,7 +195,6 @@ This is an example of a google_tts section in the sonos_broker.cfg file:
 
 ##Raspberry Pi User
 
-
 For raspberry pi user, please follow these instruction prior to point 2:
 
     sudo apt-get update
@@ -194,18 +206,21 @@ To get samba shares working on your Pi (to get Google TTS support), here is a go
 http://raspberrypihelp.net/tutorials/12-mount-a-samba-share-on-raspberry-pi
 
 
-#Testing:
+#Implementation:
 
-
-Because of the server-client design, you're not bound to python to communicate
+Because of the server-client design, you're not bound to Python to communicate
 with the sonos broker instance. Open your browser and control your speaker. This project is focused on
-house automation, therefore there is no web interface. (maybe this is your contribution :-) )
+house automation, therefore there is no dedicated web interface. (maybe this is your contribution :-) ). You can find
+a sonos widget for smartVISU here:
 
-Most of the commands return a simple "200 - OK" or "400 Bad Request". Most of the return values
-will be send over udp to all subscribed clients. To receive these messages, you must have an UDP port
-open on your client.
-	
-To susbscribe your client for this messages, simply type in following command in your browser:
+https://github.com/pfischi/shSonos/tree/develop/widget.smartvisu
+
+The html commands return a simple "200 - OK" or "400 Bad Request". If a sonos speaker property has changed, a json data
+structure is send to all subscribed clients. To receive these messages, you must have an UDP port open on your client.
+
+##Client subscription
+
+To subscribe your client for this messages, simply type in following command in your browser:
 (this step is not necessary for smarthome.py-plugin user, it's done automatically)
 
     http://<sonos_server_ip:port>/client/subscribe/<udp_port>    (udp port is your client port)
@@ -215,8 +230,56 @@ To unsubscribe:
     http://<sonos_server_ip:port>/client/unsubscribe/<udp_port>
 	
 After subscription, your client will receive all status updates of all sonos speakers in the network,
-whether	they were triggerd by you or other clients (iPad, Android)
-	
+whether	they were triggered by you or other clients (iPad, Android). The received data comes in a JSON format and looks
+like this:
+
+##Sonos speaker data:
+
+In almost any cases, you'll get the appropriate response in the following JSON format (by udp):
+
+    {
+        "hardware_version": "1.8.3.7-2",
+        "ip": "192.168.0.40",
+        "led": true,
+        "mac_address": "00:0F:12:D4:88:2F",
+        "max_volume": -1,
+        "model": "ZPS1",
+        "mute": false,
+        "pause": false,
+        "play": true,
+        "playlist_position": "10",
+        "radio_show": "",
+        "radio_station": "",
+        "serial_number": "00-0F-12-D4-88-2F:1",
+        "software_version": "26.1-76230",
+        "status": true,
+        "stop": false,
+        "streamtype": "music",
+        "track_album_art": "http://192.168.0.40:1400/getaa?s=1&u=x-sonos-spotify%3aspotify%253atrack%253a3ZJSDh87VrZXvJGwZ82zQu%3fsid%3d9%26flags%3d32",
+        "track_artist": "Herbert Grönemeyer",
+        "track_duration": "0:03:30",
+        "track_position": "0:02:21",
+        "track_title": "Halt Mich",
+        "track_uri": "x-sonos-spotify:spotify%3atrack%3a3ZJSDh87VrZXvJGwZ82zQu?sid=9&flags=32",
+        "uid": "rincon_000f44c3892e01400",
+        "volume": "2",
+        "zone_coordinator": "rincon_000f44c3892e01400",
+        "zone_icon": "x-rincon-roomicon:bedroom",
+        "zone_id": "RINCON_B9E94030D19801400:19",
+        "additional zone_members": "rincon_000f44c3892e01400,rincon_b9e94030d19801400"
+        "zone_name": "child room",
+        "bass": "5",
+        "treble": "2",
+        "loudness": true,
+        "playmode": "shuffle_norepeat"
+    }
+
+To put it in a nutshell: code your own client (Python, Perl, C#...) with an open and listening udp port and subscribe
+your client to the Sonos Broker. And / or use your browser to control your sonos speaker.
+
+
+##Get the UID
+
 Most of the commands need a speaker uid. Just type
 	
     http://<sonos_server_ip:port>/client/list
@@ -224,10 +287,7 @@ Most of the commands need a speaker uid. Just type
 to get a short overview of your sonos speakers in the network and to retrieve the uid.
 		
 
-#First implemented commands (more coming soon):
-
-##Speaker commands
-
+#Speaker commands
 
     current_state
 
@@ -535,48 +595,6 @@ to get a short overview of your sonos speakers in the network and to retrieve th
 			/>
 
 
-###Response:
-
-In almost any cases, you will get the appropriate response in the following JSON format (by udp):
-
-    {
-        "hardware_version": "1.8.3.7-2",
-        "ip": "192.168.0.40",
-        "led": true,
-        "mac_address": "00:0F:12:D4:88:2F",
-        "max_volume": -1,
-        "model": "ZPS1",
-        "mute": false,
-        "pause": false,
-        "play": true,
-        "playlist_position": "10",
-        "radio_show": "",
-        "radio_station": "",
-        "serial_number": "00-0F-12-D4-88-2F:1",
-        "software_version": "26.1-76230",
-        "status": true,
-        "stop": false,
-        "streamtype": "music",
-        "track_album_art": "http://192.168.0.40:1400/getaa?s=1&u=x-sonos-spotify%3aspotify%253atrack%253a3ZJSDh87VrZXvJGwZ82zQu%3fsid%3d9%26flags%3d32",
-        "track_artist": "Herbert Grönemeyer",
-        "track_duration": "0:03:30",
-        "track_position": "0:02:21",
-        "track_title": "Halt Mich",
-        "track_uri": "x-sonos-spotify:spotify%3atrack%3a3ZJSDh87VrZXvJGwZ82zQu?sid=9&flags=32",
-        "uid": "rincon_000f44c3892e01400",
-        "volume": "2",
-        "zone_coordinator": "rincon_000f44c3892e01400",
-        "zone_icon": "x-rincon-roomicon:bedroom",
-        "zone_id": "RINCON_B9E94030D19801400:19",
-        "additional zone_members": "rincon_000f44c3892e01400,rincon_b9e94030d19801400"
-        "zone_name": "child room",
-        "bass": "5",
-        "treble": "2",
-        "loudness": true,
-        "playmode": "shuffle_norepeat"
-    }
-
-
 ##Library commands
 
     favorite radio stations
@@ -608,10 +626,3 @@ In almost any cases, you will get the appropriate response in the following JSON
                 "returned": 2,
                 "total": "10"
             }
-
-
-##TO DO:
-
-	* full SoCo command implementation
-	* documentation
-	* and many more

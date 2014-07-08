@@ -6,10 +6,16 @@ import ctypes
 import json
 import os
 import platform
+import socket
 import requests
 import re
 import urllib
 import urllib.request
+import logging
+
+if os.name != "nt":
+    import fcntl
+    import struct
 
 try:
     from types import StringType, UnicodeType
@@ -17,6 +23,8 @@ try:
 except ImportError:
     StringType = bytes
     UnicodeType = str
+
+logger = logging.getLogger('')
 
 
 def really_unicode(in_string):
@@ -74,10 +82,11 @@ def get_free_space_mb(folder):
     if platform.system() == 'Windows':
         free_bytes = ctypes.c_ulonglong(0)
         ctypes.windll.kernel32.GetDiskFreeSpaceExW(ctypes.c_wchar_p(folder), None, None, ctypes.pointer(free_bytes))
-        return int(round(free_bytes.value/1024/1024, 0))
+        return int(round(free_bytes.value / 1024 / 1024, 0))
     else:
         st = os.statvfs(folder)
-        return int(round(st.f_bavail * st.f_frsize/1024/1024, 0))
+        return int(round(st.f_bavail * st.f_frsize / 1024 / 1024, 0))
+
 
 def check_directory_permissions(local_share):
     if not os.path.exists(local_share):
@@ -85,6 +94,7 @@ def check_directory_permissions(local_share):
         return False
 
     return os.access(local_share, os.W_OK) and os.access(local_share, os.R_OK)
+
 
 def get_folder_size(folder):
     total_size = 0
@@ -94,16 +104,16 @@ def get_folder_size(folder):
             total_size += os.path.getsize(fp)
     return total_size
 
-def save_google_tts(local_share, tts_string, tts_language, quota):
 
+def save_google_tts(local_share, tts_string, tts_language, quota):
     size = int(get_folder_size(local_share) / 1024 / 1024)
     if size == 0:
         size = 1
 
     if quota < size:
-        #since this is a const value, no more files will be written (only this mp3 onetime)
+        # since this is a const value, no more files will be written (only this mp3 onetime)
         tts_language = 'en'
-        tts_string ='Cannot save file. File size quota exceeded!'
+        tts_string = 'Cannot save file. File size quota exceeded!'
 
     url = "http://translate.google.com/translate_tts?ie=UTF-8&tl={tts_language}&q={tts_string}"
     url = url.format(tts_language=tts_language, tts_string=urllib.request.quote(tts_string))
@@ -112,7 +122,7 @@ def save_google_tts(local_share, tts_string, tts_language, quota):
     fname = '{}.mp3'.format(base64_name)
     abs_fname = os.path.join(local_share, fname)
 
-    #check if file exists, no need to browse google tts
+    # check if file exists, no need to browse google tts
     if os.path.exists(abs_fname):
         return fname
 
@@ -125,16 +135,19 @@ def save_google_tts(local_share, tts_string, tts_language, quota):
         else:
             raise requests.RequestException('Status code: {}'.format(response.status_code))
     except requests.RequestException as e:
-        raise("Couldn't obtain TTS from Google.\nError: {}".format(e.errno))
+        raise ("Couldn't obtain TTS from Google.\nError: {}".format(e.errno))
+
 
 def to_JSON(value):
-        return json.dumps(value, default=lambda o: value, ensure_ascii=False)
+    return json.dumps(value, default=lambda o: value, ensure_ascii=False)
+
 
 def check_volume_range(volume):
     if volume < 0 or volume > 100:
         print('Volume has to be between 0 and 100.')
         return False
     return True
+
 
 def url_fix(s, charset='utf-8'):
     """Sometimes you get an URL by a user that just isn't a real
@@ -162,12 +175,36 @@ def check_max_volume_exceeded(volume, max_volume):
             return True
     return False
 
+
 def check_bass_range(value):
     if value < -10 or value > 10:
         return False
     return True
 
+
 def check_treble_range(value):
     if value < -10 or value > 10:
         return False
     return True
+
+
+def debug_log_commands(ip, arguments):
+    logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
+
+
+def get_interface_ip(ifname):
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    return socket.inet_ntoa(fcntl.ioctl(s.fileno(), 0x8915, struct.pack('256s', ifname[:15].encode('utf-8')))[20:24])
+
+
+def get_lan_ip():
+    ip = socket.gethostbyname(socket.gethostname())
+    if ip.startswith("127.") and os.name != "nt":
+        interfaces = ["eth0", "eth1", "eth2", "wlan0", "wlan1", "wifi0", "ath0", "ath1", "ppp0"]
+        for ifname in interfaces:
+            try:
+                ip = get_interface_ip(ifname)
+                break
+            except IOError:
+                pass
+    return ip
