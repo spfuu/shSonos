@@ -3,7 +3,8 @@ The plugin is designed to control the sonos speakers in connection with the sono
 
 
 ##Release
-  v1.0-beta 2014-06-26
+
+  v1.0  2014-07-08
     
     --  parameter 'broker_url' in plugin configuration now optional
         -   if value is not set, the current system ip and the default broker port (12900) will be assumed
@@ -432,6 +433,11 @@ get_favorite_radiostations(<start_item>, <max_items>)
 version()
 
     current plugin version
+
+
+##smartVISU Integration
+
+more information here: https://github.com/pfischi/shSonos/tree/develop/widget.smartvisu
 
 
 ##Logic examples

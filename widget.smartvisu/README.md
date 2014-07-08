@@ -1,5 +1,5 @@
 ##Release
-  v0.1  2014-07-05
+  v0.1  2014-07-08
     
     --  first release
 
@@ -46,6 +46,7 @@ Change the gad items to your needs. Here is an example integration:
         name = Lautsprecher
         type = foo
         sv_page = room
+        sv_img = audio_audio.png
         sv_widget = {% import "sonos.html" as sonos %} {{ sonos.music('Play3_Kueche', 'Kueche.play', 'Kueche.stop', 'Kueche.previous', 'Kueche.next', 'Kueche.volume_up', 'Kueche.volume_down', 'Kueche.volume', 'Kueche.mute', 'Kueche.track_album_art', 'Kueche.track_artist', 'Kueche.track_title') }}
 ```
 
