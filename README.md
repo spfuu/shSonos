@@ -3,6 +3,7 @@
 v0.2.3      2014-07-08
 
     -- sonos_broker start script now daemonized (use -d parameter to prevent daemonize behaviour)
+        -- you don't need the sonos_broker.sh script anymore
     -- logger functionality added (see sonos_broker.cfg and documentation)
     -- added radio station parser to get normalized artist and track titles
         -- you can add more regular expressions to lib_sonos/radio_parser.py to handle your stations
