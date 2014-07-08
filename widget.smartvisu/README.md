@@ -26,7 +26,7 @@ default path is:
 Add following line to the end of the files **widgets.js** and **widgets.min.js** (also located in the widgets folder)
 
 ```JavaScript
-$(document).delegate('[data-widget="sonos.music"]',{update:function(e,r){document.getElementById(this.id).src=r.toString()+'?_=' + new Date().getTime();}});
+$(document).delegate('[data-widget="sonos.music"]',{update:function(e,r){if (r.toString()){document.getElementById(this.id).src=r.toString()+'?_='+new Date().getTime();}else{document.getElementById(this.id).src="pages/base/pics/trans.png";}}});
 ```
 
 ##Integration in smarthome.py
