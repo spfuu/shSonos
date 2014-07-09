@@ -1,6 +1,11 @@
 ##Release
-  v0.1  2014-07-08
-    
+
+v0.1.1  2014-07-09
+   
+   --   if no album cover is given, a transparent png is shown
+
+v0.1    2014-07-08
+
     --  first release
 
 ##Requirements:
