@@ -186,7 +186,7 @@ def get_pid(filename):
                 with open('/proc/{}/cmdline'.format(pid), 'r') as f:
                     cmdline = f.readline()
                     if filename in cmdline:
-                        if cmdline.startswith('python'):
+                        if 'python' in cmdline:
                             return int(pid)
             except:
                 pass
