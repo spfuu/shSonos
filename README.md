@@ -1,5 +1,13 @@
 #Release
 
+v0.2.3.1    2014-07-21
+
+    -- logging now works with daemonized sonos broker
+    -- added '-s / --stop' parameter to stop the daemonized sonos broker
+    -- logfile parameter in sonos_broker.cfg now optional
+        -- default logfile path: /[temp path]/sonos_broker.log (usually /tmp/sonos_broker.log)
+    
+
 v0.2.3      2014-07-08
 
     -- sonos_broker start script now daemonized (use -d parameter to prevent daemonize behaviour)
@@ -57,11 +65,6 @@ v0.1.9      2014-04-27
 v0.1.8.1    2014-03-27
 
     --  bugfix: server does not start correctly if no local share for Google TTS was found
-
-v0.1.8      2014-03-26
-
-    --  add Google Text-To-Speech suppor (see documentation)
-    --  minor bugfixes
 
 
 #Overview
