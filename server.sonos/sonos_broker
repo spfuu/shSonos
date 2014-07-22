@@ -4,19 +4,18 @@
 # ####################################################################
 # Imports
 # ####################################################################
-import argparse
 
-import datetime
+import os
+import argparse
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import locale
-import os
 import socketserver
 import logging
 import logging.handlers
 import threading
-from time import sleep
 import configparser
 import signal
+import time
 from lib_sonos import utils
 from lib_sonos import definitions
 from lib_sonos.sonos_commands import Command
@@ -26,19 +25,9 @@ from lib_sonos import daemon
 # ####################################################################
 # GLOBALS
 # ####################################################################
-
-logger = logging.getLogger('')
 command_service = None
-
-class LogHandler(logging.StreamHandler):
-    def __init__(self, log):
-        logging.StreamHandler.__init__(self)
-        self._log = log
-
-    def emit(self, record):
-        timestamp = datetime.datetime.fromtimestamp(record.created, 'UTC')
-        self._log.add([timestamp, record.threadName, record.levelname, record.message])
-
+homedir = os.path.dirname(os.path.realpath(__file__))
+logger = logging.getLogger('')
 
 class SonosHttpHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -61,9 +50,16 @@ class ThreadedHTTPServer(socketserver.ThreadingMixIn, HTTPServer):
 
 
 class SonosBroker():
+    @property
+    def loghandler(self):
+        return self._loghandler
+
     def __init__(self, debug=False):
         global command_service
+        global homedir
+        global logger
         self._debug = debug
+        self._loghandler = None
         self._http_server = None
         self._host = ''
         self._port = ''
@@ -76,24 +72,25 @@ class SonosBroker():
         self._port = definitions.DEFAULT_PORT
         self._host = definitions.DEFAULT_HOST
         self._sonos_service = None
+        self._server_active = True
 
-        if not self._debug:
-            daemon.daemonize()
-
-        #############################################################
+        # ############################################################
         # Signal Handling
-        #############################################################
+        # ############################################################
 
         signal.signal(signal.SIGHUP, self.stop)
         signal.signal(signal.SIGINT, self.stop)
         signal.signal(signal.SIGTERM, self.stop)
 
-        # ####################################################################
-        # Logging
-        # ####################################################################
-
         config = configparser.ConfigParser()
-        config.read(definitions.DEFAULT_CFG)
+
+        config_path = os.path.join(homedir, definitions.DEFAULT_CFG)
+        config.read(config_path)
+        print(config_path)
+
+        #############################################################
+        # Logging
+        #############################################################
 
         if config.has_section('logging'):
             if config.has_option('logging', 'loglevel'):
@@ -106,20 +103,35 @@ class SonosBroker():
 
             if config.has_option('logging', 'logfile'):
                 self._logfile = config.get('logging', 'logfile').strip("\"").strip("'")
+            else:
+                self._logfile = definitions.DEFAULT_LOG
+
+            self._logfile = os.path.expanduser(self._logfile)
+            self._logfile = os.path.expandvars(self._logfile)
+
+            if not os.path.isabs(self._logfile):
+                self._logfile = os.path.join(homedir, self._logfile)
+
+            try:
+                if not os.path.exists(os.path.dirname(self._logfile)):
+                    os.makedirs(os.path.dirname(self._logfile))
+            except Exception:
+                logger.error("Couldn't create logfile path '{path}'. Using default path {'def_path}'!".format(
+                    path=os.path.dirname(self._logfile, def_path=definitions.DEFAULT_LOG)))
 
             numeric_level = getattr(logging, loglevel.upper(), None)
             if not isinstance(numeric_level, int):
                 raise ValueError('Invalid log level: %s' % loglevel)
 
-            _logdate = "%Y-%m-%d %H:%M:%S"
-            _logformat = "%(asctime)s %(levelname)-8s %(threadName)-12s %(message)s"
+            logdate = "%Y-%m-%d %H:%M:%S"
+            logformat = "%(asctime)s %(levelname)-8s %(threadName)-12s %(message)s"
 
             if numeric_level == logging.DEBUG:
-                _logdate = None
-                _logformat = "%(asctime)s %(levelname)-" \
-                             "8s %(threadName)-12s %(message)s -- %(filename)s:%(funcName)s:%(lineno)d"
+                logdate = None
+                logformat = "%(asctime)s %(levelname)-" \
+                            "8s %(threadName)-12s %(message)s -- %(filename)s:%(funcName)s:%(lineno)d"
 
-            logging.basicConfig(level=numeric_level, format=_logformat, datefmt=_logdate)
+            logging.basicConfig(level=numeric_level, format=logformat, datefmt=logdate)
 
             #############################################################
             # logfile write test
@@ -134,13 +146,15 @@ class SonosBroker():
                     print("Error creating logfile {}: {}".format(self._logfile, e))
 
                 try:
-                    formatter = logging.Formatter(_logformat, _logdate)
-                    log_file = logging.handlers.TimedRotatingFileHandler(self._logfile, when='midnight', backupCount=7)
-                    log_file.setLevel(numeric_level)
-                    log_file.setFormatter(formatter)
+                    formatter = logging.Formatter(logformat, logdate)
+                    self._loghandler = logging.handlers.TimedRotatingFileHandler(self._logfile, when='midnight',
+                                                                                 backupCount=7)
+                    self._loghandler.setLevel(numeric_level)
+                    self._loghandler.setFormatter(formatter)
                     if numeric_level == logging.DEBUG:  # clean log
-                        log_file.doRollover()
-                    logging.getLogger('').addHandler(log_file)
+                        self._loghandler.doRollover()
+                    logger.addHandler(self._loghandler)
+
                 except IOError as e:
                     print("Error creating logfile {}: {}".format(self._logfile, e))
 
@@ -175,11 +189,11 @@ class SonosBroker():
                     self._quota = config.getint('google_tts', 'quota')
 
         if self._tts_enabled and not self._save_path:
-            logging.warning('No local save path given!')
+            logger.warning('No local save path given!')
             self._tts_enabled = False
 
         if self._tts_enabled and not self._server_url:
-            logging.warning('No local server url given!')
+            logger.warning('No local server url given!')
             self._tts_enabled = False
 
         if self._tts_enabled and not self._quota:
@@ -195,40 +209,41 @@ class SonosBroker():
 
                 if free_diskspace < self._quota:
                     logger.warning(
-                        'Not enough diskspace left on \'{}\'. At least {} mb of free diskspace required!'.format(
+                        'Not enough disk space left on \'{}\'. At least {} mb of free diskspace required!'.format(
                             self._save_path,
                             self._quota))
                     self._tts_enabled = False
 
         if not self._tts_enabled:
-            logger.info('Google-TTS disabled!')
+            logger.debug('Google-TTS disabled!')
         else:
-            logger.info('Google-TTS enabled!')
-            logger.info('server_url:\t\t{}'.format(self._server_url))
-            logger.info('save_path:\t\t{}'.format(self._save_path))
+            logger.debug('Google-TTS enabled!')
+            logger.debug('server_url: {}'.format(self._server_url))
+            logger.debug('save_path: {}'.format(self._save_path))
 
     def start(self):
         global command_service
         logger.info("Sonos Broker v{version}".format(version=definitions.VERSION))
-        logger.info("Starting server with ip address {ip} ... be sure this is correct.".format(ip=self._server_ip))
-        sleep(1)
-
+        logger.info(
+            "Starting server with ip address {ip} ... be sure this is correct.".format(ip=self._server_ip))
+        time.sleep(1)
         self._sonos_service = SonosServerService(self._server_ip, self._port, self._server_url, self._save_path,
-                                           self._quota, self._tts_enabled)
+                                                 self._quota, self._tts_enabled)
         command_service = Command(self._sonos_service)
         self._http_server = ThreadedHTTPServer((self._host, self._port), SonosHttpHandler)
         logger.info('Starting http server, use <Ctrl-C> to stop')
-        self._http_server.serve_forever()
+
+        while self._server_active:
+            self._http_server.serve_forever()
 
     def stop(self, signal, frame):
-        logger.debug("SIGNAL stop")
         logger.debug('unsubscribing from sonos speakers ...')
         if self._sonos_service is not None:
             self._sonos_service.unsubscribe_speaker_events()
-
         if self._http_server:
+            self._server_active = False
             logger.debug('closing http server ...')
-            self._http_server.server_close()
+            self._http_server.shutdown()
         for thread in threading.enumerate():
             try:
                 thread.join(1)
@@ -239,18 +254,43 @@ class SonosBroker():
                 logger.info("Thread: {}, still alive".format(thread.name))
         else:
             logger.info("Sonos Broker stopped")
-        logging.shutdown()
-        exit()
+
+def kill(pid, wait=10):
+    delay = 0.25
+    waited = 0
+    if pid:
+        os.kill(pid, signal.SIGTERM)
+        while waited < wait:
+            try:
+                os.kill(pid, 0)
+            except OSError:
+                os._exit(0)
+            waited += delay
+            time.sleep(delay)
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except OSError:
+            os._exit(0)
 
 if __name__ == '__main__':
-
     argparser = argparse.ArgumentParser()
-    argparser.add_argument('-d', '--debug', help='stay in the foreground with verbose output', action='store_true')
+    argparser.add_argument('-d', '--debug', help='Debug Mode: Broker stays in foreground with verbose output', action='store_true')
+    argparser.add_argument('-s', '--stop', help='Stops the Sonos Broker', action='store_true')
     args = argparser.parse_args()
 
-    if locale.getdefaultlocale() == (None, None):
-        locale.setlocale(locale.LC_ALL, 'C')
+    if args.stop:
+        print('Shutting down Sonos Broker ...')
+        kill(daemon.get_pid(__file__))
     else:
-        locale.setlocale(locale.LC_ALL, '')
-    broker = SonosBroker(args.debug)
-    broker.start()
+        broker = SonosBroker(args.debug)
+        if locale.getdefaultlocale() == (None, None):
+            locale.setlocale(locale.LC_ALL, 'C')
+        else:
+            locale.setlocale(locale.LC_ALL, '')
+
+        if not args.debug:
+            d = daemon.Daemonize(app=__name__, pid=definitions.DEFAULT_PID, action=broker.start,
+                                 keep_fds=[broker.loghandler.stream.fileno()])
+            d.start()
+        else:
+            broker.start()
