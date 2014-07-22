@@ -83,10 +83,8 @@ class SonosBroker():
         signal.signal(signal.SIGTERM, self.stop)
 
         config = configparser.ConfigParser()
-
         config_path = os.path.join(homedir, definitions.DEFAULT_CFG)
         config.read(config_path)
-        print(config_path)
 
         #############################################################
         # Logging
