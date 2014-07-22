@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+import os
+import tempfile
+
 __author__ = 'pfischi'
 
 PLAYER_SEARCH = """M-SEARCH * HTTP/1.1
@@ -21,13 +24,14 @@ NS = {'dc': '{http://purl.org/dc/elements/1.1/}',
 
 ip_pattern = '^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$'
 
-VERSION = "0.2.3"
+VERSION = "v0.2.3.1"
 
 DEFAULT_HOST = '0.0.0.0'
 DEFAULT_PORT = 12900
 DEFAULT_QUOTA = 100
 DEFAULT_CFG = 'sonos_broker.cfg'
-
+DEFAULT_LOG = os.path.join(tempfile.gettempdir(), 'sonos_broker.log')
+DEFAULT_PID = os.path.join(tempfile.gettempdir(), 'sonos_broker.pid')
 HTTP_SUCCESS = 200
 HTTP_ERROR = 400
 SCAN_TIMEOUT = 60
