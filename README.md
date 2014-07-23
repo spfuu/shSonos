@@ -136,7 +136,7 @@ You can add the -d (--debug) parameter to hold the process in the foreground.
 
 You can stop the server with
 ```
-sonos_broker -d
+sonos_broker -s
 ```
 
 To get an overview of all parameters type
