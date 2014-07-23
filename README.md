@@ -104,7 +104,7 @@ Go to the unpacked folder and run setup.py with:
 This command will install all the python packages and places the start script to the python folder
 "/user/local/bin"
 
-Make the file executable run the sonos_broker with:
+Make the file executable and run the sonos_broker with:
 
     chmod +x sonos_broker
     ./sonos_broker
@@ -132,6 +132,16 @@ the server will be automatically daemonized.
 You can add the -d (--debug) parameter to hold the process in the foreground.
 ```
 ./sonos_broker -d
+```
+
+You can stop the server with
+```
+sonos_broker -d
+```
+
+To get an overview of all parameters type
+```
+sonos_broker -h
 ```
 
 To autostart the service on system boot, please follow the instruction for your linux distribution and put this
