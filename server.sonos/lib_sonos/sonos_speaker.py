@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+from soco import alarms
 from soco.exceptions import SoCoUPnPException
 import threading
 import time
@@ -20,6 +21,7 @@ _sonos_lock = threading.Lock()
 class SonosSpeaker():
     def __init__(self, soco):
         self._soco = soco
+        self._alarms = ''
         self._uid = self.soco.uid.lower()
         self._volume = self.soco.volume
         self._mute = 0
@@ -59,6 +61,7 @@ class SonosSpeaker():
         self._sub_av_transport = None
         self._sub_rendering_control = None
         self._sub_zone_group = None
+        self._sub_alarm = None
         self._properties_hash = None
         self._speaker_zone_coordinator = None
 
@@ -97,6 +100,10 @@ class SonosSpeaker():
     @property
     def sub_zone_group(self):
         return self._sub_zone_group
+
+    @property
+    def sub_alarm(self):
+        return self._sub_alarm
 
     @property
     def serial_number(self):
@@ -440,6 +447,10 @@ class SonosSpeaker():
             self._max_volume = m_volume
 
     @property
+    def alarms(self):
+        return self._alarms
+
+    @property
     def status(self):
         return self._status
 
@@ -475,6 +486,7 @@ class SonosSpeaker():
             self._zone_coordinator = ''
             self._zone_icon = ''
             self._playmode = ''
+            self._alarms = ''
 
     # ---------------------------------------------------------------------------------
     #
@@ -576,7 +588,8 @@ class SonosSpeaker():
                 'bass': self.bass,
                 'treble': self.treble,
                 'loudness': self.loudness,
-                'playmode': self.playmode
+                'playmode': self.playmode,
+                'alarms': self.alarms
             }
 
     def to_json(self):
@@ -646,22 +659,53 @@ class SonosSpeaker():
     def event_subscription(self, event_queue):
 
         try:
-            if self.sub_zone_group is None or self._sub_zone_group.time_left == 0:
+            if self.sub_zone_group is None or self.sub_zone_group.time_left == 0:
                 self._sub_zone_group = self.soco.zoneGroupTopology.subscribe(None, True, event_queue)
 
-            if self.sub_av_transport is None or self._sub_av_transport.time_left == 0:
+            if self.sub_av_transport is None or self.sub_av_transport.time_left == 0:
                 self._sub_av_transport = self.soco.avTransport.subscribe(None, True, event_queue)
 
-            if self.sub_rendering_control is None or self._sub_rendering_control.time_left == 0:
+            if self.sub_rendering_control is None or self.sub_rendering_control.time_left == 0:
                 self._sub_rendering_control = self.soco.renderingControl.subscribe(None, True, event_queue)
+
+            if self.sub_alarm is None or self.sub_alarm.time_left == 0:
+                self._sub_alarm = self.soco.alarmClock.subscribe(None, True, event_queue)
 
         except Exception as err:
             logger.exception(err)
 
-    def _play_tts_thread(self, tts, volume, smb_url, local_share, language, quota):
-        try:##
-            fname = utils.save_google_tts(local_share, tts, language, quota)
+    def get_alarms(self):
+        """
+        Gets all alarms for the speaker
+        :return:
+        """
+        values = alarms.get_alarms(self.soco)
+        alarm_dict = {}
+        for alarm in values:
+            if alarm.zone.uid.lower() != self.uid.lower():
+                continue
+            dict = SonosSpeaker.alarm_to_dict(alarm)
+            alarm_dict[alarm._alarm_id] = dict
+        self._alarms = alarm_dict
 
+    @staticmethod
+    def alarm_to_dict(alarm):
+        return {
+            'Enabled': alarm.enabled,
+            'Duration': str(alarm.duration),
+            'PlayMode': alarm.play_mode,
+            'Volume': alarm.volume,
+            'Recurrence': alarm.recurrence,
+            'StartTime': str(alarm.start_time),
+            'IncludedLinkZones': alarm.include_linked_zones
+            #'ProgramUri': alarm.program_uri,
+            #'ProgramMetadata': alarm.program_metadata,
+            #'Uid': alarm.zone.uid
+        }
+
+    def _play_tts_thread(self, tts, volume, smb_url, local_share, language, quota):
+        try:
+            fname = utils.save_google_tts(local_share, tts, language, quota)
             if smb_url.endswith('/'):
                 smb_url = smb_url[:-1]
 

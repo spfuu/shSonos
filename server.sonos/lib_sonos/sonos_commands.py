@@ -695,13 +695,3 @@ class Command():
 
         except Exception as err:
             return False, Exception("FAVRADIO command failed!\nException: {}".format(err))
-
-class JsonCommandBase():
-    def __init__(self, json_data):
-        self._json_data = json_data
-        self._uid = ''
-
-class JsonCommandAlarm(JsonCommandBase):
-    def __init__(self):
-        pass
-

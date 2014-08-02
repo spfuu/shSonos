@@ -64,6 +64,8 @@ def camel_to_underscore(string):
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', string)
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
+def underscore_to_camel(value):
+    return ''.join(x.capitalize() or '_' for x in value.split('_'))
 
 def prettify(unicode_text):
     """Return a pretty-printed version of a unicode XML string. Useful for
@@ -131,6 +133,7 @@ def save_google_tts(local_share, tts_string, tts_language, quota):
         if response and response.status_code == 200:
             with open(abs_fname, 'wb') as file:
                 file.write(response.content)
+            os.chmod(abs_fname, 0o660)
             return fname
         else:
             raise requests.RequestException('Status code: {}'.format(response.status_code))

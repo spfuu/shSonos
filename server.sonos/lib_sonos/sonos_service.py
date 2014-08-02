@@ -216,6 +216,9 @@ class SonosServerService():
                 if event[2].service_type == 'RenderingControl':
                     self.handle_RenderingControl_event(speaker, event[3])
 
+                if event[2].service_type == 'AlarmClock':
+                    self.handle_AlarmClock_event(speaker, event[3])
+
                 speaker.send_data()
 
             except queue.Empty:
@@ -342,7 +345,7 @@ class SonosServerService():
             speaker._radio_show = ''
             speaker._radio_station = ''
 
-                ############ CURRENT TRACK METADATA
+############ CURRENT TRACK METADATA
 
         didl_element = dom.find(".//%sCurrentTrackMetaData" % namespace)
 
@@ -353,6 +356,12 @@ class SonosServerService():
                 if didl_dom:
                     self.parse_track_metadata(speaker, didl_dom)
 
+    def handle_AlarmClock_event(self, speaker, variables):
+        """
+        There seems no additional info in variables. The event only gives us the event subscription id.
+        So we call the get_alarms routine.
+        """
+        speaker.get_alarms()
 
     def handle_RenderingControl_event(self, speaker, variables):
         namespace = '{urn:schemas-upnp-org:metadata-1-0/RCS/}'
@@ -363,7 +372,7 @@ class SonosServerService():
         if volume_state_element is not None:
             volume = volume_state_element.get('val')
 
-            #don't use property setter here. This would trigger a soco action. Use class variable instead!
+            #don't use property setter here. This would trigger a soco action. Use private class variable instead!
             if volume:
                 if utils.check_max_volume_exceeded(volume, speaker.max_volume):
                     speaker.volume = speaker.max_volume
