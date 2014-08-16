@@ -3,6 +3,9 @@ The plugin is designed to control the sonos speakers in connection with the sono
 
 
 ##Release
+  v1.1  2014-08-15
+  
+    --  added alarms property
 
   v1.0  2014-07-08
     
