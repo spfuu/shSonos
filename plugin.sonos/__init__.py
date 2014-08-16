@@ -345,6 +345,7 @@ class SonosSpeaker():
         self.treble = []
         self.loudness = []
         self.playmode = []
+        self.alarms =[]
 
 
 class SonosCommand():
