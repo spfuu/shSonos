@@ -52,7 +52,6 @@ class GetVolume(JsonCommandBase):
             logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
                                                                                   attributes=utils.dump_attributes(
                                                                                       self)))
-
             sonos_speaker.sonos_speakers[self.uid].dirty_property('volume')
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
@@ -326,6 +325,8 @@ class SetStop(JsonCommandBase):
             return self._status, self._response
 
 
+### PLAY ###############################################################################################################
+
 class GetPlay(JsonCommandBase):
     def __init__(self, parameter):
         super().__init__(parameter)
@@ -364,6 +365,8 @@ class SetPlay(JsonCommandBase):
         finally:
             return self._status, self._response
 
+
+### PAUSE ##############################################################################################################
 
 class GetPause(JsonCommandBase):
     def __init__(self, parameter):
@@ -404,6 +407,8 @@ class SetPause(JsonCommandBase):
             return self._status, self._response
 
 
+### RADIO STATION ######################################################################################################
+
 class GetRadioStation(JsonCommandBase):
     def __init__(self, parameter):
         super().__init__(parameter)
@@ -424,6 +429,8 @@ class GetRadioStation(JsonCommandBase):
             return self._status, self._response
 
 
+### RADIO SHOW #########################################################################################################
+
 class GetRadioShow(JsonCommandBase):
     def __init__(self, parameter):
         super().__init__(parameter)
@@ -434,6 +441,28 @@ class GetRadioShow(JsonCommandBase):
                                                                                   attributes=utils.dump_attributes(
                                                                                       self)))
             sonos_speaker.sonos_speakers[self.uid].dirty_property('radio_show')
+            sonos_speaker.sonos_speakers[self.uid].send()
+            self._status = True
+        except AttributeError as err:
+            self._response = JsonCommandBase.missing_param_error(err)
+        except Exception as err:
+            self._response = err
+        finally:
+            return self._status, self._response
+
+
+### PLAYMODE ###########################################################################################################
+
+class GetPlaymode(JsonCommandBase):
+    def __init__(self, parameter):
+        super().__init__(parameter)
+
+    def run(self):
+        try:
+            logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
+                                                                                  attributes=utils.dump_attributes(
+                                                                                      self)))
+            sonos_speaker.sonos_speakers[self.uid].dirty_property('playmode')
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
         except AttributeError as err:
@@ -464,7 +493,7 @@ class SetPlaymode(JsonCommandBase):
                 raise Exception('Invalid Playmode \'{mode}\'. Available modes : normal, shuffle, shuffle_norepeat, '
                                 'repeat_all'.format(mode=self.playmode))
 
-            sonos_speaker.sonos_speakers[self.uid].trigger_playmode(self.playmode)
+            sonos_speaker.sonos_speakers[self.uid].set_playmode(self.playmode, trigger_action=True)
             self._status = True
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -474,25 +503,7 @@ class SetPlaymode(JsonCommandBase):
             return self._status, self._response
 
 
-class GetPlaymode(JsonCommandBase):
-    def __init__(self, parameter):
-        super().__init__(parameter)
-
-    def run(self):
-        try:
-            logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
-                                                                                  attributes=utils.dump_attributes(
-                                                                                      self)))
-            sonos_speaker.sonos_speakers[self.uid].dirty_property('playmode')
-            sonos_speaker.sonos_speakers[self.uid].send()
-            self._status = True
-        except AttributeError as err:
-            self._response = JsonCommandBase.missing_param_error(err)
-        except Exception as err:
-            self._response = err
-        finally:
-            return self._status, self._response
-
+### ALARMS #############################################################################################################
 
 class GetAlarms(JsonCommandBase):
     def __init__(self, parameter):

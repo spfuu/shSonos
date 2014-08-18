@@ -11,7 +11,6 @@ from lib_sonos import utils
 from hashlib import sha1
 import collections
 
-
 try:
     import xml.etree.cElementTree as XML
 except ImportError:
@@ -20,7 +19,6 @@ except ImportError:
 logger = logging.getLogger('')
 sonos_speakers = {}
 _sonos_lock = threading.Lock()
-compare = lambda x, y: collections.Counter(x) == collections.Counter(y)
 
 
 class SonosSpeaker():
@@ -98,12 +96,14 @@ class SonosSpeaker():
     def speaker_zone_coordinator(self, value):
         self._speaker_zone_coordinator = value
 
+    @property
     def is_coordinator(self):
         if self == self._speaker_zone_coordinator:
             return True
         return False
 
     ### EVENTS #########################################################################################################    
+
     @property
     def sub_av_transport(self):
         return self._sub_av_transport
@@ -120,23 +120,31 @@ class SonosSpeaker():
     def sub_alarm(self):
         return self._sub_alarm
 
+    ### SERIAL #########################################################################################################
+
     @property
     def serial_number(self):
         return self._serial_number
+
+    ### SOFTWARE VERSION ###############################################################################################
 
     @property
     def software_version(self):
         return self._software_version
 
+    ### HARDWARE VERSION ###############################################################################################
+
     @property
     def hardware_version(self):
         return self._hardware_version
+
+    ### MAC ADDRESS ####################################################################################################
 
     @property
     def mac_address(self):
         return self._mac_address
 
-    # ## LED ###########################################################################################################
+    ### LED ############################################################################################################
 
     def get_led(self):
         return self._led
@@ -181,7 +189,6 @@ class SonosSpeaker():
                 for speaker in self._zone_members:
                     speaker.set_treble(treble, trigger_action=True, group_command=False)
             self.soco.treble = treble
-
         if self._treble == treble:
             return
         self._treble = treble
@@ -206,33 +213,38 @@ class SonosSpeaker():
 
     ### PLAYMODE #######################################################################################################
 
-    @property
-    def playmode(self):
+    def get_playmode(self):
         if not self.is_coordinator:
             logger.debug("forwarding playmode getter to coordinator with uid {uid}".
                          format(uid=self.speaker_zone_coordinator.uid))
             return self.speaker_zone_coordinator.playmode
         return self._playmode.lower()
 
-    @playmode.setter
-    def playmode(self, value):
-        if self._playmode == value:
-            return
-        self._playmode = value
-        self.dirty_property('playmode')
-
-    def trigger_playmode(self, value):
+    def set_playmode(self, value, trigger_action=False):
         if not self.is_coordinator:
             logger.debug("forwarding playmode setter to coordinator with uid {uid}".
                          format(uid=self.speaker_zone_coordinator.uid))
-            self.speaker_zone_coordinator.trigger_playmode(value)
-        else:
+            self.speaker_zone_coordinator.set_playmode(value, trigger_action)
+        if trigger_action:
             self.soco.play_mode = value
-            self.playmode = value
+        if self._playmode == value:
+            return
+        self._playmode = value
+
+        self.dirty_property('playmode')
+
+        #dirty properties for all zone members, if coordinator
+        if self.is_coordinator:
+            for speaker in self._zone_members:
+                speaker.dirty_propery('playmode')
+
+    ### ZONE ID ########################################################################################################
 
     @property
     def zone_id(self):
         return self._zone_id
+
+    ### ZONE NAME ######################################################################################################
 
     @property
     def zone_name(self):
@@ -939,3 +951,4 @@ class SonosSpeaker():
     loudness = property(get_loudness, set_loudness)
     volume = property(get_volume, set_volume)
     mute = property(get_mute, set_mute)
+    playmode = property(get_playmode, set_playmode)

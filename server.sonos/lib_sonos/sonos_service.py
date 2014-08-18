@@ -378,7 +378,6 @@ class SonosServerService():
         mute_state_element = dom.find(".//%sMute[@channel='Master']" % namespace)
         if mute_state_element is not None:
             mute = mute_state_element.get('val')
-
             if mute:
                 speaker.mute = mute
 
