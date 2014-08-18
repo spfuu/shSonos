@@ -14,8 +14,8 @@ import logging
 from time import sleep
 from soco import discover
 from threading import Lock
-from lib_sonos import utils
 from soco.services import zone_group_state_shared_cache
+from soco import config
 
 try:
     import xml.etree.cElementTree as XML
@@ -46,6 +46,7 @@ class SonosServerService():
     _sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
 
     def __init__(self, host, port, smb_url, local_share, quota, tts_enabled):
+        self.event_lock = Lock()
         self.lock = Lock()
         self.host = host
         self.port = port
@@ -57,7 +58,6 @@ class SonosServerService():
         p_t = threading.Thread(target=self.process_events)
         p_t.daemon = True
         p_t.start()
-
         g_t = threading.Thread(target=self.get_speakers_periodically)
         g_t.daemon = True
         g_t.start()
@@ -80,13 +80,14 @@ class SonosServerService():
             except Exception as err:
                 logger.exception(err)
             finally:
-                 sleep(sleep_scan)
+                sleep(sleep_scan)
 
     def discover(self):
         try:
+            zone_group_state_shared_cache.clear()
             active_uids = []
 
-            soco_speakers = discover()
+            soco_speakers = discover(timeout=5, include_invisible=False)
 
             if soco_speakers is None:
                 return
@@ -100,7 +101,7 @@ class SonosServerService():
                         soco_speaker.get_speaker_info(refresh=True)
                         active_uids.append(uid)
                     except Exception:
-                        #sometimes an offline speaker is cached and will be found by the discover function
+                        # sometimes an offline speaker is cached and will be found by the discover function
                         continue
                     with sonos_speaker._sonos_lock:
                         try:
@@ -147,22 +148,22 @@ class SonosServerService():
             for speaker in sonos_speaker.sonos_speakers.values():
                 with sonos_speaker._sonos_lock:
                     try:
-                        coordinator_uid = speaker.soco.group.coordinator.uid.lower()
+                        soco_instance = next(member for member in speaker.soco.group.members if member.is_coordinator
+                                             is True)
+                        if not soco_instance:
+                            return
+                        speaker.speaker_zone_coordinator = sonos_speaker.sonos_speakers[soco_instance.uid.lower()]
 
-                        if coordinator_uid != speaker.uid:
-                            sonos_speaker.sonos_speakers[speaker.uid].speaker_zone_coordinator = \
-                                sonos_speaker.sonos_speakers[coordinator_uid]
-                        else:
-                            sonos_speaker.sonos_speakers[speaker.uid].speaker_zone_coordinator = None
-
-                        #reset members
-                        sonos_speaker.sonos_speakers[speaker.uid].additional_zone_members = []
+                        # reset members
+                        del sonos_speaker.sonos_speakers[speaker.uid].zone_members[:]
 
                         for member in speaker.soco.group.members:
                             member_uid = member.uid.lower()
                             if member_uid != speaker.uid:
-                                sonos_speaker.sonos_speakers[speaker.uid].additional_zone_members.append(
-                                    sonos_speaker.sonos_speakers[member_uid])
+                                if sonos_speaker.sonos_speakers[member_uid] not in sonos_speaker.sonos_speakers[
+                                    speaker.uid].zone_members:
+                                    sonos_speaker.sonos_speakers[speaker.uid].zone_members.append(
+                                        sonos_speaker.sonos_speakers[member_uid])
                     except KeyError:
                         continue
 
@@ -172,6 +173,7 @@ class SonosServerService():
             pass
 
     def process_events(self):
+        speakers = []
         while True:
             try:
                 event = self.event_queue.get()
@@ -200,12 +202,15 @@ class SonosServerService():
                 with sonos_speaker._sonos_lock:
                     try:
                         speaker = sonos_speaker.sonos_speakers[uid]
+                        if speaker not in speakers:
+                            speakers.append(speaker)
                     except KeyError:
                         pass  # speaker maybe removed from another thread
 
                 if event[2].service_type == 'ZoneGroupTopology':
+                    pass
                     # we're using the soco framework to discover new topology
-                    # this is a bit of network traffic overhead, but we don't nedd to do the same work
+                    # this is a bit of network traffic overhead, but we don't need to do the same work
                     # disable caching
                     zone_group_state_shared_cache.clear()
                     self.discover()
@@ -219,18 +224,22 @@ class SonosServerService():
                 if event[2].service_type == 'AlarmClock':
                     self.handle_AlarmClock_event(speaker, event[3])
 
-                speaker.send_data()
-
+                    # speaker.send_data()
             except queue.Empty:
                 pass
             except KeyboardInterrupt:
                 break
             finally:
+                self.event_lock.acquire()
                 self.event_queue.task_done()
+                if not self.event_queue.unfinished_tasks:
+                    for speaker in speakers:
+                        speaker.send()
+                    del speakers[:]
+                self.event_lock.release()
 
     # missing model name, not implemented in soco framework
     def get_model_name(self, ip):
-
         response = requests.get('http://' + ip + ':1400/xml/device_description.xml')
         dom = XML.fromstring(response.content)
 
@@ -244,44 +253,41 @@ class SonosServerService():
         xml = variables['LastChange']
         dom = XML.fromstring(xml)
 
-        ############# CURRENT TRACK URI
+        # ############ CURRENT TRACK URI
 
         track_uri_element = dom.find(".//%sCurrentTrackURI" % namespace)
         if track_uri_element is not None:
             track_uri = track_uri_element.get('val')
 
-        speaker._track_uri = track_uri
+            if track_uri:
+                speaker.track_uri = track_uri
 
-        ############ CURRENT TRACK DURATION
+        # ########### CURRENT TRACK DURATION
 
         #check whether radio or mp3 is played ---> CurrentTrackDuration > 0 is mp3
         track_duration_element = dom.find(".//%sCurrentTrackDuration" % namespace)
         if track_duration_element is not None:
             track_duration = track_duration_element.get('val')
             if track_duration:
-                speaker._track_duration = track_duration
-
+                speaker.track_duration = track_duration
                 if track_duration == '0:00:00':
-                    speaker._track_position = "00:00:00"
-                    speaker._streamtype = "radio"
+                    speaker.track_position = "00:00:00"
+                    speaker.streamtype = "radio"
                 else:
-                    speaker._streamtype = "music"
+                    speaker.streamtype = "music"
             else:
-                speaker._track_duration = "00:00:00"
+                speaker.track_duration = "00:00:00"
 
-            ############ CurrentPlayMode
+        ############ CurrentPlayMode
 
         current_play_mode_element = dom.find(".//%sCurrentPlayMode" % namespace)
 
         if current_play_mode_element is not None:
-
             current_play_mode = current_play_mode_element.get('val')
-
             if current_play_mode:
-                speaker._playmode = current_play_mode.lower()
+                speaker.playmode = current_play_mode.lower()
 
-
-            ############ TRANSPORTSTATE
+                ############ TRANSPORTSTATE
 
         transport_state_element = dom.find(".//%sTransportState" % namespace)
 
@@ -295,33 +301,29 @@ class SonosServerService():
                     #because where is no event for current track position, we call it active
                     speaker.track_info()
 
-                #don't use property setter here. This would trigger a soco action. Use class variable instead!
                 if transport_state.lower() == "stopped":
-                    speaker._stop = True
-                    speaker._play = False
-                    speaker._pause = False
+                    speaker.stop = 1
+                    speaker.play = 0
+                    speaker.pause = 0
 
                 if transport_state.lower() == "paused_playback":
-                    speaker._stop = False
-                    speaker._play = False
-                    speaker._pause = True
+                    speaker.stop = 0
+                    speaker.play = 0
+                    speaker.pause = 1
 
                 if transport_state.lower() == "playing":
-                    speaker._stop = False
-                    speaker._play = True
-                    speaker._pause = False
+                    speaker.stop = 0
+                    speaker.play = 1
+                    speaker.pause = 0
 
                     #get current track info, if new track is played or resumed to get track_uri, track_album_art
                     speaker.track_info()
 
         if speaker.streamtype == 'radio':
-
-
             r_namespace = '{urn:schemas-rinconnetworks-com:metadata-1-0/}'
             enqueued_data = dom.find(".//%sEnqueuedTransportURIMetaData" % r_namespace)
 
             if enqueued_data is not None:
-
                 enqueued_data = enqueued_data.get('val')
                 speaker._metadata = enqueued_data
 
@@ -335,17 +337,16 @@ class SonosServerService():
                         if radio_station_element is not None:
                             radio_station = radio_station_element.text
 
-                        speaker._radio_station = radio_station
+                        speaker.radio_station = radio_station
 
                 except Exception:  #raised, if enqued_data is empty
-                    speaker._radio_show = ''
-                    speaker._radio_station = ''
-
+                    speaker.radio_show = ''
+                    speaker.radio_station = ''
         else:
-            speaker._radio_show = ''
-            speaker._radio_station = ''
+            speaker.radio_show = ''
+            speaker.radio_station = ''
 
-############ CURRENT TRACK METADATA
+        ############ CURRENT TRACK METADATA
 
         didl_element = dom.find(".//%sCurrentTrackMetaData" % namespace)
 
@@ -371,79 +372,57 @@ class SonosServerService():
         volume_state_element = dom.find(".//%sVolume[@channel='Master']" % namespace)
         if volume_state_element is not None:
             volume = volume_state_element.get('val')
-
-            #don't use property setter here. This would trigger a soco action. Use private class variable instead!
             if volume:
-                if utils.check_max_volume_exceeded(volume, speaker.max_volume):
-                    speaker.volume = speaker.max_volume
-                else:
-                    speaker._volume = volume
+                speaker.volume = volume
 
         mute_state_element = dom.find(".//%sMute[@channel='Master']" % namespace)
         if mute_state_element is not None:
             mute = mute_state_element.get('val')
 
-            #don't use property setter here. This would trigger a soco action. Use class variable instead!
             if mute:
-                if mute == '1':
-                    speaker._mute = True
-                else:
-                    speaker._mute = False
+                speaker.mute = mute
 
         bass_state_element = dom.find(".//%sBass" % namespace)
         if bass_state_element is not None:
             bass = bass_state_element.get('val')
-
-            #don't use property setter here. This would trigger a soco action. Use class variable instead!
             if bass:
-                speaker._bass = int(bass)
-
+                speaker.bass = int(bass)
         treble_state_element = dom.find(".//%sTreble" % namespace)
         if treble_state_element is not None:
             treble = treble_state_element.get('val')
-
-            #don't use property setter here. This would trigger a soco action. Use class variable instead!
             if treble:
-                speaker._treble = int(treble)
+                speaker.treble = int(treble)
 
         loudness_state_element = dom.find(".//%sLoudness[@channel='Master']" % namespace)
         if loudness_state_element is not None:
             loudness = loudness_state_element.get('val')
-
-            #don't use property setter here. This would trigger a soco action. Use class variable instead!
             if loudness is not None:
-                if loudness == '1':
-                    speaker._loudness = True
-                else:
-                    speaker._loudness = False
-
+                speaker.loudness = int(loudness)
 
     @staticmethod
     def parse_track_metadata(speaker, dom):
-
         ignore_title_string = ('ZPSTR_BUFFERING', 'ZPSTR_BUFFERING', 'ZPSTR_CONNECTING', 'x-sonosapi-stream')
-
         title = ''
         artist = ''
 
         try:
-            #title listening radio
+            # title listening radio
             stream_content_element = dom.find('.//r:streamContent', NS)
             if stream_content_element is not None:
                 stream_content = stream_content_element.text
                 if stream_content:
                     if not stream_content.startswith(ignore_title_string):
-                        #if radio, in most cases the following format is used: artist - title
+                        # if radio, in most cases the following format is used: artist - title
                         #if stream_content is not null, radio is assumed
 
-                        if speaker._radio_station:
-                            artist, title = title_artist_parser(speaker._radio_station, stream_content)
+                        if speaker.radio_station:
+                            artist, title = title_artist_parser(speaker.radio_station, stream_content)
 
             radio_show_element = dom.find('.//r:radioShowMd', NS)
             if radio_show_element is not None:
                 radio_show = radio_show_element.text
                 if radio_show:
-                    #the foramt of a radio_show item seems to be this format:
+                    # the foramt of a radio_show item seems to be this format:
                     # <radioshow><,p123456> --> rstrip ,p....
                     radio_show = radio_show.split(',p', 1)
 
@@ -451,16 +430,15 @@ class SonosServerService():
                         radio_show = radio_show[0]
                 else:
                     radio_show = ''
-
-                speaker._radio_show = radio_show
+                speaker.radio_show = radio_show
 
             album_art = dom.findtext('.//{urn:schemas-upnp-org:metadata-1-0/upnp/}albumArtURI')
             if album_art:
                 if not album_art.startswith(('http:', 'https:')):
                     album_art = 'http://' + speaker.ip + ':1400' + album_art
-                speaker._track_album_art = album_art
+                speaker.track_album_art = album_art
 
-            #mp3, etc -> overrides stream content
+            # mp3, etc -> overrides stream content
             title_element = dom.find('.//dc:title', NS)
             if title_element is not None:
                 assumed_title = title_element.text
@@ -473,14 +451,12 @@ class SonosServerService():
                 assumed_artist = artist_element.text
                 if assumed_artist:
                     artist = assumed_artist
-
             if not artist:
                 artist = ''
             if not title:
                 title = ''
-
-            speaker._track_artist = artist
-            speaker._track_title = title
+            speaker.track_artist = artist
+            speaker.track_title = title
 
         except Exception as err:
             print(err)

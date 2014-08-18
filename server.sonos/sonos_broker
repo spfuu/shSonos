@@ -60,6 +60,8 @@ class SonosHttpHandler(BaseHTTPRequestHandler):
                 return
             status, response = cmd_obj.run()
             self.make_response(status, response)
+            logger.debug('Server response -- status: {status} -- response: {response}'.format(status=status,
+                                                                                              response=response))
 
         finally:
             self.connection.close()
