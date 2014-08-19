@@ -221,16 +221,16 @@ class SonosSpeaker():
         return self._playmode.lower()
 
     def set_playmode(self, value, trigger_action=False):
-        if not self.is_coordinator:
-            logger.debug("forwarding playmode setter to coordinator with uid {uid}".
-                         format(uid=self.speaker_zone_coordinator.uid))
-            self.speaker_zone_coordinator.set_playmode(value, trigger_action)
         if trigger_action:
-            self.soco.play_mode = value
+            if not self.is_coordinator:
+                logger.debug("forwarding playmode setter to coordinator with uid {uid}".
+                             format(uid=self.speaker_zone_coordinator.uid))
+                self.speaker_zone_coordinator.set_playmode(value, trigger_action)
+            else:
+                self.soco.play_mode = value
         if self._playmode == value:
             return
         self._playmode = value
-
         self.dirty_property('playmode')
 
         #dirty properties for all zone members, if coordinator
@@ -324,9 +324,7 @@ class SonosSpeaker():
             if group_command:
                 for speaker in self._zone_members:
                     speaker.set_mute(mute, trigger_action=True, group_command=False)
-
             self.soco.mute = mute
-
         if self._mute == value:
             return
         self._mute = value
@@ -409,95 +407,110 @@ class SonosSpeaker():
         self._streamtype = value
         self.dirty_property('streamtype')
 
-    @property
-    def stop(self):
+    ### STOP ###########################################################################################################
+
+    def get_stop(self):
         if not self.is_coordinator:
             logger.debug("forwarding stop getter to coordinator with uid {uid}".
                          format(uid=self.speaker_zone_coordinator.uid))
             return self.speaker_zone_coordinator.stop
         return self._stop
 
-    @stop.setter
-    def stop(self, value):
-        if self._stop == value:
-            return
-        self._stop = value
-        self.dirty_property('stop')
-
-    def trigger_stop(self, value):
+    def set_stop(self, value, trigger_action=False):
         stop = int(value)
-        if not self.is_coordinator:
-            logger.debug("forwarding stop setter to coordinator with uid {uid}".
-                         format(uid=self.speaker_zone_coordinator.uid))
-            self.speaker_zone_coordinator.trigger_stop(stop)
-        else:
-            if stop:
-                self.soco.stop()
-                self.stop = 1
-                self.play = 0
-                self.pause = 0
+        if trigger_action:
+            if not self.is_coordinator:
+                logger.debug("forwarding stop setter to coordinator with uid {uid}".
+                             format(uid=self.speaker_zone_coordinator.uid))
+                self.speaker_zone_coordinator.set_stop(stop, trigger_action=True)
             else:
-                self.play = 1
+                if stop:
+                    self.soco.stop()
+                else:
+                    self.soco.play()
 
-    @property
-    def play(self):
+        if self._stop == stop:
+            return
+
+        self._stop = stop
+        self._play = int(not self._stop)
+        self._pause = 0
+        self.dirty_property('stop', 'play', 'pause')
+
+        #dirty properties for all zone members, if coordinator
+        if self.is_coordinator:
+            for speaker in self._zone_members:
+                speaker.dirty_property('pause', 'play', 'stop')
+
+    ### PLAY ###########################################################################################################
+
+    def get_play(self):
         if not self.is_coordinator:
             logger.debug("forwarding play getter to coordinator with uid {uid}".
                          format(uid=self.speaker_zone_coordinator.uid))
             return self.speaker_zone_coordinator.play
         return self._play
 
-    @play.setter
-    def play(self, value):
-        if self._play == value:
-            return
-        self._play = value
-        self.dirty_property('play')
-
-    def trigger_play(self, value):
+    def set_play(self, value, trigger_action=False):
         play = int(value)
-        if not self.is_coordinator:
-            logger.debug("forwarding play setter to coordinator with uid {uid}".
-                         format(uid=self.speaker_zone_coordinator.uid))
-            self.speaker_zone_coordinator.trigger_play(play)
-        else:
-            if play:
-                self.soco.play()
-                self.stop = 0
-                self.play = 1
-                self.pause = 0
+        if trigger_action:
+            if not self.is_coordinator:
+                logger.debug("forwarding play setter to coordinator with uid {uid}".
+                             format(uid=self.speaker_zone_coordinator.uid))
+                self.speaker_zone_coordinator.set_play(play, trigger_action=True)
             else:
-                self.pause = 1
+                if play:
+                    self.soco.play()
+                else:
+                    self.soco.pause()
 
-    @property
-    def pause(self):
+        if self._play == play:
+            return
+
+        self._play = play
+        self._pause = 0
+        self._stop = int(not self._play)
+        self.dirty_property('pause', 'play', 'stop')
+
+        #dirty properties for all zone members, if coordinator
+        if self.is_coordinator:
+            for speaker in self._zone_members:
+                speaker.dirty_property('pause', 'play', 'stop')
+
+    ### PAUSE ##########################################################################################################
+
+    def get_pause(self):
         if not self.is_coordinator:
             logger.debug("forwarding pause getter to coordinator with uid {uid}".
                          format(uid=self.speaker_zone_coordinator.uid))
-            return self.speaker_zone_coordinator.pause
+            return self.speaker_zone_coordinator.play
         return self._pause
 
-    @pause.setter
-    def pause(self, value):
-        if self._pause == value:
-            return
-        self._pause = value
-        self.dirty_property('pause')
-
-    def trigger_pause(self, value):
+    def set_pause(self, value, trigger_action=False):
         pause = int(value)
-        if not self.is_coordinator:
-            logger.debug("forwarding pause setter to coordinator with uid {uid}".
-                         format(uid=self.speaker_zone_coordinator.uid))
-            self.speaker_zone_coordinator.trigger_pause(pause)
-        else:
-            if pause:
-                self.soco.pause()
-                self.stop = 0
-                self.play = 0
-                self.pause = 1
+        if trigger_action:
+            if not self.is_coordinator:
+                logger.debug("forwarding pause setter to coordinator with uid {uid}".
+                             format(uid=self.speaker_zone_coordinator.uid))
+                self.speaker_zone_coordinator.set_pause(pause, trigger_action=True)
             else:
-                self.trigger_play(1)
+                if pause:
+                    self.soco.pause()
+                else:
+                    self.soco.play()
+
+        if self._pause == pause:
+            return
+
+        self._pause = pause
+        self._play = int(not self._pause)
+        self._stop = 0
+        self.dirty_property('pause', 'play', 'stop')
+
+        #dirty properties for all zone members, if coordinator
+        if self.is_coordinator:
+            for speaker in self._zone_members:
+                speaker.dirty_property('pause', 'play', 'stop')
 
     @property
     def radio_station(self):
@@ -941,9 +954,10 @@ class SonosSpeaker():
 
         self.volume = queued_volume
 
-    def dirty_property(self, prop):
-        if prop not in self._dirty_properties:
-            self._dirty_properties.append(prop)
+    def dirty_property(self, *args):
+        for arg in args:
+            if arg not in self._dirty_properties:
+                self._dirty_properties.append(arg)
 
     led = property(get_led, set_led)
     bass = property(get_bass, set_bass)
@@ -952,3 +966,6 @@ class SonosSpeaker():
     volume = property(get_volume, set_volume)
     mute = property(get_mute, set_mute)
     playmode = property(get_playmode, set_playmode)
+    stop = property(get_stop, set_stop)
+    play = property(get_play, set_play)
+    pause = property(get_pause, set_pause)

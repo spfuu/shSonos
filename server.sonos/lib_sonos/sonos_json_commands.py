@@ -315,7 +315,7 @@ class SetStop(JsonCommandBase):
             logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
                                                                                   attributes=utils.dump_attributes(
                                                                                       self)))
-            sonos_speaker.sonos_speakers[self.uid].trigger_stop(self.stop)
+            sonos_speaker.sonos_speakers[self.uid].set_stop(self.stop, trigger_action=True)
             self._status = True
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -356,7 +356,7 @@ class SetPlay(JsonCommandBase):
             logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
                                                                                   attributes=utils.dump_attributes(
                                                                                       self)))
-            sonos_speaker.sonos_speakers[self.uid].trigger_play(self.play)
+            sonos_speaker.sonos_speakers[self.uid].set_play(self.play, trigger_action=True)
             self._status = True
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -397,7 +397,7 @@ class SetPause(JsonCommandBase):
             logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
                                                                                   attributes=utils.dump_attributes(
                                                                                       self)))
-            sonos_speaker.sonos_speakers[self.uid].trigger_pause(self.pause)
+            sonos_speaker.sonos_speakers[self.uid].set_pause(self.pause, trigger_action=True)
             self._status = True
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
