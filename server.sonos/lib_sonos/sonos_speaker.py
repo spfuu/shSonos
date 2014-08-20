@@ -28,8 +28,6 @@ class SonosSpeaker():
         self._dirty_properties = []
         self._soco = soco
         self._alarms = ''
-        self._uid = self.soco.uid.lower()
-        self._volume = self.soco.volume
         self._mute = 0
         self._track_uri = ''
         self._track_duration = "00:00:00"
@@ -40,26 +38,13 @@ class SonosSpeaker():
         self._pause = False
         self._radio_station = ''
         self._radio_show = ''
-        self._ip = self.soco.ip_address
         self._track_album_art = ''
         self._track_title = ''
         self._track_artist = ''
-        self._zone_id = ''
-        self._zone_name = ''
-        self._zone_icon = self.soco.speaker_info['zone_icon']
-        self._zone_name = soco.speaker_info['zone_name']
         self._led = True
-        self._bass = self.soco.bass
-        self._treble = self.soco.treble
-        self._loudness = self.soco.loudness
-        self._playmode = self.soco.play_mode
         self._max_volume = -1
         self._playlist_position = 0
         self._model = ''
-        self._serial_number = self.soco.speaker_info['serial_number']
-        self._software_version = self.soco.speaker_info['software_version']
-        self._hardware_version = self.soco.speaker_info['hardware_version']
-        self._mac_address = self.soco.speaker_info['mac_address']
         self._status = True
         self._metadata = ''
         self._sub_av_transport = None
@@ -69,9 +54,28 @@ class SonosSpeaker():
         self._properties_hash = None
         self._speaker_zone_coordinator = None
 
+        self._uid = self.soco.uid.lower()
+        self._volume = self.soco.volume
+        self._bass = self.soco.bass
+        self._treble = self.soco.treble
+        self._loudness = self.soco.loudness
+        self._playmode = self.soco.play_mode
+        self._ip = self.soco.ip_address
+        self._zone_icon = self.soco.speaker_info['zone_icon']
+        self._zone_name = soco.speaker_info['zone_name']
+        self._serial_number = self.soco.speaker_info['serial_number']
+        self._software_version = self.soco.speaker_info['software_version']
+        self._hardware_version = self.soco.speaker_info['hardware_version']
+        self._mac_address = self.soco.speaker_info['mac_address']
+
+        self.dirty_property('serial_number', 'software_version', 'hardware_version', 'mac_address', 'zone_icon',
+                            'zone_name', 'ip')
+
     @property
     def soco(self):
         return self._soco
+
+    ### MODEL ##########################################################################################################
 
     @property
     def model(self):
@@ -79,8 +83,12 @@ class SonosSpeaker():
 
     @model.setter
     def model(self, value):
-        self.dirty_property('model')
+        if self._model == value:
+            return
         self._model = value
+        self.dirty_property('model')
+
+    ### METADATA #######################################################################################################
 
     @property
     def metadata(self):
@@ -236,13 +244,7 @@ class SonosSpeaker():
         #dirty properties for all zone members, if coordinator
         if self.is_coordinator:
             for speaker in self._zone_members:
-                speaker.dirty_propery('playmode')
-
-    ### ZONE ID ########################################################################################################
-
-    @property
-    def zone_id(self):
-        return self._zone_id
+                speaker.dirty_property('playmode')
 
     ### ZONE NAME ######################################################################################################
 
@@ -254,6 +256,8 @@ class SonosSpeaker():
             return self.speaker_zone_coordinator.zone_name
         return self._zone_name
 
+    ### ZONE ICON ######################################################################################################
+
     @property
     def zone_icon(self):
         if not self.is_coordinator:
@@ -261,6 +265,8 @@ class SonosSpeaker():
                          format(uid=self.speaker_zone_coordinator.uid))
             return self.speaker_zone_coordinator.zone_icon
         return self._zone_icon
+
+    ### ZONE MEMBERS ###################################################################################################
 
     @property
     def zone_members(self):
@@ -272,6 +278,8 @@ class SonosSpeaker():
     @property
     def additional_zone_members(self):
         ','.join(str(speaker.uid) for speaker in self.zone_members)
+
+    ### IP #############################################################################################################
 
     @property
     def ip(self):
@@ -347,6 +355,13 @@ class SonosSpeaker():
         self._track_uri = value
         self.dirty_property('track_uri')
 
+        #dirty properties for all zone members, if coordinator
+        if self.is_coordinator:
+            for speaker in self._zone_members:
+                speaker.dirty_property('track_uri')
+
+    ### TRACK DURATION #################################################################################################
+
     @property
     def track_duration(self):
         if not self.is_coordinator:
@@ -364,6 +379,13 @@ class SonosSpeaker():
         self.dirty_property('track_duration')
         self._track_duration = value
 
+        #dirty properties for all zone members, if coordinator
+        if self.is_coordinator:
+            for speaker in self._zone_members:
+                speaker.dirty_property('track_duration')
+
+    ### TRACK POSITION #################################################################################################
+
     @property
     def track_position(self):
         if not self.is_coordinator:
@@ -376,8 +398,17 @@ class SonosSpeaker():
 
     @track_position.setter
     def track_position(self, value):
+        if self._track_position == value:
+            return
         self._track_position = value
         self.dirty_property('track_position')
+
+        #dirty properties for all zone members, if coordinator
+        if self.is_coordinator:
+            for speaker in self._zone_members:
+                speaker.dirty_property('track_position')
+
+    ### PLAYLIST POSITION ##############################################################################################
 
     @property
     def playlist_position(self):
@@ -389,8 +420,17 @@ class SonosSpeaker():
 
     @playlist_position.setter
     def playlist_position(self, value):
+        if self._playlist_position == value:
+            return
         self._playlist_position = value
         self.dirty_property('playlist_position')
+
+        #dirty properties for all zone members, if coordinator
+        if self.is_coordinator:
+            for speaker in self._zone_members:
+                speaker.dirty_property('playlist_position')
+
+    ### STREAMTYPE #####################################################################################################
 
     @property
     def streamtype(self):
@@ -406,6 +446,11 @@ class SonosSpeaker():
             return
         self._streamtype = value
         self.dirty_property('streamtype')
+
+        #dirty properties for all zone members, if coordinator
+        if self.is_coordinator:
+            for speaker in self._zone_members:
+                speaker.dirty_property('streamtype')
 
     ### STOP ###########################################################################################################
 
@@ -483,7 +528,7 @@ class SonosSpeaker():
         if not self.is_coordinator:
             logger.debug("forwarding pause getter to coordinator with uid {uid}".
                          format(uid=self.speaker_zone_coordinator.uid))
-            return self.speaker_zone_coordinator.play
+            return self.speaker_zone_coordinator.pause
         return self._pause
 
     def set_pause(self, value, trigger_action=False):
@@ -512,6 +557,8 @@ class SonosSpeaker():
             for speaker in self._zone_members:
                 speaker.dirty_property('pause', 'play', 'stop')
 
+    ### RADIO STATION ##################################################################################################
+
     @property
     def radio_station(self):
         if not self.is_coordinator:
@@ -526,6 +573,13 @@ class SonosSpeaker():
             return
         self._radio_station = value
         self.dirty_property('radio_station')
+
+        #dirty properties for all zone members, if coordinator
+        if self.is_coordinator:
+            for speaker in self._zone_members:
+                speaker.dirty_property('radio_station')
+
+    ### RADIO SHOW #####################################################################################################
 
     @property
     def radio_show(self):
@@ -542,6 +596,12 @@ class SonosSpeaker():
         self._radio_show = value
         self.dirty_property('radio_show')
 
+        if self.is_coordinator:
+            for speaker in self._zone_members:
+                speaker.dirty_property('radio_show')
+
+    ### TRACK ALBUM ART ################################################################################################
+
     @property
     def track_album_art(self):
         if not self.is_coordinator:
@@ -556,6 +616,12 @@ class SonosSpeaker():
             return
         self._track_album_art = value
         self.dirty_property('track_album_art')
+
+        if self.is_coordinator:
+            for speaker in self._zone_members:
+                speaker.dirty_property('track_album_art')
+
+    ### TRACK TITLE ####################################################################################################
 
     @property
     def track_title(self):
@@ -574,6 +640,12 @@ class SonosSpeaker():
         self._track_title = value
         self.dirty_property('track_title')
 
+        if self.is_coordinator:
+            for speaker in self._zone_members:
+                speaker.dirty_property('track_title')
+
+    ### TRACK ARTIST ###################################################################################################
+
     @property
     def track_artist(self):
         if not self.is_coordinator:
@@ -590,6 +662,11 @@ class SonosSpeaker():
             return
         self._track_artist = value
         self.dirty_property('track_artist')
+
+        if self.is_coordinator:
+            for speaker in self._zone_members:
+                speaker.dirty_property('track_artist')
+
 
     @property
     def max_volume(self):
@@ -649,7 +726,6 @@ class SonosSpeaker():
             self._radio_show = ''
             self._radio_station = ''
             self._max_volume = -1
-            self._zone_id = ''
             self._zone_name = ''
             self._zone_coordinator = ''
             self._zone_icon = ''
@@ -787,41 +863,35 @@ class SonosSpeaker():
         self.soco.add_to_queue(uri)
 
     def send(self):
+        self._send()
+        '''
+        we need to trigger all zone members, because slave members never trigger events
+        '''
+        for speaker in self._zone_members:
+            if len(speaker._dirty_properties) > 0:
+                speaker._send()
+
+    def _send(self):
         dirty_values = {}
         for prop in self._dirty_properties:
             value = getattr(self, prop)
             dirty_values[prop] = value
-
         if len(dirty_values) == 0:
             return
 
-        #always add the uid
+        '''
+        always add the uid
+        '''
         dirty_values['uid'] = self.uid
 
         data = json.dumps(self, default=lambda o: dirty_values, sort_keys=True, ensure_ascii=False, indent=4,
                           separators=(',', ': '))
         udp_broker.UdpBroker.udp_send(data)
 
-        #empty list
+        '''
+        empty list
+        '''
         del self._dirty_properties[:]
-
-    def send_data(self, force=False):
-        #only send data, if something has changed
-        data = self.to_json()
-
-        hash_data = sha1(data.encode('utf-8')).hexdigest()
-        if hash_data != self._properties_hash:
-            self._properties_hash = hash_data
-            udp_broker.UdpBroker.udp_send(self.to_json())
-        else:
-            if force:
-                udp_broker.UdpBroker.udp_send(self.to_json())
-
-        #if speaker instance is coordinator and data has changed, send also data for additional group members
-        #slaves don't send data in most of the sonos events
-        if self.speaker_zone_coordinator is None:
-            for speaker in self._additional_zone_members:
-                speaker.send_data()
 
     def join(self, soco_to_join):
         self.soco.join(soco_to_join)
