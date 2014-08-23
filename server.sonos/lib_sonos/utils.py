@@ -210,6 +210,8 @@ def dump_attributes(obj):
 
 
 def check_int(s):
+    if isinstance(s, int):
+        return int(s)
     if s[0] in ('-', '+'):
         return s[1:].isdigit()
     return s.isdigit()
@@ -232,7 +234,6 @@ def get_lan_ip():
 Notification list from http://stackoverflow.com/questions/13259179/list-callbacks
 '''
 
-
 def callback_method(func):
     def notify(self, *args, **kwargs):
         for _, callback in self._callbacks:
@@ -253,7 +254,7 @@ class NotifyList(list):
     __delitem__ = callback_method(list.__delitem__)
     __setitem__ = callback_method(list.__setitem__)
     __iadd__ = callback_method(list.__iadd__)
-    __imul__ = callback_method(list.__imul__)
+    #__imul__ = callback_method(list.__imul__)
 
     #Take care to return a new NotifyList if we slice it.
     if _pyversion < 3:
