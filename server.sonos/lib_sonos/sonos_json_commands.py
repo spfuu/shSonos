@@ -1,6 +1,7 @@
 import json
 from abc import ABCMeta, abstractmethod
 import logging
+from soco.exceptions import SoCoUPnPException
 from lib_sonos import sonos_speaker
 from lib_sonos import utils
 from lib_sonos.utils import underscore_to_camel
@@ -52,6 +53,9 @@ class GetVolume(JsonCommandBase):
             logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
                                                                                   attributes=utils.dump_attributes(
                                                                                       self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
             sonos_speaker.sonos_speakers[self.uid].dirty_property('volume')
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
@@ -72,6 +76,9 @@ class SetVolume(JsonCommandBase):
             logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
                                                                                   attributes=utils.dump_attributes(
                                                                                       self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
             if not utils.check_int(self.volume):
                 raise Exception('Value has to be an Integer!')
 
@@ -93,6 +100,119 @@ class SetVolume(JsonCommandBase):
         finally:
             return self._status, self._response
 
+### VOLUME UP ##########################################################################################################
+
+class VolumeUp(JsonCommandBase):
+    def __init__(self, parameter):
+        super().__init__(parameter)
+
+    def run(self):
+        try:
+            logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
+                                                                                  attributes=utils.dump_attributes(
+                                                                                      self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
+            group_command = False
+            if hasattr(self, 'group_command'):
+                group_command = self.group_command
+            sonos_speaker.sonos_speakers[self.uid].volume_up(group_command=group_command)
+            self._status = True
+        except AttributeError as err:
+            self._response = JsonCommandBase.missing_param_error(err)
+        except Exception as err:
+            self._response = err
+        finally:
+            return self._status, self._response
+
+### VOLUME DOWN ########################################################################################################
+
+class VolumeDown(JsonCommandBase):
+    def __init__(self, parameter):
+        super().__init__(parameter)
+
+    def run(self):
+        try:
+            logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
+                                                                                  attributes=utils.dump_attributes(
+                                                                                      self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
+            group_command = False
+            if hasattr(self, 'group_command'):
+                group_command = self.group_command
+            sonos_speaker.sonos_speakers[self.uid].volume_down(group_command=group_command)
+            self._status = True
+        except AttributeError as err:
+            self._response = JsonCommandBase.missing_param_error(err)
+        except Exception as err:
+            self._response = err
+        finally:
+            return self._status, self._response
+
+### MAX VOLUME #########################################################################################################
+
+class GetMaxVolume(JsonCommandBase):
+    def __init__(self, parameter):
+        super().__init__(parameter)
+
+    def run(self):
+        try:
+            logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
+                                                                                  attributes=utils.dump_attributes(
+                                                                                      self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
+            sonos_speaker.sonos_speakers[self.uid].dirty_property('max_volume')
+            sonos_speaker.sonos_speakers[self.uid].send()
+            self._status = True
+        except AttributeError as err:
+            self._response = JsonCommandBase.missing_param_error(err)
+        except Exception as err:
+            self._response = err
+        finally:
+            return self._status, self._response
+
+
+class SetMaxVolume(JsonCommandBase):
+    def __init__(self, parameter):
+        super().__init__(parameter)
+
+    def run(self):
+        try:
+            logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
+                                                                                  attributes=utils.dump_attributes(
+                                                                                      self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
+            if not utils.check_int(self.maxvolume):
+                raise Exception('Value has to be an Integer!')
+            maxvolume = int(self.maxvolume)
+
+            if maxvolume not in range(-1, 101, 1):
+                raise Exception('MaxVolume has to be set between 0 and 100!')
+            group_command = False
+
+            if hasattr(self, 'group_command'):
+                group_command = self.group_command
+
+            sonos_speaker.sonos_speakers[self.uid].set_maxvolume(maxvolume, group_command=group_command)
+
+            '''
+            max_volume is not triggered by sonos events, do it manually
+            '''
+            sonos_speaker.sonos_speakers[self.uid].send()
+            self._status = True
+        except AttributeError as err:
+            self._response = JsonCommandBase.missing_param_error(err)
+        except Exception as err:
+            self._response = err
+        finally:
+            return self._status, self._response
 
 ### MUTE ###############################################################################################################
 
@@ -105,6 +225,9 @@ class GetMute(JsonCommandBase):
             logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
                                                                                   attributes=utils.dump_attributes(
                                                                                       self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
             sonos_speaker.sonos_speakers[self.uid].dirty_property('mute')
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
@@ -125,6 +248,9 @@ class SetMute(JsonCommandBase):
             logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
                                                                                   attributes=utils.dump_attributes(
                                                                                       self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
             group_command = False
             if hasattr(self, 'group_command'):
                 group_command = self.group_command
@@ -150,6 +276,9 @@ class GetBass(JsonCommandBase):
             logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
                                                                                   attributes=utils.dump_attributes(
                                                                                       self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
             sonos_speaker.sonos_speakers[self.uid].dirty_property('bass')
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
@@ -170,6 +299,9 @@ class SetBass(JsonCommandBase):
             logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
                                                                                   attributes=utils.dump_attributes(
                                                                                       self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
             if self.bass not in range(-10, 11, 1):
                 raise Exception('Bass has to be set between -10 and 10!')
 
@@ -198,6 +330,9 @@ class GetTreble(JsonCommandBase):
             logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
                                                                                   attributes=utils.dump_attributes(
                                                                                       self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
             sonos_speaker.sonos_speakers[self.uid].dirty_property('treble')
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
@@ -218,6 +353,9 @@ class SetTreble(JsonCommandBase):
             logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
                                                                                   attributes=utils.dump_attributes(
                                                                                       self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
             if self.treble not in range(-10, 11, 1):
                 raise Exception('Treble has to be set between -10 and 10!')
 
@@ -246,6 +384,9 @@ class GetLoudness(JsonCommandBase):
             logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
                                                                                   attributes=utils.dump_attributes(
                                                                                       self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
             sonos_speaker.sonos_speakers[self.uid].dirty_property('loudness')
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
@@ -266,6 +407,9 @@ class SetLoudness(JsonCommandBase):
             logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
                                                                                   attributes=utils.dump_attributes(
                                                                                       self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
             if self.loudness not in [0, 1, True, False]:
                 raise Exception('Loudness has to be 0|1 or True|False !')
             loudness = int(self.loudness)
@@ -295,6 +439,9 @@ class GetStop(JsonCommandBase):
             logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
                                                                                   attributes=utils.dump_attributes(
                                                                                       self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
             sonos_speaker.sonos_speakers[self.uid].dirty_property('stop')
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
@@ -315,6 +462,9 @@ class SetStop(JsonCommandBase):
             logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
                                                                                   attributes=utils.dump_attributes(
                                                                                       self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
             sonos_speaker.sonos_speakers[self.uid].set_stop(self.stop, trigger_action=True)
             self._status = True
         except AttributeError as err:
@@ -336,6 +486,9 @@ class GetPlay(JsonCommandBase):
             logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
                                                                                   attributes=utils.dump_attributes(
                                                                                       self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
             sonos_speaker.sonos_speakers[self.uid].dirty_property('play')
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
@@ -356,6 +509,9 @@ class SetPlay(JsonCommandBase):
             logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
                                                                                   attributes=utils.dump_attributes(
                                                                                       self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
             sonos_speaker.sonos_speakers[self.uid].set_play(self.play, trigger_action=True)
             self._status = True
         except AttributeError as err:
@@ -377,6 +533,9 @@ class GetPause(JsonCommandBase):
             logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
                                                                                   attributes=utils.dump_attributes(
                                                                                       self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
             sonos_speaker.sonos_speakers[self.uid].dirty_property('pause')
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
@@ -397,6 +556,9 @@ class SetPause(JsonCommandBase):
             logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
                                                                                   attributes=utils.dump_attributes(
                                                                                       self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
             sonos_speaker.sonos_speakers[self.uid].set_pause(self.pause, trigger_action=True)
             self._status = True
         except AttributeError as err:
@@ -418,6 +580,9 @@ class GetRadioStation(JsonCommandBase):
             logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
                                                                                   attributes=utils.dump_attributes(
                                                                                       self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
             sonos_speaker.sonos_speakers[self.uid].dirty_property('radio_station')
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
@@ -440,6 +605,9 @@ class GetRadioShow(JsonCommandBase):
             logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
                                                                                   attributes=utils.dump_attributes(
                                                                                       self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
             sonos_speaker.sonos_speakers[self.uid].dirty_property('radio_show')
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
@@ -462,6 +630,9 @@ class GetPlaymode(JsonCommandBase):
             logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
                                                                                   attributes=utils.dump_attributes(
                                                                                       self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
             sonos_speaker.sonos_speakers[self.uid].dirty_property('playmode')
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
@@ -482,6 +653,9 @@ class SetPlaymode(JsonCommandBase):
             logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
                                                                                   attributes=utils.dump_attributes(
                                                                                       self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
             available_playmodes = [
                 'normal',
                 'shuffle_norepeat',
@@ -514,6 +688,9 @@ class GetAlarms(JsonCommandBase):
             logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
                                                                                   attributes=utils.dump_attributes(
                                                                                       self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
             sonos_speaker.sonos_speakers[self.uid].get_alarms()
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
@@ -537,6 +714,9 @@ class GetTrackArtist(JsonCommandBase):
             logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
                                                                                   attributes=utils.dump_attributes(
                                                                                       self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
             sonos_speaker.sonos_speakers[self.uid].dirty_property('track_artist')
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
@@ -559,6 +739,9 @@ class GetTrackTitle(JsonCommandBase):
             logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
                                                                                   attributes=utils.dump_attributes(
                                                                                       self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
             sonos_speaker.sonos_speakers[self.uid].dirty_property('track_title')
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
@@ -581,6 +764,9 @@ class SetLed(JsonCommandBase):
             logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
                                                                                   attributes=utils.dump_attributes(
                                                                                       self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
             if self.led not in [0, 1, True, False]:
                 raise Exception('Led has to be 0|1 or True|False !')
 
@@ -610,8 +796,73 @@ class GetLed(JsonCommandBase):
             logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
                                                                                   attributes=utils.dump_attributes(
                                                                                       self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
             sonos_speaker.sonos_speakers[self.uid].dirty_property('led')
             self._status = True
+        except AttributeError as err:
+            self._response = JsonCommandBase.missing_param_error(err)
+        except Exception as err:
+            self._response = err
+        finally:
+            return self._status, self._response
+
+### NEXT ###############################################################################################################
+
+class Next(JsonCommandBase):
+    def __init__(self, parameter):
+        super().__init__(parameter)
+
+    def run(self):
+        try:
+            logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
+                                                                                  attributes=utils.dump_attributes(
+                                                                                      self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
+            try:
+                sonos_speaker.sonos_speakers[self.uid].next()
+                self._status = True
+            except SoCoUPnPException as err:
+                '''
+                illegal seek action, no more items in playlist, uncritical
+                '''
+                if err.error_code != '711':
+                    raise err
+                self._status = True
+        except AttributeError as err:
+            self._response = JsonCommandBase.missing_param_error(err)
+        except Exception as err:
+            self._response = err
+        finally:
+            return self._status, self._response
+
+### PREVIOUS ###########################################################################################################
+
+class Previous(JsonCommandBase):
+    def __init__(self, parameter):
+        super().__init__(parameter)
+
+    def run(self):
+        try:
+            logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
+                                                                                  attributes=utils.dump_attributes(
+                                                                                      self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
+            try:
+                sonos_speaker.sonos_speakers[self.uid].previous()
+                self._status = True
+            except SoCoUPnPException as err:
+                '''
+                illegal seek action, no more items in playlist, uncritical
+                '''
+                if err.error_code != '711':
+                    raise err
+                self._status = True
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
         except Exception as err:
