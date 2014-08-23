@@ -15,7 +15,7 @@ from time import sleep
 from soco import discover
 from threading import Lock
 from soco.services import zone_group_state_shared_cache
-from soco import config
+from lib_sonos import utils
 
 try:
     import xml.etree.cElementTree as XML
@@ -374,6 +374,8 @@ class SonosServerService():
             volume = volume_state_element.get('val')
             if volume:
                 speaker.volume = volume
+                if utils.check_max_volume_exceeded(volume, speaker.max_volume):
+                    speaker.set_volume(speaker.max_volume, trigger_action=True)
 
         mute_state_element = dom.find(".//%sMute[@channel='Master']" % namespace)
         if mute_state_element is not None:
