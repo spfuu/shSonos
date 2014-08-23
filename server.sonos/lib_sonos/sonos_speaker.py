@@ -8,8 +8,6 @@ import time
 import json
 from lib_sonos import udp_broker
 from lib_sonos import utils
-from hashlib import sha1
-import collections
 
 try:
     import xml.etree.cElementTree as XML
@@ -53,6 +51,7 @@ class SonosSpeaker():
         self._sub_alarm = None
         self._properties_hash = None
         self._speaker_zone_coordinator = None
+        self._additional_zone_members = ''
 
         self._uid = self.soco.uid.lower()
         self._volume = self.soco.volume
@@ -69,7 +68,7 @@ class SonosSpeaker():
         self._mac_address = self.soco.speaker_info['mac_address']
 
         self.dirty_property('serial_number', 'software_version', 'hardware_version', 'mac_address', 'zone_icon',
-                            'zone_name', 'ip')
+                            'zone_name', 'ip', 'max_volume', 'volume')
 
     @property
     def soco(self):
@@ -277,7 +276,14 @@ class SonosSpeaker():
 
     @property
     def additional_zone_members(self):
-        ','.join(str(speaker.uid) for speaker in self.zone_members)
+        """
+        Returns all zone members (current speaker NOT included) as string, delimited by ','
+        :return:
+        """
+        members = ','.join(str(speaker.uid) for speaker in self.zone_members)
+        if not members:
+            members = ''
+        return members
 
     ### IP #############################################################################################################
 
@@ -305,6 +311,66 @@ class SonosSpeaker():
         self._volume = volume
         self.dirty_property('volume')
 
+    ### VOLUME UP#######################################################################################################
+
+    def volume_up(self, group_command=False):
+        """
+        volume + 2 is the default sonos speaker behaviour, if the volume-up button was pressed
+        :param group_command: if True, the volume for all group members is increased by 2
+        """
+        self._volume_up()
+        if group_command:
+            for speaker in self.zone_members:
+                speaker._volume_up()
+
+    def _volume_up(self):
+        vol = self.volume
+        vol += 2
+        if vol > 100:
+            vol = 100
+        self.set_volume(vol, trigger_action=True)
+
+    ### VOLUME DOWN ####################################################################################################
+
+    def volume_down(self, group_command=False):
+        """
+        volume - 2 is the default sonos speaker behaviour, if the volume-down button was pressed
+        :param group_command: if True, the volume for all group members is decreased by 2
+        """
+        self._volume_down()
+        if group_command:
+            for speaker in self.zone_members:
+                speaker._volume_down()
+
+    def _volume_down(self):
+        vol = self.volume
+        vol -= 2
+        if vol < 0:
+            vol = 0
+        self.set_volume(vol, trigger_action=True)
+
+    ### MAX VOLUME #####################################################################################################
+
+    def get_maxvolume(self):
+        return self._max_volume
+
+    def set_maxvolume(self, value, group_command=False):
+        self._set_maxvolume(value)
+        if group_command:
+            for speaker in self.zone_members:
+                speaker._set_maxvolume(value)
+
+    def _set_maxvolume(self, value):
+        m_volume = int(value)
+        if m_volume is not -1:
+            self._max_volume = m_volume
+            if utils.check_volume_range(self._max_volume):
+                if self.volume > self._max_volume:
+                    self.set_volume(self._max_volume, trigger_action=True)
+        else:
+            self._max_volume = m_volume
+        self.dirty_property('max_volume')
+
     ### UID ############################################################################################################
 
     @property
@@ -314,10 +380,6 @@ class SonosSpeaker():
     ### MUTE ###########################################################################################################
 
     def get_mute(self):
-        if not self.is_coordinator:
-            logger.debug("forwarding mute getter to coordinator with uid {uid}".
-                         format(uid=self.speaker_zone_coordinator.uid))
-            return self.speaker_zone_coordinator.mute
         return self._mute
 
     def set_mute(self, value, trigger_action=False, group_command=False):
@@ -667,23 +729,29 @@ class SonosSpeaker():
             for speaker in self._zone_members:
                 speaker.dirty_property('track_artist')
 
+    ### NEXT ###########################################################################################################
 
-    @property
-    def max_volume(self):
-        return self._max_volume
-
-    @max_volume.setter
-    def max_volume(self, value):
-        m_volume = int(value)
-        if m_volume is not -1:
-            self._max_volume = m_volume
-            if utils.check_volume_range(self._max_volume):
-                if self.volume > self._max_volume:
-                    self.volume = self._max_volume
+    def next(self):
+        if not self.is_coordinator:
+            logger.debug("forwarding next command to coordinator with uid {uid}".
+                         format(uid=self.speaker_zone_coordinator.uid))
+            self.speaker_zone_coordinator.next()
         else:
-            self._max_volume = m_volume
+            self.soco.next()
 
-        self.dirty_property('max_volume')
+    ### PREVIOUS #######################################################################################################
+
+    def previous(self):
+        if not self.is_coordinator:
+            logger.debug("forwarding previous command to coordinator with uid {uid}".
+                         format(uid=self.speaker_zone_coordinator.uid))
+            self.speaker_zone_coordinator.previous()
+        else:
+            self.soco.previous()
+
+
+
+
 
     @property
     def alarms(self):
@@ -738,37 +806,12 @@ class SonosSpeaker():
     #
     #---------------------------------------------------------------------------------
 
-    #volume + 2 is the default sonos speaker behaviour, if the volume-up button was pressed
-    def volume_up(self):
-        vol = self.volume
-        vol += 2
-        if vol > 100:
-            vol = 100
-        self.volume = vol
 
-    #volume - 2 is the default sonos speaker behaviour, if the volume-down button was pressed
-    def volume_down(self):
-        vol = self.volume
-        vol -= 2
-        if vol < 0:
-            vol = 0
-        self.volume = vol
 
-    def next(self):
-        if not self.is_coordinator:
-            logger.debug("forwarding next command to coordinator with uid {uid}".
-                         format(uid=self.speaker_zone_coordinator.uid))
-            self.speaker_zone_coordinator.next()
-        else:
-            self.soco.next()
 
-    def previous(self):
-        if not self.is_coordinator:
-            logger.debug("forwarding previous command to coordinator with uid {uid}".
-                         format(uid=self.speaker_zone_coordinator.uid))
-            self.speaker_zone_coordinator.previous()
-        else:
-            self.soco.previous()
+
+
+
 
     def seek(self, timestamp):
         if not self.is_coordinator:
@@ -1039,3 +1082,4 @@ class SonosSpeaker():
     stop = property(get_stop, set_stop)
     play = property(get_play, set_play)
     pause = property(get_pause, set_pause)
+    max_volume = property(get_maxvolume, set_maxvolume)
