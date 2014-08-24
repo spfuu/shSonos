@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 from lib_sonos.utils import NotifyList
-from soco import alarms
+from soco import alarms, SoCo
 from soco.exceptions import SoCoUPnPException
 import threading
 import time
@@ -31,15 +31,15 @@ class SonosSpeaker():
         self._track_duration = "00:00:00"
         self._track_position = "00:00:00"
         self._streamtype = ''
-        self._stop = False
-        self._play = False
-        self._pause = False
+        self._stop = 0
+        self._play = 0
+        self._pause = 0
         self._radio_station = ''
         self._radio_show = ''
         self._track_album_art = ''
         self._track_title = ''
         self._track_artist = ''
-        self._led = True
+        self._led = 1
         self._max_volume = -1
         self._playlist_position = 0
         self._model = ''
@@ -70,14 +70,27 @@ class SonosSpeaker():
         self.dirty_property('serial_number', 'software_version', 'hardware_version', 'mac_address', 'zone_icon',
                             'zone_name', 'ip', 'max_volume', 'volume')
 
+    # ## SoCo instance ##################################################################################################
+
     @property
     def soco(self):
+
+        """
+        Returns the SoCo instance associated to the current Sonos speaker.
+        :return: SoCo instance
+        """
         return self._soco
 
-    ### MODEL ##########################################################################################################
+    # ## MODEL ##########################################################################################################
 
     @property
     def model(self):
+
+        """
+        Return the model name of the speaker.
+        :return: model name
+        :rtype : string
+        """
         return self._model
 
     @model.setter
@@ -94,10 +107,10 @@ class SonosSpeaker():
         return self._metadata
 
     ### SPEAKER_ZONE_COORDINATOR #######################################################################################
-    
+
     @property
     def speaker_zone_coordinator(self):
-        return self._speaker_zone_coordinator    
+        return self._speaker_zone_coordinator
 
     @speaker_zone_coordinator.setter
     def speaker_zone_coordinator(self, value):
@@ -333,10 +346,12 @@ class SonosSpeaker():
     ### VOLUME DOWN ####################################################################################################
 
     def volume_down(self, group_command=False):
+
         """
         volume - 2 is the default sonos speaker behaviour, if the volume-down button was pressed
         :param group_command: if True, the volume for all group members is decreased by 2
         """
+
         self._volume_down()
         if group_command:
             for speaker in self.zone_members:
@@ -352,15 +367,29 @@ class SonosSpeaker():
     ### MAX VOLUME #####################################################################################################
 
     def get_maxvolume(self):
+
+        """
+        Getter function for property max_volume.
+        :return: None
+        """
+
         return self._max_volume
 
     def set_maxvolume(self, value, group_command=False):
+
+        """
+        Setter function for property max_volume.
+        :param value: max_volume as an integer between -1 and 100. If value == -1, no maximum value is assumed.
+        :param group_command: If True, the maximum volume for all group members is set.
+        """
+
         self._set_maxvolume(value)
         if group_command:
             for speaker in self.zone_members:
                 speaker._set_maxvolume(value)
 
     def _set_maxvolume(self, value):
+
         m_volume = int(value)
         if m_volume is not -1:
             self._max_volume = m_volume
@@ -448,18 +477,39 @@ class SonosSpeaker():
 
     ### TRACK POSITION #################################################################################################
 
-    @property
-    def track_position(self):
+    def get_trackposition(self, force_refresh=False):
+        """
+        Gets the current track position.
+        :param force_refresh:
+        :return: You have to poll this value manually. There is no sonos event for a track position change.
+        """
         if not self.is_coordinator:
             logger.debug("forwarding track_position getter to coordinator with uid {uid}".
                          format(uid=self.speaker_zone_coordinator.uid))
-            return self.speaker_zone_coordinator.track_position
+            return self.speaker_zone_coordinator.get_trackposition(force_refresh=True)
+
+        if force_refresh:
+            track_info = self.soco.get_current_track_info()
+            self.track_position = track_info['position']
         if not self._track_position:
             return "00:00:00"
         return self._track_position
 
-    @track_position.setter
-    def track_position(self, value):
+    def set_trackposition(self, value, trigger_action=False):
+        """
+        Sets the track position.
+        :param  value: track position to set (format: HH:MM:ss)
+        :param  trigger_action: If True, the value is passed to SoCo and triggers a seek command. If False, the
+                behavior of this function is more or less like a property
+        :rtype : None
+        """
+        if trigger_action:
+            if not self.is_coordinator:
+                logger.debug("forwarding trackposition setter to coordinator with uid {uid}".
+                             format(uid=self.speaker_zone_coordinator.uid))
+                self.speaker_zone_coordinator.set_trackposition(value, trigger_action)
+            else:
+                self.soco.seek(value)
         if self._track_position == value:
             return
         self._track_position = value
@@ -749,8 +799,71 @@ class SonosSpeaker():
         else:
             self.soco.previous()
 
+    ### PARTYMODE ######################################################################################################
 
+    def partymode(self):
 
+        """
+        Joins all speakers to a group.
+        :rtype : None
+        """
+
+        self.soco.partymode()
+
+    ### JOIN ###########################################################################################################
+
+    def join(self, join_uid):
+
+        """
+        Joins a Sonos speaker to another speaker / group.
+        :param join_uid: A uid of any speaker of the group, the speaker has to join.
+        :raise Exception: No master speaker was found
+        """
+
+        try:
+            if not sonos_speakers[join_uid].is_coordinator:
+                speaker = [speaker for speaker in sonos_speakers[join_uid].zone_members if
+                           speaker.is_coordinator is True][0]
+            else:
+                speaker = sonos_speakers[join_uid]
+            self.soco.join(speaker.soco)
+            self._is_coordinator = False
+            self._dirty_music_metadata()
+            self.send()
+
+        except Exception:
+            raise Exception('No master speaker found for uid \'{uid}\'!'.format(uid=join_uid))
+
+    def _dirty_music_metadata(self):
+
+        """
+        Small helper function to make the music metadata properties 'dirty' after a speaker was joined or un-joined
+        to or from a group.
+        """
+
+        self.dirty_property(
+            'track_title',
+            'track_position',
+            'track_album_art',
+            'track_artist',
+            'track_uri',
+            'track_duration',
+            'stop',
+            'play',
+            'pause',
+            'radio_station',
+            'radio_show',
+            'playlist_position',
+            'streamtype',
+            'playmode',
+            'zone_icon',
+            'zone_name'
+        )
+
+    ### UNJOIN #########################################################################################################
+
+    def unjoin(self):
+        self.soco.unjoin()
 
 
     @property
@@ -800,38 +913,6 @@ class SonosSpeaker():
             self._playmode = ''
             self._alarms = ''
 
-    # ---------------------------------------------------------------------------------
-    #
-    # FUNCTIONS
-    #
-    #---------------------------------------------------------------------------------
-
-
-
-
-
-
-
-
-    def seek(self, timestamp):
-        if not self.is_coordinator:
-            logger.debug("forwarding seek command to coordinator with uid {uid}".
-                         format(uid=self.speaker_zone_coordinator.uid))
-            self.speaker_zone_coordinator.seek(timestamp)
-        else:
-            self.soco.seek(timestamp)
-
-    def track_info(self):
-        if not self.is_coordinator:
-            logger.debug("forwarding track_info command to coordinator with uid {uid}".
-                         format(uid=self.speaker_zone_coordinator.uid))
-            track_info = self.speaker_zone_coordinator.soco.get_current_track_info()
-            self.speaker_zone_coordinator.track_position = track_info['position']
-            self.speaker_zone_coordinator.playlist_position = int(track_info['playlist_position'])
-        else:
-            track_info = self.soco.get_current_track_info()
-            self.track_position = track_info['position']
-            self.playlist_position = int(track_info['playlist_position'])
 
     def play_uri(self, uri, metadata=None):
         if not self.is_coordinator:
@@ -935,15 +1016,6 @@ class SonosSpeaker():
         empty list
         '''
         del self._dirty_properties[:]
-
-    def join(self, soco_to_join):
-        self.soco.join(soco_to_join)
-
-    def unjoin(self):
-        self.soco.unjoin()
-
-    def partymode(self):
-        self.soco.partymode()
 
     def event_unsubscribe(self):
         try:
@@ -1083,3 +1155,4 @@ class SonosSpeaker():
     play = property(get_play, set_play)
     pause = property(get_pause, set_pause)
     max_volume = property(get_maxvolume, set_maxvolume)
+    track_position = property(get_trackposition, set_trackposition)
