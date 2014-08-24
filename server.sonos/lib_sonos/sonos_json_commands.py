@@ -1,6 +1,8 @@
 import json
 from abc import ABCMeta, abstractmethod
 import logging
+import re
+from lib_sonos.definitions import TIMESTAMP_PATTERN
 from soco.exceptions import SoCoUPnPException
 from lib_sonos import sonos_speaker
 from lib_sonos import utils
@@ -100,7 +102,8 @@ class SetVolume(JsonCommandBase):
         finally:
             return self._status, self._response
 
-### VOLUME UP ##########################################################################################################
+
+# ## VOLUME UP ##########################################################################################################
 
 class VolumeUp(JsonCommandBase):
     def __init__(self, parameter):
@@ -125,6 +128,7 @@ class VolumeUp(JsonCommandBase):
             self._response = err
         finally:
             return self._status, self._response
+
 
 ### VOLUME DOWN ########################################################################################################
 
@@ -151,6 +155,7 @@ class VolumeDown(JsonCommandBase):
             self._response = err
         finally:
             return self._status, self._response
+
 
 ### MAX VOLUME #########################################################################################################
 
@@ -213,6 +218,7 @@ class SetMaxVolume(JsonCommandBase):
             self._response = err
         finally:
             return self._status, self._response
+
 
 ### MUTE ###############################################################################################################
 
@@ -410,7 +416,7 @@ class SetLoudness(JsonCommandBase):
             if self.uid not in sonos_speaker.sonos_speakers:
                 raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
 
-            if self.loudness not in [0, 1, True, False]:
+            if self.loudness not in [0, 1, True, False, '0', '1']:
                 raise Exception('Loudness has to be 0|1 or True|False !')
             loudness = int(self.loudness)
 
@@ -767,7 +773,7 @@ class SetLed(JsonCommandBase):
             if self.uid not in sonos_speaker.sonos_speakers:
                 raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
 
-            if self.led not in [0, 1, True, False]:
+            if self.led not in [0, 1, True, False, '1', '0']:
                 raise Exception('Led has to be 0|1 or True|False !')
 
             led = int(self.led)
@@ -808,6 +814,7 @@ class GetLed(JsonCommandBase):
         finally:
             return self._status, self._response
 
+
 ### NEXT ###############################################################################################################
 
 class Next(JsonCommandBase):
@@ -839,6 +846,7 @@ class Next(JsonCommandBase):
         finally:
             return self._status, self._response
 
+
 ### PREVIOUS ###########################################################################################################
 
 class Previous(JsonCommandBase):
@@ -863,6 +871,114 @@ class Previous(JsonCommandBase):
                 if err.error_code != '711':
                     raise err
                 self._status = True
+        except AttributeError as err:
+            self._response = JsonCommandBase.missing_param_error(err)
+        except Exception as err:
+            self._response = err
+        finally:
+            return self._status, self._response
+
+
+### TRACK POSITION ###################################################################################################
+
+class GetTrackPosition(JsonCommandBase):
+    def __init__(self, parameter):
+        super().__init__(parameter)
+
+    def run(self):
+        try:
+            logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
+                                                                                  attributes=utils.dump_attributes(
+                                                                                      self)))
+            force_refresh = 0
+            if hasattr(self, 'force_refresh'):
+                if self.force_refresh not in [0, 1, True, False, '0', '1']:
+                    raise Exception('Led has to be 0|1 or True|False !')
+                force_refresh = int(self.force_refresh)
+
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
+            if force_refresh:
+                sonos_speaker.sonos_speakers[self.uid].get_trackposition(force_refresh=True)
+            else:
+                sonos_speaker.sonos_speakers[self.uid].dirty_property('track_position')
+            sonos_speaker.sonos_speakers[self.uid].send()
+            self._status = True
+        except AttributeError as err:
+            self._response = JsonCommandBase.missing_param_error(err)
+        except Exception as err:
+            self._response = err
+        finally:
+            return self._status, self._response
+
+
+class SetTrackPosition(JsonCommandBase):
+    def __init__(self, parameter):
+        super().__init__(parameter)
+
+    def run(self):
+        try:
+            logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
+                                                                                  attributes=utils.dump_attributes(
+                                                                                      self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
+            if not re.match(TIMESTAMP_PATTERN, self.timestamp):
+                raise Exception(
+                    '\'{timestamp}\' is ot a valid timestamp. Use HH:MM:ss !'.format(timestamp=self.timestamp))
+
+            sonos_speaker.sonos_speakers[self.uid].set_trackposition(self.timestamp, trigger_action=True)
+            self._status = True
+        except AttributeError as err:
+            self._response = JsonCommandBase.missing_param_error(err)
+        except Exception as err:
+            self._response = err
+        finally:
+            return self._status, self._response
+
+
+### PARTYMODE ##########################################################################################################
+
+class Partymode(JsonCommandBase):
+    def __init__(self, parameter):
+        super().__init__(parameter)
+
+    def run(self):
+        try:
+            logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
+                                                                                  attributes=utils.dump_attributes(
+                                                                                      self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
+            sonos_speaker.sonos_speakers[self.uid].partymode()
+            self._status = True
+        except AttributeError as err:
+            self._response = JsonCommandBase.missing_param_error(err)
+        except Exception as err:
+            self._response = err
+        finally:
+            return self._status, self._response
+
+
+### JOIN ###############################################################################################################
+
+class Join(JsonCommandBase):
+    def __init__(self, parameter):
+        super().__init__(parameter)
+
+    def run(self):
+        try:
+            logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
+                                                                                  attributes=utils.dump_attributes(
+                                                                                      self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
+            sonos_speaker.sonos_speakers[self.uid].join(self.join_uid)
+            self._status = True
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
         except Exception as err:
