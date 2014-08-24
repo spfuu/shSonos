@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import logging
+import soco
 from lib_sonos.utils import NotifyList
-from soco import alarms, SoCo
+from soco.alarms import get_alarms
 from soco.exceptions import SoCoUPnPException
 import threading
 import time
@@ -25,6 +26,7 @@ class SonosSpeaker():
         self._zone_members.register_callback(self.zone_member_changed)
         self._dirty_properties = []
         self._soco = soco
+        self._uid = self.soco.uid.lower()
         self._alarms = ''
         self._mute = 0
         self._track_uri = ''
@@ -50,10 +52,12 @@ class SonosSpeaker():
         self._sub_zone_group = None
         self._sub_alarm = None
         self._properties_hash = None
-        self._speaker_zone_coordinator = None
+        self._zone_coordiantor = None
         self._additional_zone_members = ''
 
-        self._uid = self.soco.uid.lower()
+
+
+
         self._volume = self.soco.volume
         self._bass = self.soco.bass
         self._treble = self.soco.treble
@@ -106,19 +110,15 @@ class SonosSpeaker():
     def metadata(self):
         return self._metadata
 
-    ### SPEAKER_ZONE_COORDINATOR #######################################################################################
+    ### zone_coordinator #######################################################################################
 
     @property
-    def speaker_zone_coordinator(self):
-        return self._speaker_zone_coordinator
-
-    @speaker_zone_coordinator.setter
-    def speaker_zone_coordinator(self, value):
-        self._speaker_zone_coordinator = value
+    def zone_coordinator(self):
+        return self._zone_coordinator
 
     @property
     def is_coordinator(self):
-        if self == self._speaker_zone_coordinator:
+        if self == self.zone_coordinator:
             return True
         return False
 
@@ -236,16 +236,16 @@ class SonosSpeaker():
     def get_playmode(self):
         if not self.is_coordinator:
             logger.debug("forwarding playmode getter to coordinator with uid {uid}".
-                         format(uid=self.speaker_zone_coordinator.uid))
-            return self.speaker_zone_coordinator.playmode
+                         format(uid=self.zone_coordinator.uid))
+            return self.zone_coordinator.playmode
         return self._playmode.lower()
 
     def set_playmode(self, value, trigger_action=False):
         if trigger_action:
             if not self.is_coordinator:
                 logger.debug("forwarding playmode setter to coordinator with uid {uid}".
-                             format(uid=self.speaker_zone_coordinator.uid))
-                self.speaker_zone_coordinator.set_playmode(value, trigger_action)
+                             format(uid=self.zone_coordinator.uid))
+                self.zone_coordinator.set_playmode(value, trigger_action)
             else:
                 self.soco.play_mode = value
         if self._playmode == value:
@@ -264,8 +264,8 @@ class SonosSpeaker():
     def zone_name(self):
         if not self.is_coordinator:
             logger.debug("forwarding zone_name getter to coordinator with uid {uid}".
-                         format(uid=self.speaker_zone_coordinator.uid))
-            return self.speaker_zone_coordinator.zone_name
+                         format(uid=self.zone_coordinator.uid))
+            return self.zone_coordinator.zone_name
         return self._zone_name
 
     ### ZONE ICON ######################################################################################################
@@ -274,15 +274,15 @@ class SonosSpeaker():
     def zone_icon(self):
         if not self.is_coordinator:
             logger.debug("forwarding zone_icon getter to coordinator with uid {uid}".
-                         format(uid=self.speaker_zone_coordinator.uid))
-            return self.speaker_zone_coordinator.zone_icon
+                         format(uid=self.zone_coordinator.uid))
+            return self.zone_coordinator.zone_icon
         return self._zone_icon
 
     ### ZONE MEMBERS ###################################################################################################
 
     @property
     def zone_members(self):
-        return self._zone_members
+       return self._zone_members
 
     def zone_member_changed(self):
         self.dirty_property('additional_zone_members')
@@ -435,8 +435,8 @@ class SonosSpeaker():
     def track_uri(self):
         if not self.is_coordinator:
             logger.debug("forwarding track_uri getter to coordinator with uid {uid}".
-                         format(uid=self.speaker_zone_coordinator.uid))
-            return self.speaker_zone_coordinator.track_uri
+                         format(uid=self.zone_coordinator.uid))
+            return self.zone_coordinator.track_uri
         return self._track_uri
 
     @track_uri.setter
@@ -457,8 +457,8 @@ class SonosSpeaker():
     def track_duration(self):
         if not self.is_coordinator:
             logger.debug("forwarding track_duration getter to coordinator with uid {uid}".
-                         format(uid=self.speaker_zone_coordinator.uid))
-            return self.speaker_zone_coordinator.track_duration
+                         format(uid=self.zone_coordinator.uid))
+            return self.zone_coordinator.track_duration
         if not self._track_duration:
             return "00:00:00"
         return self._track_duration
@@ -485,8 +485,8 @@ class SonosSpeaker():
         """
         if not self.is_coordinator:
             logger.debug("forwarding track_position getter to coordinator with uid {uid}".
-                         format(uid=self.speaker_zone_coordinator.uid))
-            return self.speaker_zone_coordinator.get_trackposition(force_refresh=True)
+                         format(uid=self.zone_coordinator.uid))
+            return self.zone_coordinator.get_trackposition(force_refresh=True)
 
         if force_refresh:
             track_info = self.soco.get_current_track_info()
@@ -506,8 +506,8 @@ class SonosSpeaker():
         if trigger_action:
             if not self.is_coordinator:
                 logger.debug("forwarding trackposition setter to coordinator with uid {uid}".
-                             format(uid=self.speaker_zone_coordinator.uid))
-                self.speaker_zone_coordinator.set_trackposition(value, trigger_action)
+                             format(uid=self.zone_coordinator.uid))
+                self.zone_coordinator.set_trackposition(value, trigger_action)
             else:
                 self.soco.seek(value)
         if self._track_position == value:
@@ -526,8 +526,8 @@ class SonosSpeaker():
     def playlist_position(self):
         if not self.is_coordinator:
             logger.debug("forwarding playlist_position getter to coordinator with uid {uid}".
-                         format(uid=self.speaker_zone_coordinator.uid))
-            return self.speaker_zone_coordinator.playlist_position
+                         format(uid=self.zone_coordinator.uid))
+            return self.zone_coordinator.playlist_position
         return self._playlist_position
 
     @playlist_position.setter
@@ -548,8 +548,8 @@ class SonosSpeaker():
     def streamtype(self):
         if not self.is_coordinator:
             logger.debug("forwarding streamtype getter to coordinator with uid {uid}".
-                         format(uid=self.speaker_zone_coordinator.uid))
-            return self.speaker_zone_coordinator.streamtype
+                         format(uid=self.zone_coordinator.uid))
+            return self.zone_coordinator.streamtype
         return self._streamtype
 
     @streamtype.setter
@@ -569,8 +569,8 @@ class SonosSpeaker():
     def get_stop(self):
         if not self.is_coordinator:
             logger.debug("forwarding stop getter to coordinator with uid {uid}".
-                         format(uid=self.speaker_zone_coordinator.uid))
-            return self.speaker_zone_coordinator.stop
+                         format(uid=self.zone_coordinator.uid))
+            return self.zone_coordinator.stop
         return self._stop
 
     def set_stop(self, value, trigger_action=False):
@@ -578,8 +578,8 @@ class SonosSpeaker():
         if trigger_action:
             if not self.is_coordinator:
                 logger.debug("forwarding stop setter to coordinator with uid {uid}".
-                             format(uid=self.speaker_zone_coordinator.uid))
-                self.speaker_zone_coordinator.set_stop(stop, trigger_action=True)
+                             format(uid=self.zone_coordinator.uid))
+                self.zone_coordinator.set_stop(stop, trigger_action=True)
             else:
                 if stop:
                     self.soco.stop()
@@ -604,8 +604,8 @@ class SonosSpeaker():
     def get_play(self):
         if not self.is_coordinator:
             logger.debug("forwarding play getter to coordinator with uid {uid}".
-                         format(uid=self.speaker_zone_coordinator.uid))
-            return self.speaker_zone_coordinator.play
+                         format(uid=self.zone_coordinator.uid))
+            return self.zone_coordinator.play
         return self._play
 
     def set_play(self, value, trigger_action=False):
@@ -613,8 +613,8 @@ class SonosSpeaker():
         if trigger_action:
             if not self.is_coordinator:
                 logger.debug("forwarding play setter to coordinator with uid {uid}".
-                             format(uid=self.speaker_zone_coordinator.uid))
-                self.speaker_zone_coordinator.set_play(play, trigger_action=True)
+                             format(uid=self.zone_coordinator.uid))
+                self.zone_coordinator.set_play(play, trigger_action=True)
             else:
                 if play:
                     self.soco.play()
@@ -639,8 +639,8 @@ class SonosSpeaker():
     def get_pause(self):
         if not self.is_coordinator:
             logger.debug("forwarding pause getter to coordinator with uid {uid}".
-                         format(uid=self.speaker_zone_coordinator.uid))
-            return self.speaker_zone_coordinator.pause
+                         format(uid=self.zone_coordinator.uid))
+            return self.zone_coordinator.pause
         return self._pause
 
     def set_pause(self, value, trigger_action=False):
@@ -648,8 +648,8 @@ class SonosSpeaker():
         if trigger_action:
             if not self.is_coordinator:
                 logger.debug("forwarding pause setter to coordinator with uid {uid}".
-                             format(uid=self.speaker_zone_coordinator.uid))
-                self.speaker_zone_coordinator.set_pause(pause, trigger_action=True)
+                             format(uid=self.zone_coordinator.uid))
+                self.zone_coordinator.set_pause(pause, trigger_action=True)
             else:
                 if pause:
                     self.soco.pause()
@@ -675,8 +675,8 @@ class SonosSpeaker():
     def radio_station(self):
         if not self.is_coordinator:
             logger.debug("forwarding radio_station getter to coordinator with uid {uid}".
-                         format(uid=self.speaker_zone_coordinator.uid))
-            return self.speaker_zone_coordinator.radio_station
+                         format(uid=self.zone_coordinator.uid))
+            return self.zone_coordinator.radio_station
         return self._radio_station
 
     @radio_station.setter
@@ -697,8 +697,8 @@ class SonosSpeaker():
     def radio_show(self):
         if not self.is_coordinator:
             logger.debug("forwarding radio_show getter to coordinator with uid {uid}".
-                         format(uid=self.speaker_zone_coordinator.uid))
-            return self.speaker_zone_coordinator.radio_show
+                         format(uid=self.zone_coordinator.uid))
+            return self.zone_coordinator.radio_show
         return self._radio_show
 
     @radio_show.setter
@@ -718,8 +718,8 @@ class SonosSpeaker():
     def track_album_art(self):
         if not self.is_coordinator:
             logger.debug("forwarding track_album_art getter to coordinator with uid {uid}".
-                         format(uid=self.speaker_zone_coordinator.uid))
-            return self.speaker_zone_coordinator.track_album_art
+                         format(uid=self.zone_coordinator.uid))
+            return self.zone_coordinator.track_album_art
         return self._track_album_art
 
     @track_album_art.setter
@@ -739,8 +739,8 @@ class SonosSpeaker():
     def track_title(self):
         if not self.is_coordinator:
             logger.debug("forwarding track_title getter to coordinator with uid {uid}".
-                         format(uid=self.speaker_zone_coordinator.uid))
-            return self.speaker_zone_coordinator.track_title
+                         format(uid=self.zone_coordinator.uid))
+            return self.zone_coordinator.track_title
         if not self._track_title:
             return ''
         return self._track_title
@@ -762,8 +762,8 @@ class SonosSpeaker():
     def track_artist(self):
         if not self.is_coordinator:
             logger.debug("forwarding track_artist getter to coordinator with uid {uid}".
-                         format(uid=self.speaker_zone_coordinator.uid))
-            return self.speaker_zone_coordinator.track_artist
+                         format(uid=self.zone_coordinator.uid))
+            return self.zone_coordinator.track_artist
         if not self._track_artist:
             return ''
         return self._track_artist
@@ -784,8 +784,8 @@ class SonosSpeaker():
     def next(self):
         if not self.is_coordinator:
             logger.debug("forwarding next command to coordinator with uid {uid}".
-                         format(uid=self.speaker_zone_coordinator.uid))
-            self.speaker_zone_coordinator.next()
+                         format(uid=self.zone_coordinator.uid))
+            self.zone_coordinator.next()
         else:
             self.soco.next()
 
@@ -794,8 +794,8 @@ class SonosSpeaker():
     def previous(self):
         if not self.is_coordinator:
             logger.debug("forwarding previous command to coordinator with uid {uid}".
-                         format(uid=self.speaker_zone_coordinator.uid))
-            self.speaker_zone_coordinator.previous()
+                         format(uid=self.zone_coordinator.uid))
+            self.zone_coordinator.previous()
         else:
             self.soco.previous()
 
@@ -827,12 +827,26 @@ class SonosSpeaker():
             else:
                 speaker = sonos_speakers[join_uid]
             self.soco.join(speaker.soco)
-            self._is_coordinator = False
+
+            # perform a discover scan to get latest zone information
+            self.discover()
             self._dirty_music_metadata()
             self.send()
-
         except Exception:
             raise Exception('No master speaker found for uid \'{uid}\'!'.format(uid=join_uid))
+
+    ### UNJOIN #########################################################################################################
+
+    def unjoin(self):
+
+        """
+        Unjoins the current speaker from a group.
+        """
+        self.soco.unjoin()
+        # perform a discover scan to get latest zone information
+        self.discover()
+        self._dirty_music_metadata()
+        self.send()
 
     def _dirty_music_metadata(self):
 
@@ -859,11 +873,6 @@ class SonosSpeaker():
             'zone_icon',
             'zone_name'
         )
-
-    ### UNJOIN #########################################################################################################
-
-    def unjoin(self):
-        self.soco.unjoin()
 
 
     @property
@@ -917,8 +926,8 @@ class SonosSpeaker():
     def play_uri(self, uri, metadata=None):
         if not self.is_coordinator:
             logger.debug("forwarding play_uri command to coordinator with uid {uid}".
-                         format(uid=self.speaker_zone_coordinator.uid))
-            self.speaker_zone_coordinator.play_uri(uri, metadata)
+                         format(uid=self.zone_coordinator.uid))
+            self.zone_coordinator.play_uri(uri, metadata)
         else:
             self.soco.play_uri(uri, metadata)
 
@@ -965,19 +974,19 @@ class SonosSpeaker():
                           separators=(',', ': '))
 
     def play_snippet(self, uri, volume):
-        if self._speaker_zone_coordinator is not None:
+        if self._zone_coordiantor is not None:
             logger.debug("forwarding play_snippet command to coordinator with uid {uid}".
-                         format(uid=self.speaker_zone_coordinator.uid))
-            self._speaker_zone_coordinator.play_snippet(uri, volume)
+                         format(uid=self.zone_coordinator.uid))
+            self._zone_coordiantor.play_snippet(uri, volume)
         else:
             t = threading.Thread(target=self._play_snippet_thread, args=(uri, volume))
             t.start()
 
     def play_tts(self, tts, volume, smb_url, local_share, language, quota):
-        if self._speaker_zone_coordinator is not None:
+        if self._zone_coordiantor is not None:
             logger.debug("forwarding play_tts command to coordinator with uid {uid}".
-                         format(uid=self.speaker_zone_coordinator.uid))
-            self._speaker_zone_coordinator.play_tts(tts, volume, smb_url, local_share, language, quota)
+                         format(uid=self.zone_coordinator.uid))
+            self._zone_coordiantor.play_tts(tts, volume, smb_url, local_share, language, quota)
         else:
             t = threading.Thread(target=self._play_tts_thread,
                                  args=(tts, volume, smb_url, local_share, language, quota))
@@ -1051,7 +1060,7 @@ class SonosSpeaker():
         Gets all alarms for the speaker
         :return:
         """
-        values = alarms.get_alarms(self.soco)
+        values = get_alarms(self.soco)
         alarm_dict = {}
         for alarm in values:
             if alarm.zone.uid.lower() != self.uid.lower():
@@ -1143,6 +1152,24 @@ class SonosSpeaker():
         for arg in args:
             if arg not in self._dirty_properties:
                 self._dirty_properties.append(arg)
+
+    def discover(self):
+        soco.discover()
+        self.set_zone_coordinator()
+        self.set_group_members()
+
+    def set_zone_coordinator(self):
+        soco = next(member for member in self.soco.group.members if member.is_coordinator is True)
+        if not soco:
+            self._zone_coordinator = None
+        self._zone_coordinator = sonos_speakers[soco.uid.lower()]
+
+    def set_group_members(self):
+        del self.zone_members[:]
+        for member in self.soco.group.members:
+            member_uid = member.uid.lower()
+            if member_uid != self.uid:
+                self.zone_members.append(sonos_speakers[member_uid])
 
     led = property(get_led, set_led)
     bass = property(get_bass, set_bass)
