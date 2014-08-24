@@ -299,7 +299,7 @@ class SonosServerService():
 
                 if transport_state.lower() == "transitioning":
                     #because where is no event for current track position, we call it active
-                    speaker.track_info()
+                    speaker.get_trackposition(force_refresh=True)
 
                 if transport_state.lower() == "stopped":
                     speaker.stop = 1
@@ -317,7 +317,7 @@ class SonosServerService():
                     speaker.pause = 0
 
                     #get current track info, if new track is played or resumed to get track_uri, track_album_art
-                    speaker.track_info()
+                    speaker.get_trackposition(force_refresh=True)
 
         if speaker.streamtype == 'radio':
             r_namespace = '{urn:schemas-rinconnetworks-com:metadata-1-0/}'
@@ -373,9 +373,10 @@ class SonosServerService():
         if volume_state_element is not None:
             volume = volume_state_element.get('val')
             if volume:
-                speaker.volume = volume
                 if utils.check_max_volume_exceeded(volume, speaker.max_volume):
                     speaker.set_volume(speaker.max_volume, trigger_action=True)
+                else:
+                    speaker.volume = volume
 
         mute_state_element = dom.find(".//%sMute[@channel='Master']" % namespace)
         if mute_state_element is not None:
