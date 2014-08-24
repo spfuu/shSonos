@@ -2,7 +2,6 @@
 import re
 import logging
 from urllib.parse import unquote_plus
-from soco.exceptions import SoCoUPnPException
 from lib_sonos import sonos_speaker
 from lib_sonos.sonos_library import SonosLibrary
 from lib_sonos.udp_broker import UdpBroker
@@ -105,22 +104,6 @@ class Command():
             return False, Exception(
                 "CURRENTSTATE command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
 
-    def speaker_trackinfo(self, ip, arguments):
-        try:
-            logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
-            uid = arguments[0].lower()
-
-            if not uid in sonos_speaker.sonos_speakers:
-                raise Exception("Couldn't find any speaker with uid '%s'!" % uid)
-
-            sonos_speaker.sonos_speakers[uid].track_info()
-            sonos_speaker.sonos_speakers[uid].send_data()
-
-            return True, "TRACKINFO command was processed successfully for speaker with uid '{}'.".format(uid)
-
-        except Exception as err:
-            return False, Exception(
-                "TRACKINFO command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
 
     def speaker_play_uri(self, ip, arguments):
         try:
@@ -216,49 +199,6 @@ class Command():
         except Exception as err:
             return False, Exception("PLAYTTS command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
 
-
-    def speaker_seek(self, ip, arguments):
-        try:
-            logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
-            uid = arguments[0].lower()
-
-            if not uid in sonos_speaker.sonos_speakers:
-                raise Exception("Couldn't find any speaker with uid '%s'!" % uid)
-
-            if len(arguments) > 1:
-                timestamp = arguments[1]
-                sonos_speaker.sonos_speakers[uid].seek(timestamp)
-
-            # we need no explicit response here, next title event triggers the update
-
-            return True, "SEEK command was processed successfully for speaker with uid '{}'.".format(uid)
-
-        except Exception as err:
-            return False, Exception("SEEK command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
-
-
-    def speaker_join(selfself, ip, arguments):
-        try:
-            logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
-            uid = arguments[0].lower()
-
-            if not uid in sonos_speaker.sonos_speakers:
-                raise Exception("Couldn't find any speaker with uid '%s'!" % uid)
-
-            if len(arguments) > 1:
-                uid_to_join = arguments[1].lower()
-
-                if uid_to_join not in sonos_speaker.sonos_speakers:
-                    raise Exception("No speaker found with uid '{}' for joining.".format(uid_to_join))
-
-                sonos_speaker.sonos_speakers[uid].join(sonos_speaker.sonos_speakers[uid_to_join].soco)
-            else:
-                raise "Missing arguments"
-
-            return True, "JOIN command was processed successfully for speaker with uid '{}'.".format(uid)
-
-        except Exception as err:
-            return False, Exception("JOIN command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
 
     def speaker_unjoin(selfself, ip, arguments):
         try:
