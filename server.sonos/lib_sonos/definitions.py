@@ -35,3 +35,4 @@ DEFAULT_PID = os.path.join(tempfile.gettempdir(), 'sonos_broker.pid')
 HTTP_SUCCESS = 200
 HTTP_ERROR = 400
 SCAN_TIMEOUT = 60
+TIMESTAMP_PATTERN = "([0-5]?[0-9]):([0-5]?[0-9]):([0-5][0-9])"
