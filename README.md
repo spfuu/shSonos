@@ -16,8 +16,8 @@ v0.3
     --  !! seek command is now named SetTrackPosition (see documentation)
     --  !! to get the current track position, poll GetTrackInfo with 'force_refresh' option
         (see documentation)
-    --  removed command track_info() (this was only useful to get the track position; use 
-        GetTrackInfo instead
+    --  removed command track_info() (this was only useful to get the current track 
+        position; use GetTrackInfo instead
     --  the Broker now sends only the current changed speaker values instead of the whole 
         sonos data structure. This results in much less network traffic / overhead.
     --  Bug: fixed a problem with join command: join could fail, if the group to join have
@@ -25,7 +25,7 @@ v0.3
     --  Bug: fixed permission problem when saving a google tts sound file
     --  Bug: sometimes the search for the group coordinator doesn't found a valid object
     --  added some debug outputs, especially the commands are now logged more detailed
-    
+    --  much cleaner code and improvements 
 
 
 ###This is just the working developer branch. I'm using it as a backup. 
