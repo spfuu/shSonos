@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import logging
-import soco
 from lib_sonos.utils import NotifyList
 from soco.alarms import get_alarms
 from soco.exceptions import SoCoUPnPException
@@ -52,10 +51,8 @@ class SonosSpeaker():
         self._sub_zone_group = None
         self._sub_alarm = None
         self._properties_hash = None
-        self._zone_coordiantor = None
+        self._zone_coordinator = None
         self._additional_zone_members = ''
-
-
 
 
         self._volume = self.soco.volume
@@ -804,7 +801,7 @@ class SonosSpeaker():
     def partymode(self):
 
         """
-        Joins all speakers to a group.
+        Joins all speakers to the current speaker group.
         :rtype : None
         """
 
@@ -828,10 +825,6 @@ class SonosSpeaker():
                 speaker = sonos_speakers[join_uid]
             self.soco.join(speaker.soco)
 
-            # perform a discover scan to get latest zone information
-            self.discover()
-            self._dirty_music_metadata()
-            self.send()
         except Exception:
             raise Exception('No master speaker found for uid \'{uid}\'!'.format(uid=join_uid))
 
@@ -842,13 +835,10 @@ class SonosSpeaker():
         """
         Unjoins the current speaker from a group.
         """
-        self.soco.unjoin()
-        # perform a discover scan to get latest zone information
-        self.discover()
-        self._dirty_music_metadata()
-        self.send()
 
-    def _dirty_music_metadata(self):
+        self.soco.unjoin()
+
+    def dirty_music_metadata(self):
 
         """
         Small helper function to make the music metadata properties 'dirty' after a speaker was joined or un-joined
@@ -1152,11 +1142,6 @@ class SonosSpeaker():
         for arg in args:
             if arg not in self._dirty_properties:
                 self._dirty_properties.append(arg)
-
-    def discover(self):
-        soco.discover()
-        self.set_zone_coordinator()
-        self.set_group_members()
 
     def set_zone_coordinator(self):
         soco = next(member for member in self.soco.group.members if member.is_coordinator is True)
