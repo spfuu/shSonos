@@ -84,91 +84,69 @@ class SonosServerService():
 
     def discover(self):
         try:
-            zone_group_state_shared_cache.clear()
-            active_uids = []
+            with sonos_speaker._sonos_lock:
+                zone_group_state_shared_cache.clear()
+                active_uids = []
+                soco_speakers = discover(timeout=5, include_invisible=False)
 
-            soco_speakers = discover(timeout=5, include_invisible=False)
+                if soco_speakers is None:
+                    return
 
-            if soco_speakers is None:
-                return
+                for soco_speaker in soco_speakers:
+                    uid = soco_speaker.uid.lower()
 
-            for soco_speaker in soco_speakers:
-                uid = soco_speaker.uid.lower()
-
-                # new speaker found, update it
-                if uid not in sonos_speaker.sonos_speakers:
-                    try:
-                        soco_speaker.get_speaker_info(refresh=True)
-                        active_uids.append(uid)
-                    except Exception:
-                        # sometimes an offline speaker is cached and will be found by the discover function
-                        continue
-                    with sonos_speaker._sonos_lock:
+                    # new speaker found, update it
+                    if uid not in sonos_speaker.sonos_speakers:
+                        try:
+                            soco_speaker.get_speaker_info(refresh=True)
+                            active_uids.append(uid)
+                        except Exception:
+                            # sometimes an offline speaker is cached and will be found by the discover function
+                            continue
                         try:
                             _sp = SonosSpeaker(soco_speaker)
                             sonos_speaker.sonos_speakers[uid] = _sp
                             sonos_speaker.sonos_speakers[uid].model = self.get_model_name(
                                 sonos_speaker.sonos_speakers[uid].ip)
+                        except KeyError as err:
+                            continue  # speaker maybe deleted by another thread
+
+                    else:
+                        try:
+                            sonos_speaker.sonos_speakers[uid].soco.get_speaker_info(refresh=True)
+                            active_uids.append(uid)
                         except KeyError:
                             continue  # speaker maybe deleted by another thread
 
-                else:
-                    try:
-                        with sonos_speaker._sonos_lock:
-                            try:
-                                sonos_speaker.sonos_speakers[uid].soco.get_speaker_info(refresh=True)
-                                active_uids.append(uid)
-                            except KeyError:
-                                continue  # speaker maybe deleted by another thread
-                    except Exception:
-                        continue
-                with sonos_speaker._sonos_lock:
-                    try:
-                        sonos_speaker.sonos_speakers[uid].event_subscription(self.event_queue)
-                    except KeyError:
-                        continue  # speaker maybe deleted by another thread
+                # remove all offline speakers from internal list #######################################################
 
-            with sonos_speaker._sonos_lock:
                 try:
                     offline_uids = set(list(sonos_speaker.sonos_speakers.keys())) - set(active_uids)
                 except KeyError:
                     pass  # speaker maybe deleted by another thread
 
-            for uid in offline_uids:
-                logger.info("offline speaker: {} -- removing from list".format(uid))
-                with sonos_speaker._sonos_lock:
+                for uid in offline_uids:
+                    logger.info("offline speaker: {uid} -- removing from list".format(uid=uid))
                     try:
                         sonos_speaker.sonos_speakers[uid].status = False
-                        sonos_speaker.sonos_speakers[uid].send_data()
+                        sonos_speaker.sonos_speakers[uid].send()
                         del sonos_speaker.sonos_speakers[uid]
                     except KeyError:
                         continue  # speaker maybe deleted by another thread
 
-            # add the sonos master speaker to all slaves in the group
-            for speaker in sonos_speaker.sonos_speakers.values():
-                with sonos_speaker._sonos_lock:
-                    try:
-                        soco_instance = next(member for member in speaker.soco.group.members if member.is_coordinator
-                                             is True)
-                        if not soco_instance:
-                            return
-                        speaker.speaker_zone_coordinator = sonos_speaker.sonos_speakers[soco_instance.uid.lower()]
+                # register events for all speaker, this has to be the last step due to some logics in the event ########
+                # handling routine #####################################################################################
 
-                        # reset members
-                        del sonos_speaker.sonos_speakers[speaker.uid].zone_members[:]
-
-                        for member in speaker.soco.group.members:
-                            member_uid = member.uid.lower()
-                            if member_uid != speaker.uid:
-                                if sonos_speaker.sonos_speakers[member_uid] not in sonos_speaker.sonos_speakers[
-                                    speaker.uid].zone_members:
-                                    sonos_speaker.sonos_speakers[speaker.uid].zone_members.append(
-                                        sonos_speaker.sonos_speakers[member_uid])
-                    except KeyError:
-                        continue
+                try:
+                    for speaker in sonos_speaker.sonos_speakers.values():
+                        speaker.set_zone_coordinator()
+                        speaker.set_group_members()
+                        speaker.event_subscription(self.event_queue)
+                except KeyError:
+                    pass  # speaker maybe deleted by another thread
 
         except Exception as err:
-            logger.exception('Error in method discover()!\nError: {}'.format(err))
+            logger.exception('Error in method discover()!\nError: {err}'.format(err=err))
         finally:
             pass
 
@@ -208,12 +186,9 @@ class SonosServerService():
                         pass  # speaker maybe removed from another thread
 
                 if event[2].service_type == 'ZoneGroupTopology':
-                    pass
-                    # we're using the soco framework to discover new topology
-                    # this is a bit of network traffic overhead, but we don't need to do the same work
-                    # disable caching
-                    zone_group_state_shared_cache.clear()
-                    self.discover()
+                    speaker.set_zone_coordinator()
+                    speaker.set_group_members()
+                    speaker.dirty_music_metadata()
 
                 if event[2].service_type == 'AVTransport':
                     self.handle_AVTransport_event(speaker, event[3])
@@ -224,7 +199,6 @@ class SonosServerService():
                 if event[2].service_type == 'AlarmClock':
                     self.handle_AlarmClock_event(speaker, event[3])
 
-                    # speaker.send_data()
             except queue.Empty:
                 pass
             except KeyboardInterrupt:
@@ -287,7 +261,7 @@ class SonosServerService():
             if current_play_mode:
                 speaker.playmode = current_play_mode.lower()
 
-                ############ TRANSPORTSTATE
+        ############ TRANSPORTSTATE
 
         transport_state_element = dom.find(".//%sTransportState" % namespace)
 
