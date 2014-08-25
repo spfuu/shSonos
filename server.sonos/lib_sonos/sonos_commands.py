@@ -200,38 +200,6 @@ class Command():
             return False, Exception("PLAYTTS command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
 
 
-    def speaker_unjoin(selfself, ip, arguments):
-        try:
-            logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
-            uid = arguments[0].lower()
-
-            if not uid in sonos_speaker.sonos_speakers:
-                raise Exception("Couldn't find any speaker with uid '%s'!" % uid)
-
-            sonos_speaker.sonos_speakers[uid].unjoin()
-
-            return True, "UNJOIN command was processed successfully for speaker with uid '{}'.".format(uid)
-
-        except Exception as err:
-            return False, Exception("UNJOIN command failed for speaker with uid '{}'!\nException: {}".format(uid, err))
-
-
-
-    def partymode(self, ip, arguments):
-        try:
-            logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
-            uid = arguments[0].lower()
-
-            if not uid in sonos_speaker.sonos_speakers:
-                raise Exception("Couldn't find any speaker with uid '%s'!" % uid)
-
-            sonos_speaker.sonos_speaker[uid].partymode()
-
-            return True, "PARTYMODE command was processed successfully."
-
-        except Exception as err:
-            return False, Exception("PARTYMODE command failed!\nException: {}".format(err))
-
     def library_favradio(self, ip, arguments):
         try:
             logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
