@@ -92,6 +92,8 @@ class SonosServerService():
                 if soco_speakers is None:
                     return
 
+                speaker_to_remove = []
+
                 for soco_speaker in soco_speakers:
                     uid = soco_speaker.uid.lower()
 
@@ -101,25 +103,31 @@ class SonosServerService():
                             soco_speaker.get_speaker_info(refresh=True)
                             active_uids.append(uid)
                         except Exception:
-                            # sometimes an offline speaker is cached and will be found by the discover function
+                            # !! sometimes an offline speaker is cached and will be found by the discover function
+                            speaker_to_remove.append(soco_speaker.uid)
                             continue
                         try:
                             _sp = SonosSpeaker(soco_speaker)
                             sonos_speaker.sonos_speakers[uid] = _sp
                             sonos_speaker.sonos_speakers[uid].model = self.get_model_name(
                                 sonos_speaker.sonos_speakers[uid].ip)
-                        except KeyError as err:
+                        except Exception:
+                            speaker_to_remove.append(soco_speaker.uid)
                             continue  # speaker maybe deleted by another thread
-
                     else:
                         try:
                             sonos_speaker.sonos_speakers[uid].soco.get_speaker_info(refresh=True)
                             active_uids.append(uid)
-                        except KeyError:
+                        except Exception:
+                            speaker_to_remove.append(soco_speaker.uid)
                             continue  # speaker maybe deleted by another thread
 
-                # remove all offline speakers from internal list #######################################################
+                for uid in speaker_to_remove:
+                    uid = uid.lower()
+                    if uid in sonos_speaker.sonos_speakers:
+                        sonos_speaker.sonos_speakers.pop(uid)
 
+                # remove all offline speakers from internal list #######################################################
                 try:
                     offline_uids = set(list(sonos_speaker.sonos_speakers.keys())) - set(active_uids)
                 except KeyError:
@@ -137,13 +145,13 @@ class SonosServerService():
                 # register events for all speaker, this has to be the last step due to some logics in the event ########
                 # handling routine #####################################################################################
 
-                try:
-                    for speaker in sonos_speaker.sonos_speakers.values():
+                for speaker in sonos_speaker.sonos_speakers.values():
+                    try:
                         speaker.set_zone_coordinator()
                         speaker.set_group_members()
                         speaker.event_subscription(self.event_queue)
-                except KeyError:
-                    pass  # speaker maybe deleted by another thread
+                    except KeyError:
+                        pass  # speaker maybe deleted by another thread
 
         except Exception as err:
             logger.exception('Error in method discover()!\nError: {err}'.format(err=err))
