@@ -43,28 +43,6 @@ class Command():
             logger.error(err)
             return False, response
 
-    def client_subscribe(self, ip, arguments):
-        try:
-            logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
-            port = int(arguments[0])
-            UdpBroker.subscribe_client(ip, port)
-
-            return True, 'Successfully subscribed client {}:{}'.format(ip, port)
-        except Exception as err:
-            logger.debug(err)
-            return False, "Couldn't subscribe client {}:{}".format(ip, port)
-
-    def client_unsubscribe(self, ip, arguments):
-        try:
-            logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
-            port = int(arguments[0])
-            UdpBroker.unsubscribe_client(ip, port)
-            logger.debug("client unsubscribed: {host}:{port}".format(host=ip, port=port))
-            return True, 'Successfully unsubscribed client {}:{}'.format(ip, port)
-        except Exception as err:
-            logger.error(err)
-            return False, "Couldn't unsubscribe client {}:{}".format(ip, port)
-
     def client_list(self, ip, arguments):
         try:
             logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
