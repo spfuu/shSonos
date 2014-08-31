@@ -139,7 +139,7 @@ class _ArgsSingleton(type):
         return cls._instances[key][args]
 
 
-class _SocoSingletonBase(  # pylint: disable=too-few-public-methods
+class _SocoSingletonBase(  # pylint: disable=too-few-public-methods,no-init
         _ArgsSingleton(str('ArgsSingletonMeta'), (object,), {})):
     """ The base class for the SoCo class.
 
@@ -180,7 +180,6 @@ class SoCo(_SocoSingletonBase):
         join -- Join this speaker to another "master" speaker.
         unjoin -- Remove this speaker from a group.
         get_queue -- Get information about the queue.
-        get_folders -- Get search folders from the music library
         get_artists -- Get artists from the music library
         get_album_artists -- Get album artists from the music library
         get_albums -- Get albums from the music library
@@ -220,6 +219,7 @@ class SoCo(_SocoSingletonBase):
 
     _class_group = 'SoCo'
 
+    # pylint: disable=super-on-old-class
     def __init__(self, ip_address):
         # Note: Creation of a SoCo instance should be as cheap and quick as
         # possible. Do not make any network calls here
@@ -1223,7 +1223,6 @@ class SoCo(_SocoSingletonBase):
             'item_list' list with the search results. The search results
             are instances of one of
             :py:class:`~.soco.data_structures.MLArtist`,
-            :py:class:`~.soco.data_structures.MLAlbumArtist`,
             :py:class:`~.soco.data_structures.MLAlbum`,
             :py:class:`~.soco.data_structures.MLGenre`,
             :py:class:`~.soco.data_structures.MLComposer`,
@@ -1359,7 +1358,7 @@ class SoCo(_SocoSingletonBase):
         :type uri: str
         """
         item = URI(uri)
-        self.add_to_queue(item)
+        return self.add_to_queue(item)
 
     def add_to_queue(self, queueable_item):
         """ Adds a queueable item to the queue """
