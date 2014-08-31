@@ -208,6 +208,21 @@ def dump_attributes(obj):
     attributes = ', '.join("%s: %s" % item for item in attrs.items() if not item[0].startswith('_'))
     return attributes
 
+def ip_address_is_valid(address):
+
+    """
+    Tests if an ip address is valid.
+    http://stackoverflow.com/questions/4011855/regexp-to-check-if-an-ip-is-valid
+    :param address:
+    :return: True or False
+    """
+
+    try:
+        socket.inet_aton(address)
+    except socket.error:
+        return False
+    else:
+        return address.count('.') == 3
 
 def check_int(s):
     if isinstance(s, int):
