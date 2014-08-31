@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 import logging
+import queue
+from urllib.parse import unquote_plus
+import re
 from lib_sonos.utils import NotifyList
 from soco.alarms import get_alarms
 from soco.exceptions import SoCoUPnPException
@@ -8,6 +11,7 @@ import time
 import json
 from lib_sonos import udp_broker
 from lib_sonos import utils
+from soco.plugins.spotify import Spotify, SpotifyTrack
 
 try:
     import xml.etree.cElementTree as XML
@@ -18,9 +22,9 @@ logger = logging.getLogger('')
 sonos_speakers = {}
 _sonos_lock = threading.Lock()
 
-
 class SonosSpeaker():
     def __init__(self, soco):
+        self._saved_music_track = None
         self._zone_members = NotifyList()
         self._zone_members.register_callback(self.zone_member_changed)
         self._dirty_properties = []
@@ -53,7 +57,8 @@ class SonosSpeaker():
         self._properties_hash = None
         self._zone_coordinator = None
         self._additional_zone_members = ''
-
+        self._snippet_queue = queue.PriorityQueue(10)
+        self._snippet_queue_lock = threading.Lock()
 
         self._volume = self.soco.volume
         self._bass = self.soco.bass
@@ -68,8 +73,11 @@ class SonosSpeaker():
         self._hardware_version = self.soco.speaker_info['hardware_version']
         self._mac_address = self.soco.speaker_info['mac_address']
 
-        self.dirty_property('serial_number', 'software_version', 'hardware_version', 'mac_address', 'zone_icon',
-                            'zone_name', 'ip', 'max_volume', 'volume')
+        self._snippet_event_thread = threading.Thread(target=self.process_snippets)
+        self._snippet_event_thread.daemon = True
+        self._snippet_event_thread.start()
+
+        self.dirty_all()
 
     # ## SoCo instance ##################################################################################################
 
@@ -214,7 +222,7 @@ class SonosSpeaker():
     ### LOUDNESS #######################################################################################################
 
     def get_loudness(self):
-        return self._loudness
+        return int(self._loudness)
 
     def set_loudness(self, value, trigger_action=False, group_command=False):
         loudness = int(value)
@@ -838,6 +846,20 @@ class SonosSpeaker():
 
         self.soco.unjoin()
 
+    ### CURRENT STATE ##################################################################################################
+
+    def current_state(self, group_command=False):
+
+        """
+        Refreshs all values for the current speaker. All values will be send to the connected clients.
+        :param group_command: Refreshs the status for all additional zone members
+        """
+
+        self.dirty_all()
+        if group_command:
+                for speaker in self._zone_members:
+                    speaker.current_state(group_command=False)
+
     def dirty_music_metadata(self):
 
         """
@@ -855,15 +877,38 @@ class SonosSpeaker():
             'stop',
             'play',
             'pause',
+            'mute',
             'radio_station',
             'radio_show',
             'playlist_position',
             'streamtype',
             'playmode',
             'zone_icon',
-            'zone_name'
+            'zone_name',
+            'playmode',
         )
 
+    def dirty_all(self):
+
+        self.dirty_music_metadata()
+
+        self.dirty_property(
+            'ip',
+            'mac_address',
+            'software_version',
+            'hardware_version',
+            'serial_number',
+            'led',
+            'volume',
+            'mute',
+            'additional_zone_members',
+            'status',
+            'model',
+            'bass',
+            'treble',
+            'loudness',
+            'alarms',
+        )
 
     @property
     def alarms(self):
@@ -912,65 +957,125 @@ class SonosSpeaker():
             self._playmode = ''
             self._alarms = ''
 
-
     def play_uri(self, uri, metadata=None):
+        """
+        Plays a song from a given uri
+        :param uri:
+        :param metadata:
+        :return: True, if the song is played.
+        """
         if not self.is_coordinator:
             logger.debug("forwarding play_uri command to coordinator with uid {uid}".
                          format(uid=self.zone_coordinator.uid))
             self.zone_coordinator.play_uri(uri, metadata)
         else:
-            self.soco.play_uri(uri, metadata)
+            return self.soco.play_uri(uri, metadata)
 
-    @property
-    def properties_dict(self):
-        return \
-            {
-                'uid': self.uid,
-                'ip': self.ip,
-                'mac_address': self.mac_address,
-                'software_version': self.software_version,
-                'hardware_version': self.hardware_version,
-                'serial_number': self.serial_number,
-                'led': self.led,
-                'volume': self.volume,
-                'play': self.play,
-                'pause': self.pause,
-                'stop': self.stop,
-                'mute': self.mute,
-                'track_title': self.track_title,
-                'track_uri': self.track_uri,
-                'track_duration': self.track_duration,
-                'track_position': self.track_position,
-                'track_artist': self.track_artist,
-                'track_album_art': self.track_album_art,
-                'radio_station': self.radio_station,
-                'radio_show': self.radio_show,
-                'playlist_position': self.playlist_position,
-                'streamtype': self.streamtype,
-                'zone_name': self.zone_name,
-                'zone_icon': self.zone_icon,
-                'additional_zone_members': ','.join(str(speaker.uid) for speaker in self.additional_zone_members),
-                'status': self.status,
-                'model': self.model,
-                'bass': self.bass,
-                'treble': self.treble,
-                'loudness': self.loudness,
-                'playmode': self.playmode,
-                'alarms': self.alarms
-            }
 
-    def to_json(self):
-        return json.dumps(self, default=lambda o: self.properties_dict, sort_keys=True, ensure_ascii=False, indent=4,
-                          separators=(',', ': '))
+    def add_spotify(self, uri):
 
-    def play_snippet(self, uri, volume):
-        if self._zone_coordiantor is not None:
+        if not self.is_coordinator:
+            logger.debug("forwarding play_uri command to coordinator with uid {uid}".
+                         format(uid=self.zone_coordinator.uid))
+            self.zone_coordinator.add_spotify_track(uri)
+        else:
+            uri = utils.url_fix(uri)
+            uri = unquote_plus(uri.decode())
+
+            reg = re.compile(r'x-sonos-spotify:(?P<track>.*?)\?sid.*?')
+
+            m = reg.match(uri)
+            track = m.group('track')
+
+            if track:
+                spotify = Spotify(self.soco)
+                spotify.add_track_to_queue(SpotifyTrack('spotify:track:7kCrYUDtWsPldohOKPTKPL'))
+
+            #'x-sonos-spotify:spotify:track:7kCrYUDtWsPldohOKPTKPL?sid=9&flags=32'
+
+    def play_snippet(self, uri, volume=-1, group_command=False):
+        if not self.is_coordinator:
             logger.debug("forwarding play_snippet command to coordinator with uid {uid}".
                          format(uid=self.zone_coordinator.uid))
-            self._zone_coordiantor.play_snippet(uri, volume)
+            self._zone_coordinator.play_snippet(uri, volume)
         else:
-            t = threading.Thread(target=self._play_snippet_thread, args=(uri, volume))
-            t.start()
+            with self._snippet_queue_lock:
+                try:
+                    was_empty = False
+                    ''' Check if event queue is empty.
+                    if yes, then add the currently played track to the end of the queue
+                    '''
+                    if self._snippet_queue.empty():
+                        self._saved_music_track = SavedMusicItem()
+                        self._saved_music_track.track_info = self.soco.get_current_track_info()
+                        was_empty = True
+
+                    # sinppet is priority 1, save_music_track is 2
+
+                    self._snippet_queue.put((1, uri, volume))
+                    if was_empty:
+                        self._snippet_queue.put((2, self._saved_music_track))
+
+                except KeyError as err:  # The key have been deleted in another thread
+                    self._snippet_queue.queue.clear()
+                    raise err
+                except Exception as err:
+                    self._snippet_queue.queue.clear()
+                    raise err
+
+    def _play_snippet(self, uri, volume=-1, group_command=False):
+        try:
+            if volume == -1:
+                volume = self.volume
+
+            logger.debug('Playing snippet \'{uri}\'. Volume: {volume}'.format(uri=uri, volume=volume))
+            if self.volume != volume:
+                self.set_volume(trigger_action=True, group_command=group_command)
+
+            self.play_uri(uri)
+            h, m, s = self.track_duration.split(":")
+            seconds = int(h) * 3600 + int(m) * 60 + int(s) + 1
+            logger.debug('Waiting {seconds} seconds until snippet has finshed playing.'.format(seconds=seconds))
+            time.sleep(seconds)
+            return
+        except Exception as err:
+            logger.error("Could not play snippet with uri '{uri}'. Exception: {err}".format(uri=uri, err=err))
+            return
+
+        print('PLAY PLAY PLAY SNIPPET')
+        queued_streamtype = self.streamtype
+        queued_uri = self.track_uri
+        queued_playlist_position = self.playlist_position
+        queued_track_position = self.track_position
+        queued_metadata = self.metadata
+        queued_play_status = self.play
+        return
+
+
+        queued_volume = self.volume
+
+        #something changed during playing the audio snippet. Maybe there was command send by an other client (iPad e.g)
+        if self.track_uri != uri:
+            return
+
+        if queued_playlist_position:
+            try:
+                if queued_streamtype == "music":
+                    self.soco.play_from_queue(int(queued_playlist_position) - 1)
+                    self.seek(queued_track_position)
+                else:
+                    self.play_uri(queued_uri, queued_metadata)
+                if not queued_play_status:
+                    self.pause = True
+            except SoCoUPnPException as err:
+                #this happens if there is no track in playlist after snippet was played
+                if err.error_code == 701:
+                    pass
+                else:
+                    raise err
+
+        self.volume = queued_volume
+
 
     def play_tts(self, tts, volume, smb_url, local_share, language, quota):
         if self._zone_coordiantor is not None:
@@ -1017,6 +1122,11 @@ class SonosSpeaker():
         del self._dirty_properties[:]
 
     def event_unsubscribe(self):
+
+        """
+        Unsubcribes the Broker from the event queue.
+        """
+
         try:
             if self.sub_zone_group is not None:
                 self.sub_zone_group.unsubscribe()
@@ -1028,6 +1138,11 @@ class SonosSpeaker():
             logger.exception(err)
 
     def event_subscription(self, event_queue):
+
+        """
+        Subscribes the Broker to all necessary Sonos speaker events
+        :param event_queue:
+        """
 
         try:
             if self.sub_zone_group is None or self.sub_zone_group.time_left == 0:
@@ -1086,57 +1201,6 @@ class SonosSpeaker():
         except Exception as err:
             raise err
 
-    def _play_snippet_thread(self, uri, volume):
-        self.track_info()
-        queued_streamtype = self.streamtype
-        queued_uri = self.track_uri
-        queued_playlist_position = self.playlist_position
-        queued_track_position = self.track_position
-        queued_metadata = self.metadata
-        queued_play_status = self.play
-
-        queued_volume = self.volume
-        if volume == -1:
-            volume = queued_volume
-
-        self.volume = 0
-        time.sleep(1)
-
-        #ignore max_volume here
-        queued_max_volume = self.max_volume
-        self.max_volume = -1
-
-        self.volume = volume
-        self.play_uri(uri)
-        self.track_info()
-
-        h, m, s = self.track_duration.split(":")
-        seconds = int(h) * 3600 + int(m) * 60 + int(s) + 1
-        time.sleep(seconds)
-
-        self.max_volume = queued_max_volume
-
-        #something changed during playing the audio snippet. Maybe there was command send by an other client (iPad e.g)
-        if self.track_uri != uri:
-            return
-
-        if queued_playlist_position:
-            try:
-                if queued_streamtype == "music":
-                    self.soco.play_from_queue(int(queued_playlist_position) - 1)
-                    self.seek(queued_track_position)
-                else:
-                    self.play_uri(queued_uri, queued_metadata)
-                if not queued_play_status:
-                    self.pause = True
-            except SoCoUPnPException as err:
-                #this happens if there is no track in playlist after snippet was played
-                if err.error_code == 701:
-                    pass
-                else:
-                    raise err
-
-        self.volume = queued_volume
 
     def dirty_property(self, *args):
         for arg in args:
@@ -1146,7 +1210,13 @@ class SonosSpeaker():
     def set_zone_coordinator(self):
         soco = next(member for member in self.soco.group.members if member.is_coordinator is True)
         if not soco:
+            '''
+            current instance is the coordinator
+            '''
             self._zone_coordinator = None
+            self._snippet_event_thread.join()
+            self._snippet_event_thread = None
+
         self._zone_coordinator = sonos_speakers[soco.uid.lower()]
 
     def set_group_members(self):
@@ -1155,6 +1225,21 @@ class SonosSpeaker():
             member_uid = member.uid.lower()
             if member_uid != self.uid:
                 self.zone_members.append(sonos_speakers[member_uid])
+
+    def process_snippets(self):
+        while True:
+            try:
+                event = self._snippet_queue.get()
+
+                if isinstance(event[1], SavedMusicItem):
+                    print('huhu')
+                else:
+                    self._play_snippet(event[1], event[2])
+                self._snippet_queue.task_done()
+            except queue.Empty:
+                pass
+            except KeyboardInterrupt:
+                break
 
     led = property(get_led, set_led)
     bass = property(get_bass, set_bass)
@@ -1168,3 +1253,16 @@ class SonosSpeaker():
     pause = property(get_pause, set_pause)
     max_volume = property(get_maxvolume, set_maxvolume)
     track_position = property(get_trackposition, set_trackposition)
+
+
+class SavedMusicItem():
+    def __init__(self):
+        self._track_info = None
+
+    @property
+    def track_info(self):
+        return self._track_info
+
+    @track_info.setter
+    def track_info(self, value):
+        self._track_info = value
