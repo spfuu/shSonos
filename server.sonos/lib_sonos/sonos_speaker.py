@@ -24,7 +24,7 @@ _sonos_lock = threading.Lock()
 
 class SonosSpeaker():
     def __init__(self, soco):
-        self._saved_music_track = None
+        self._saved_music_item = None
         self._zone_members = NotifyList()
         self._zone_members.register_callback(self.zone_member_changed)
         self._dirty_properties = []
@@ -1006,15 +1006,15 @@ class SonosSpeaker():
                     if yes, then add the currently played track to the end of the queue
                     '''
                     if self._snippet_queue.empty():
-                        self._saved_music_track = SavedMusicItem()
-                        self._saved_music_track.track_info = self.soco.get_current_track_info()
+                        self._saved_music_item = SavedMusicItem(self.soco, self.volume, group_command)
+                        self._saved_music_item.save_current_track()
                         was_empty = True
 
-                    # sinppet is priority 1, save_music_track is 2
+                    # snippet is priority 1, save_music_track is 2
 
                     self._snippet_queue.put((1, uri, volume))
                     if was_empty:
-                        self._snippet_queue.put((2, self._saved_music_track))
+                        self._snippet_queue.put((2, self._saved_music_item))
 
                 except KeyError as err:  # The key have been deleted in another thread
                     self._snippet_queue.queue.clear()
@@ -1022,6 +1022,19 @@ class SonosSpeaker():
                 except Exception as err:
                     self._snippet_queue.queue.clear()
                     raise err
+
+    def _play_saved_music_item(self, saved_music_item):
+
+        # saved_music_item should be equal to self._saved_music_item
+        if saved_music_item is not self._saved_music_item:
+            logger.warning('Music item to resume does not match stored music item.')
+            return
+
+        self.set_volume(self._saved_music_item.volume, trigger_action=True,
+                        group_command=self._saved_music_item.is_group_volume)
+
+
+
 
     def _play_snippet(self, uri, volume=-1, group_command=False):
         try:
@@ -1035,14 +1048,18 @@ class SonosSpeaker():
             self.play_uri(uri)
             h, m, s = self.track_duration.split(":")
             seconds = int(h) * 3600 + int(m) * 60 + int(s) + 1
-            logger.debug('Waiting {seconds} seconds until snippet has finshed playing.'.format(seconds=seconds))
+
+            # maximum snippet length is 60 sec
+            if seconds > 60:
+                seconds = 60
+
+            logger.debug('Waiting {seconds} seconds until snippet has finished playing.'.format(seconds=seconds))
             time.sleep(seconds)
             return
         except Exception as err:
             logger.error("Could not play snippet with uri '{uri}'. Exception: {err}".format(uri=uri, err=err))
             return
 
-        print('PLAY PLAY PLAY SNIPPET')
         queued_streamtype = self.streamtype
         queued_uri = self.track_uri
         queued_playlist_position = self.playlist_position
@@ -1232,7 +1249,7 @@ class SonosSpeaker():
                 event = self._snippet_queue.get()
 
                 if isinstance(event[1], SavedMusicItem):
-                    print('huhu')
+                    self._play_saved_music_item(event[1])
                 else:
                     self._play_snippet(event[1], event[2])
                 self._snippet_queue.task_done()
@@ -1256,13 +1273,29 @@ class SonosSpeaker():
 
 
 class SavedMusicItem():
-    def __init__(self):
+    def __init__(self, soco, volume, is_group_volume=False):
+        self._soco = soco
         self._track_info = None
+        self._transport_info = None
+        self._is_group_volume = is_group_volume
+        self._volume = volume
+
+    def save_current_track(self):
+        self._track_info = self._soco.get_current_track_info()
+        self._transport_info = self._soco.get_current_transport_info()
 
     @property
     def track_info(self):
         return self._track_info
 
-    @track_info.setter
-    def track_info(self, value):
-        self._track_info = value
+    @property
+    def transport_info(self):
+        return self._transport_info
+
+    @property
+    def is_group_volume(self):
+        return self._is_group_volume
+
+    @property
+    def volume(self):
+        return self._volume
