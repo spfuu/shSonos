@@ -1289,6 +1289,32 @@ class ClientList(JsonCommandBase):
 
 ### PLAY URI ###########################################################################################################
 
+class PlayUri(JsonCommandBase):
+    def __init__(self, parameter):
+        super().__init__(parameter)
+
+    def run(self):
+        try:
+            logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
+                                                                                  attributes=utils.dump_attributes(
+                                                                                      self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
+            sonos_speaker.sonos_speakers[self.uid].play_uri(self.uri)
+            self._status = True
+        except ConnectionError:
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+                format(uid=self.uid)
+        except AttributeError as err:
+            self._response = JsonCommandBase.missing_param_error(err)
+        except Exception as err:
+            self._response = err
+        finally:
+            return self._status, self._response
+
+### PLAY SNIPPET #######################################################################################################
+
 class PlaySnippet(JsonCommandBase):
     def __init__(self, parameter):
         super().__init__(parameter)
@@ -1316,6 +1342,51 @@ class PlaySnippet(JsonCommandBase):
                     raise Exception('Volume has to be set between -1 and 100!')
 
             sonos_speaker.sonos_speakers[self.uid].play_snippet(self.uri, volume, group_command=group_command)
+            self._status = True
+        except ConnectionError:
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+                format(uid=self.uid)
+        except AttributeError as err:
+            self._response = JsonCommandBase.missing_param_error(err)
+        except Exception as err:
+            self._response = err
+        finally:
+            return self._status, self._response
+
+
+### PLAY TTS ###########################################################################################################
+
+class PlayTts(JsonCommandBase):
+    def __init__(self, parameter):
+        super().__init__(parameter)
+
+    def run(self):
+        try:
+            logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
+                                                                                  attributes=utils.dump_attributes(
+                                                                                      self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
+            group_command = 0
+            if hasattr(self, 'group_command'):
+                if self.group_command not in [0, 1, True, False, '0', '1']:
+                    raise Exception('The parameter \'group_command\' has to be 0|1 or True|False !')
+                group_command = int(self.group_command)
+
+            volume = -1
+            if hasattr(self, 'volume'):
+                if not utils.check_int(self.volume):
+                    raise Exception('Value has to be an Integer!')
+                volume = int(self.volume)
+                if volume not in range(-1, 101, 1):
+                    raise Exception('Volume has to be set between -1 and 100!')
+
+            language = 'en'
+            if hasattr(self, 'language'):
+                language = self.language
+
+            sonos_speaker.sonos_speakers[self.uid].play_tts(self.tts, volume, language, group_command=group_command)
             self._status = True
         except ConnectionError:
             self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
