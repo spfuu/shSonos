@@ -136,7 +136,7 @@ def save_google_tts(local_share, tts_string, tts_language, quota):
         if response and response.status_code == 200:
             with open(abs_fname, 'wb') as file:
                 file.write(response.content)
-            os.chmod(abs_fname, 0o660)
+            os.chmod(abs_fname, 0o444)
             return fname
         else:
             raise requests.RequestException('Status code: {}'.format(response.status_code))
