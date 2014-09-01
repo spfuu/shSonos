@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
 import queue
-from urllib.parse import unquote_plus
-import re
 from lib_sonos.utils import NotifyList
 from soco.alarms import get_alarms
 from soco.exceptions import SoCoUPnPException
@@ -11,7 +9,6 @@ import time
 import json
 from lib_sonos import udp_broker
 from lib_sonos import utils
-from soco.plugins.spotify import Spotify, SpotifyTrack
 
 try:
     import xml.etree.cElementTree as XML
@@ -22,7 +19,20 @@ logger = logging.getLogger('')
 sonos_speakers = {}
 _sonos_lock = threading.Lock()
 
+
 class SonosSpeaker():
+
+    tts_enabled = False
+    local_folder = ''
+    remote_folder = ''
+
+    @classmethod
+    def set_tts(self, local_folder, remote_folder, qouta, tts_enabled=False):
+        SonosSpeaker.tts_enabled = tts_enabled
+        SonosSpeaker.local_folder = local_folder
+        SonosSpeaker.remote_folder = remote_folder
+        SonosSpeaker.quota = qouta
+
     def __init__(self, soco):
         self._saved_music_item = None
         self._zone_members = NotifyList()
@@ -114,6 +124,12 @@ class SonosSpeaker():
     @property
     def metadata(self):
         return self._metadata
+
+    @metadata.setter
+    def metadata(self, value):
+        if self._metadata == value:
+            return
+        self._metadata = value
 
     ### zone_coordinator #######################################################################################
 
@@ -958,42 +974,34 @@ class SonosSpeaker():
             self._alarms = ''
 
     def play_uri(self, uri, metadata=None):
+
         """
         Plays a song from a given uri
-        :param uri:
-        :param metadata:
+        :param uri: uri to be played
+        :param metadata: ATTENTION - currently not working due to a bug in SoCo framework
         :return: True, if the song is played.
         """
+
         if not self.is_coordinator:
             logger.debug("forwarding play_uri command to coordinator with uid {uid}".
                          format(uid=self.zone_coordinator.uid))
             self.zone_coordinator.play_uri(uri, metadata)
         else:
-            return self.soco.play_uri(uri, metadata)
-
-
-    def add_spotify(self, uri):
-
-        if not self.is_coordinator:
-            logger.debug("forwarding play_uri command to coordinator with uid {uid}".
-                         format(uid=self.zone_coordinator.uid))
-            self.zone_coordinator.add_spotify_track(uri)
-        else:
-            uri = utils.url_fix(uri)
-            uri = unquote_plus(uri.decode())
-
-            reg = re.compile(r'x-sonos-spotify:(?P<track>.*?)\?sid.*?')
-
-            m = reg.match(uri)
-            track = m.group('track')
-
-            if track:
-                spotify = Spotify(self.soco)
-                spotify.add_track_to_queue(SpotifyTrack('spotify:track:7kCrYUDtWsPldohOKPTKPL'))
-
-            #'x-sonos-spotify:spotify:track:7kCrYUDtWsPldohOKPTKPL?sid=9&flags=32'
+            return self.soco.play_uri(uri)
 
     def play_snippet(self, uri, volume=-1, group_command=False):
+
+        """
+        Plays a audio snippet. This will pause the current audio track , plays the snippet and after that, the previous
+        track will be continued.
+        :param uri: uri to be played
+        :param volume: Snippet volume [-1-100]. After the snippet was played, the previous/original volume is set. If
+        volume is '-1', the current volume is used. Default: -1
+        :param group_command: Only affects the volume. If True, the snippet volume is set to all zone members. Default:
+        False
+        :raise err:
+        """
+
         if not self.is_coordinator:
             logger.debug("forwarding play_snippet command to coordinator with uid {uid}".
                          format(uid=self.zone_coordinator.uid))
@@ -1006,8 +1014,9 @@ class SonosSpeaker():
                     if yes, then add the currently played track to the end of the queue
                     '''
                     if self._snippet_queue.empty():
-                        self._saved_music_item = SavedMusicItem(self.soco, self.volume, group_command)
-                        self._saved_music_item.save_current_track()
+                        print(utils.prettify(self.metadata))
+                        self._saved_music_item = SavedMusicItem(self.soco, self.volume, self.streamtype, self.play,
+                                                                self.pause, self.stop, self.metadata,group_command)
                         was_empty = True
 
                     # snippet is priority 1, save_music_track is 2
@@ -1024,17 +1033,32 @@ class SonosSpeaker():
                     raise err
 
     def _play_saved_music_item(self, saved_music_item):
+        try:
 
-        # saved_music_item should be equal to self._saved_music_item
-        if saved_music_item is not self._saved_music_item:
-            logger.warning('Music item to resume does not match stored music item.')
+            # saved_music_item should be equal to self._saved_music_item
+            if saved_music_item is not self._saved_music_item:
+                logger.warning('Music item to resume does not match stored music item.')
+
+            self.set_volume(self._saved_music_item.volume, trigger_action=True,
+                            group_command=self._saved_music_item.is_group_volume)
+
+            if saved_music_item.streamtype == 'music':
+                self.soco.play_from_queue(int(saved_music_item.track_info['playlist_position'])-1)
+                self.soco.seek(saved_music_item.track_info['position'])
+            else:
+                self.play_uri(saved_music_item.track_info['uri'], saved_music_item.metadata)
+
+            if saved_music_item.play:
+                self.set_play(1, trigger_action=True)
+            if saved_music_item.pause:
+                self.set_pause(1, trigger_action=True)
+            if saved_music_item.stop:
+                self.set_stop(1, trigger_action=True)
+
+        except SoCoUPnPException as err:
+            # maybe illegal seek target here, this is not critical
+            logger.warning(err)
             return
-
-        self.set_volume(self._saved_music_item.volume, trigger_action=True,
-                        group_command=self._saved_music_item.is_group_volume)
-
-
-
 
     def _play_snippet(self, uri, volume=-1, group_command=False):
         try:
@@ -1043,9 +1067,9 @@ class SonosSpeaker():
 
             logger.debug('Playing snippet \'{uri}\'. Volume: {volume}'.format(uri=uri, volume=volume))
             if self.volume != volume:
-                self.set_volume(trigger_action=True, group_command=group_command)
+                self.set_volume(volume, trigger_action=True, group_command=group_command)
 
-            self.play_uri(uri)
+            self.play_uri(uri, '')
             h, m, s = self.track_duration.split(":")
             seconds = int(h) * 3600 + int(m) * 60 + int(s) + 1
 
@@ -1055,54 +1079,29 @@ class SonosSpeaker():
 
             logger.debug('Waiting {seconds} seconds until snippet has finished playing.'.format(seconds=seconds))
             time.sleep(seconds)
-            return
+
+            # check, if the user has played another music item within the sleep period
+
+            if uri != self.track_uri:
+                # clear the snippet_queue
+                logger.debug('User has chosen another music item during the snippet play. Clearing the queue now.')
+                self._snippet_queue.queue.clear()
+
         except Exception as err:
             logger.error("Could not play snippet with uri '{uri}'. Exception: {err}".format(uri=uri, err=err))
             return
 
-        queued_streamtype = self.streamtype
-        queued_uri = self.track_uri
-        queued_playlist_position = self.playlist_position
-        queued_track_position = self.track_position
-        queued_metadata = self.metadata
-        queued_play_status = self.play
-        return
-
-
-        queued_volume = self.volume
-
-        #something changed during playing the audio snippet. Maybe there was command send by an other client (iPad e.g)
-        if self.track_uri != uri:
+    def play_tts(self, tts, volume, language='en', group_command=False):
+        if not SonosSpeaker.tts_enabled:
+            logger.warning('Google TTS disabed. The command was rejected!')
             return
 
-        if queued_playlist_position:
-            try:
-                if queued_streamtype == "music":
-                    self.soco.play_from_queue(int(queued_playlist_position) - 1)
-                    self.seek(queued_track_position)
-                else:
-                    self.play_uri(queued_uri, queued_metadata)
-                if not queued_play_status:
-                    self.pause = True
-            except SoCoUPnPException as err:
-                #this happens if there is no track in playlist after snippet was played
-                if err.error_code == 701:
-                    pass
-                else:
-                    raise err
-
-        self.volume = queued_volume
-
-
-    def play_tts(self, tts, volume, smb_url, local_share, language, quota):
-        if self._zone_coordiantor is not None:
-            logger.debug("forwarding play_tts command to coordinator with uid {uid}".
-                         format(uid=self.zone_coordinator.uid))
-            self._zone_coordiantor.play_tts(tts, volume, smb_url, local_share, language, quota)
-        else:
-            t = threading.Thread(target=self._play_tts_thread,
-                                 args=(tts, volume, smb_url, local_share, language, quota))
-            t.start()
+        # we do not need any code her to  get the zone coordinator. The play_snippet function does the necessary work.
+        filename = utils.save_google_tts(SonosSpeaker.local_folder, tts, language, SonosSpeaker.quota)
+        if SonosSpeaker.local_folder.endswith('/'):
+            SonosSpeaker.local_folder = SonosSpeaker.local_folder[:-1]
+        url = '{}/{}'.format(SonosSpeaker.remote_folder, filename)
+        self.play_snippet(url, volume)
 
     def set_add_to_queue(self, uri):
         self.soco.add_to_queue(uri)
@@ -1206,19 +1205,6 @@ class SonosSpeaker():
             #'Uid': alarm.zone.uid
         }
 
-    def _play_tts_thread(self, tts, volume, smb_url, local_share, language, quota):
-        try:
-            fname = utils.save_google_tts(local_share, tts, language, quota)
-            if smb_url.endswith('/'):
-                smb_url = smb_url[:-1]
-
-            url = '{}/{}'.format(smb_url, fname)
-            self._play_snippet_thread(url, volume)
-
-        except Exception as err:
-            raise err
-
-
     def dirty_property(self, *args):
         for arg in args:
             if arg not in self._dirty_properties:
@@ -1273,16 +1259,34 @@ class SonosSpeaker():
 
 
 class SavedMusicItem():
-    def __init__(self, soco, volume, is_group_volume=False):
+    def __init__(self, soco, volume, streamtype, play, pause, stop, metadata=None, is_group_volume=False):
         self._soco = soco
         self._track_info = None
         self._transport_info = None
         self._is_group_volume = is_group_volume
         self._volume = volume
-
-    def save_current_track(self):
+        self._streamtype = streamtype
+        self._metadata = metadata
+        self._play = play
+        self._pause = pause
+        self._stop = stop
         self._track_info = self._soco.get_current_track_info()
-        self._transport_info = self._soco.get_current_transport_info()
+
+    @property
+    def play(self):
+        return self._play
+
+    @property
+    def pause(self):
+        return self._pause
+
+    @property
+    def stop(self):
+        return self._stop
+
+    @property
+    def streamtype(self):
+        return self._streamtype
 
     @property
     def track_info(self):
@@ -1299,3 +1303,7 @@ class SavedMusicItem():
     @property
     def volume(self):
         return self._volume
+
+    @property
+    def metadata(self):
+        return self._metadata
