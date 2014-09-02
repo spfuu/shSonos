@@ -35,6 +35,7 @@ v0.3
 
 
 ###Available commands
+
     
 ####client_subscribe
     
@@ -47,8 +48,23 @@ v0.3
     {
         'command': 'client_subscribe',
         'parameter': {
-            'ip': '192.168.178.1001',
+            'ip': '192.168.0.2',
             'port': 2333,
-            'uid': 'rincon_b8e93730d19801400'
+        }
+    }
+
+####client_unsubscribe
+    
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| ip | required |  |  The IP of the client which wants to unsubscribe from the broker.
+| port | required | 1-65535 | The PORT of the client which wants to unsubscribe from the broker.
+
+######example
+    {
+        'command': 'client_unsubscribe',
+        'parameter': {
+            'ip': '192.168.0.2',
+            'port': 2333,
         }
     }
