@@ -34,8 +34,8 @@ v0.3
 ###Use the Developer or Master Branch instead. 
 
     
-    client_subscribe
+client_subscribe
     
-    parameter | required / optional | valid values | description     
-    :-------- | :------------------ | :----------- | :----------
-    uid | required | sonos uid as str | bla
+parameter | required / optional | valid values | description     
+:-------- | :------------------ | :----------- | :----------
+uid | required | sonos uid as str | bla
