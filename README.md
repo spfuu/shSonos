@@ -32,3 +32,10 @@ v0.3
 ###This is just the working developer branch. I'm using it as a backup. 
 ###Don't use this code for your code base. It won't work. 
 ###Use the Developer or Master Branch instead. 
+
+    
+    client_subscribe
+    
+    parameter | required / optional | valid values | description     
+    :-------- | :------------------ | :----------- | :----------
+    uid | required | sonos uid as str | bla
