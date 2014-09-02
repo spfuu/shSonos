@@ -27,7 +27,6 @@ from soco import config
 
 LOGGER = logging.getLogger(__name__)
 
-
 def discover(timeout=1, include_invisible=False):
     """ Discover Sonos zones on the local network.
 

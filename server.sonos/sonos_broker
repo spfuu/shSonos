@@ -149,6 +149,9 @@ class SonosBroker():
                     path=os.path.dirname(self._logfile, def_path=definitions.DEFAULT_LOG)))
 
             numeric_level = getattr(logging, loglevel.upper(), None)
+
+            print(numeric_level, loglevel)
+
             if not isinstance(numeric_level, int):
                 raise ValueError('Invalid log level: %s' % loglevel)
 
@@ -184,6 +187,8 @@ class SonosBroker():
                         self._loghandler.doRollover()
                     logger.addHandler(self._loghandler)
 
+                    # set the loglevel for soco framework
+                    logging.getLogger('soco.core').addHandler(self._loghandler)
                 except IOError as e:
                     print("Error creating logfile {}: {}".format(self._logfile, e))
 
