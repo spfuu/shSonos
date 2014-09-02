@@ -33,9 +33,13 @@ v0.3
 ###Don't use this code for your code base. It won't work. 
 ###Use the Developer or Master Branch instead. 
 
+
+###Available commands
     
-client_subscribe
+####client_subscribe
     
 parameter | required / optional | valid values | description     
 :-------- | :------------------ | :----------- | :----------
 uid | required | sonos uid as str | bla
+
+######example
