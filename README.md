@@ -35,10 +35,11 @@ v0.3
 
 
 ###Available commands
-
 ----
-######client_subscribe
-  
+#####client_subscribe
+ Subscribes a client to the Sonos Broker. After the subscription, the client will receive all
+ status changes from the Sonos speakers in the network.
+ 
 | parameter | required / optional | valid values | description |     
 | :-------- | :------------------ | :----------- | :---------- |
 | ip | required |  |  The IP of the client which wants to subscribe to the broker. |
@@ -54,9 +55,25 @@ v0.3
             'port': 2333,
         }
     }
-
 ----
 ####client_unsubscribe
+ Unsubscribes a client from the Broker. After unssubscription the client will not longer receive
+ status chages from the Sonos speakers.
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| ip | required |  |  The IP of the client which wants to unsubscribe from the broker. |
+| port | required | 1-65535 | The PORT of the client which wants to unsubscribe from the broker. |
+
+######example
+    {
+        'command': 'client_unsubscribe',
+        'parameter': {
+            'ip': '192.168.0.2',
+            'port': 2333,
+        }
+    }
+----
+####current_state
     
 | parameter | required / optional | valid values | description |     
 | :-------- | :------------------ | :----------- | :---------- |
