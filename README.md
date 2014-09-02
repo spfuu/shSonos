@@ -24,6 +24,7 @@ v0.3
         had more than ne speaker
     --  Bug: fixed permission problem when saving a google tts sound file
     --  Bug: sometimes the search for the group coordinator doesn't found a valid object
+    --  Bug: Loglevel for the SoCo framework differed from the Broker settings
     --  added some debug outputs, especially the commands are now logged more detailed
     --  much cleaner code and improvements 
 

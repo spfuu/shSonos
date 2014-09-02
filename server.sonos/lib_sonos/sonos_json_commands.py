@@ -1368,6 +1368,9 @@ class PlayTts(JsonCommandBase):
             if self.uid not in sonos_speaker.sonos_speakers:
                 raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
 
+            if len(self.tts) > 100:
+                raise Exception('Text-to-Speech string must not be greater than 100 characters.')
+
             group_command = 0
             if hasattr(self, 'group_command'):
                 if self.group_command not in [0, 1, True, False, '0', '1']:

@@ -21,7 +21,6 @@ _sonos_lock = threading.Lock()
 
 
 class SonosSpeaker():
-
     tts_enabled = False
     local_folder = ''
     remote_folder = ''
@@ -119,7 +118,7 @@ class SonosSpeaker():
         self._model = value
         self.dirty_property('model')
 
-    ### METADATA #######################################################################################################
+    # ## METADATA #######################################################################################################
 
     @property
     def metadata(self):
@@ -303,7 +302,7 @@ class SonosSpeaker():
 
     @property
     def zone_members(self):
-       return self._zone_members
+        return self._zone_members
 
     def zone_member_changed(self):
         self.dirty_property('additional_zone_members')
@@ -873,8 +872,8 @@ class SonosSpeaker():
 
         self.dirty_all()
         if group_command:
-                for speaker in self._zone_members:
-                    speaker.current_state(group_command=False)
+            for speaker in self._zone_members:
+                speaker.current_state(group_command=False)
 
     def dirty_music_metadata(self):
 
@@ -1014,13 +1013,17 @@ class SonosSpeaker():
                     if yes, then add the currently played track to the end of the queue
                     '''
                     if self._snippet_queue.empty():
-                        print(utils.prettify(self.metadata))
-                        self._saved_music_item = SavedMusicItem(self.soco, self.volume, self.streamtype, self.play,
-                                                                self.pause, self.stop, self.metadata,group_command)
-                        was_empty = True
+
+                        # if there is now music item in the ccurent playlist, an exception is thrown
+                        # uncritical
+                        try:
+                            self._saved_music_item = SavedMusicItem(self.soco, self.volume, self.streamtype, self.play,
+                                                                    self.pause, self.stop, self.metadata, group_command)
+                            was_empty = True
+                        except:
+                            pass
 
                     # snippet is priority 1, save_music_track is 2
-
                     self._snippet_queue.put((1, uri, volume))
                     if was_empty:
                         self._snippet_queue.put((2, self._saved_music_item))
@@ -1043,7 +1046,7 @@ class SonosSpeaker():
                             group_command=self._saved_music_item.is_group_volume)
 
             if saved_music_item.streamtype == 'music':
-                self.soco.play_from_queue(int(saved_music_item.track_info['playlist_position'])-1)
+                self.soco.play_from_queue(int(saved_music_item.track_info['playlist_position']) - 1)
                 self.soco.seek(saved_music_item.track_info['position'])
             else:
                 self.play_uri(saved_music_item.track_info['uri'], saved_music_item.metadata)
