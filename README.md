@@ -36,15 +36,15 @@ v0.3
 
 ###Available commands
 
-    
->#####client_subscribe
+     
+> #####client_subscribe
 >    
->| parameter | required / optional | valid values | description |     
->| :-------- | :------------------ | :----------- | :---------- |
->| ip | required |  |  The IP of the client which wants to subscribe to the broker.
->| port | required | 1-65535 | The PORT of the client which wants to subscribe to the broker.
+> | parameter | required / optional | valid values | description |     
+> | :-------- | :------------------ | :----------- | :---------- |
+> | ip | required |  |  The IP of the client which wants to subscribe to the broker.
+> | port | required | 1-65535 | The PORT of the client which wants to subscribe to the broker.
 
->######example
+> ######example
 >    {
 >        'command': 'client_subscribe',
 >        'parameter': {
