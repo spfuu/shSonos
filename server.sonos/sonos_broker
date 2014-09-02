@@ -19,10 +19,9 @@ import signal
 import time
 from lib_sonos import utils
 from lib_sonos import definitions
-from lib_sonos.sonos_commands import Command
 from lib_sonos.sonos_service import SonosServerService
 from lib_sonos import daemon
-from lib_sonos import sonos_json_commands
+from lib_sonos import sonos_commands
 
 # ####################################################################
 # GLOBALS
@@ -53,7 +52,7 @@ class SonosHttpHandler(BaseHTTPRequestHandler):
             command = self.rfile.read(size).decode('utf-8')
 
             try:
-                cmd_obj = json.loads(command, cls=sonos_json_commands.MyDecoder)
+                cmd_obj = json.loads(command, cls=sonos_commands.MyDecoder)
             except AttributeError as err:
                 err_command = list(filter(None, err.args[0].split("'")))[-1]
                 self.make_response(False, "No command '{command}' found!".format(command=err_command))
@@ -261,7 +260,6 @@ class SonosBroker():
         time.sleep(1)
         self._sonos_service = SonosServerService(self._server_ip, self._port, self._server_url, self._save_path,
                                                  self._quota, self._tts_enabled)
-        command_service = Command(self._sonos_service)
         self._http_server = ThreadedHTTPServer((self._host, self._port), SonosHttpHandler)
         logger.info('Starting http server, use <Ctrl-C> to stop')
 

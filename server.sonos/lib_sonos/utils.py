@@ -144,8 +144,8 @@ def save_google_tts(local_share, tts_string, tts_language, quota):
         raise ("Couldn't obtain TTS from Google.\nError: {}".format(e.errno))
 
 
-def to_JSON(value):
-    return json.dumps(value, default=lambda o: value, ensure_ascii=False)
+def to_json(value):
+    return json.dumps(value, default=lambda o: value, ensure_ascii=False, indent=4)
 
 
 def check_volume_range(volume):
@@ -226,7 +226,7 @@ def ip_address_is_valid(address):
 
 def check_int(s):
     if isinstance(s, int):
-        return int(s)
+        return True
     if s[0] in ('-', '+'):
         return s[1:].isdigit()
     return s.isdigit()
