@@ -41,27 +41,27 @@ v0.3
   
 | parameter | required / optional | valid values | description |     
 | :-------- | :------------------ | :----------- | :---------- |
-| ip | required |  |  The IP of the client which wants to subscribe to the broker.
-| port | required | 1-65535 | The PORT of the client which wants to subscribe to the broker.
+| ip | required |  |  The IP of the client which wants to subscribe to the broker. |
+| port | required | 1-65535 | The PORT of the client which wants to subscribe to the broker. |
 
 ######example
-{
-   'command':
-       'client_subscribe',
-       'parameter':
-       {
-           'ip': '192.168.0.2',
-           'port': 2333,
-       }
-}
+    {
+        'command':
+        'client_subscribe',
+        'parameter':
+        {
+            'ip': '192.168.0.2',
+            'port': 2333,
+        }
+    }
 
 ----
 ####client_unsubscribe
     
 | parameter | required / optional | valid values | description |     
 | :-------- | :------------------ | :----------- | :---------- |
-| ip | required |  |  The IP of the client which wants to unsubscribe from the broker.
-| port | required | 1-65535 | The PORT of the client which wants to unsubscribe from the broker.
+| ip | required |  |  The IP of the client which wants to unsubscribe from the broker. |
+| port | required | 1-65535 | The PORT of the client which wants to unsubscribe from the broker. |
 
 ######example
     {
