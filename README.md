@@ -38,8 +38,17 @@ v0.3
     
 ####client_subscribe
     
-parameter | required / optional | valid values | description     
-:-------- | :------------------ | :----------- | :----------
-uid | required | sonos uid as str | bla
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| ip | required |  |  The IP of the client which wants to subscribe to the broker.
+| port | required | 1-65535 | The PORT of the client which wants to subscribe to the broker.
 
 ######example
+    {
+        'command': 'client_subscribe',
+        'parameter': {
+            'ip': '192.168.178.1001',
+            'port': 2333,
+            'uid': 'rincon_b8e93730d19801400'
+        }
+    }
