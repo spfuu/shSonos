@@ -182,6 +182,9 @@ class SonosBroker():
                         self._loghandler.doRollover()
                     logger.addHandler(self._loghandler)
 
+                    # set the loglevel for soco framework
+                    logging.getLogger('soco.core').addHandler(self._loghandler)
+                    
                 except IOError as e:
                     print("Error creating logfile {}: {}".format(self._logfile, e))
 
