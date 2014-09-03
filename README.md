@@ -145,6 +145,68 @@ No special parameter needed.
     
 ######UDP Response sent to subscribed clients:
     _JSON_ format: { "play": 0|1, "uid": "rincon_b8e93730d19801410" }
+
+----
+####get_pause
+ Gets the PAUSE status for a Sonos speaker. If the speaker has additional zone members, the PAUSE status for all
+ members will be sent.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    _JSON_ format: { "pause": 0|1, "uid": "rincon_b8e93730d19801410" }
+
+----
+####set_pause
+ Sets the PAUSE status for a Sonos speaker. If the speaker has additional zone members, the PAUSE status for all
+ members will be set (this is the Sonos standard behavior).
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| pause | required | 0 or 1 | If the value is set to 'False', the Sonos speaker starts playing. |
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    _JSON_ format: { "pause": 0|1, "uid": "rincon_b8e93730d19801410" }
+
+----
+####get_stop
+ Gets the STOP status for a Sonos speaker. If the speaker has additional zone members, the STOP status for all
+ members will be sent.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    _JSON_ format: { "stop": 0|1, "uid": "rincon_b8e93730d19801410" }
+
+----
+####set_stop
+ Sets the STOP status for a Sonos speaker. If the speaker has additional zone members, the STOP status for all
+ members will be set (this is the Sonos standard behavior).
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| stop | required | 0 or 1 | If the value is set to 'False', the Sonos speaker starts playing. |
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    _JSON_ format: { "stop": 0|1, "uid": "rincon_b8e93730d19801410" }
         
 ----
 ####current_state
