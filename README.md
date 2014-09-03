@@ -47,6 +47,8 @@ v0.3
 | port | required | 1-65535 | A client-side open UDP port which receives the data. |
 
 ######Example
+    JSON format:
+    
     {
         'command':
         'client_subscribe',
@@ -74,6 +76,8 @@ v0.3
 | port | required | 1-65535 | A (client-side) open UDP port. |
 
 ######Example
+    JSON format:
+    
     {
         'command': 'client_unsubscribe',
         'parameter': {
@@ -97,6 +101,8 @@ v0.3
 No special parameter needed.
 
 ######Example
+    JSON format:
+    
     {
         'command': 'client_list'
     }
@@ -130,6 +136,8 @@ No special parameter needed.
 | uid | required | | The UID of the Sonos speaker. |
 
 ######Example
+    JSON format:
+    
     {
         'command': 'get_play',
         'parameter': {
@@ -141,7 +149,7 @@ No special parameter needed.
     HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
     
 ######UDP Response sent to subscribed clients:
-    _JSON_ format: { "play": 0|1, "uid": "rincon_b8e93730d19801410" }
+    JSON format: { "play": 0|1, "uid": "rincon_b8e93730d19801410" }
 
 ----
 ####set_play
@@ -154,6 +162,8 @@ No special parameter needed.
 | play | required | 0 or 1 | If the value is set to 'False', the Sonos speaker is paused. |
 
 ######Example
+    JSON format:
+    
     {
         'command': 'set_play',
         'parameter': {
@@ -166,7 +176,7 @@ No special parameter needed.
     HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
     
 ######UDP Response sent to subscribed clients:
-    _JSON_ format: { "play": 0|1, "uid": "rincon_b8e93730d19801410" }
+    JSON format: { "play": 0|1, "uid": "rincon_b8e93730d19801410" }
 
 ----
 ####get_pause
@@ -178,6 +188,8 @@ No special parameter needed.
 | uid | required | | The UID of the Sonos speaker. |
 
 ######Example
+    JSON format:
+    
     {
         'command': 'get_pause',
         'parameter': {
@@ -189,7 +201,7 @@ No special parameter needed.
     HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
     
 ######UDP Response sent to subscribed clients:
-    _JSON_ format: { "pause": 0|1, "uid": "rincon_b8e93730d19801410" }
+    JSON format: { "pause": 0|1, "uid": "rincon_b8e93730d19801410" }
 
 ----
 ####set_pause
@@ -202,6 +214,8 @@ No special parameter needed.
 | pause | required | 0 or 1 | If the value is set to 'False', the Sonos speaker starts playing. |
 
 ######Example
+    JSON format:
+    
     {
         'command': 'set_pause',
         'parameter': {
@@ -214,7 +228,7 @@ No special parameter needed.
     HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
     
 ######UDP Response sent to subscribed clients:
-    _JSON_ format: { "pause": 0|1, "uid": "rincon_b8e93730d19801410" }
+    JSON format: { "pause": 0|1, "uid": "rincon_b8e93730d19801410" }
 
 ----
 ####get_stop
@@ -226,6 +240,8 @@ No special parameter needed.
 | uid | required | | The UID of the Sonos speaker. |
 
 ######Example
+    JSON format:
+    
     {
         'command': 'get_stop',
         'parameter': {
@@ -237,7 +253,7 @@ No special parameter needed.
     HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
     
 ######UDP Response sent to subscribed clients:
-    _JSON_ format: { "stop": 0|1, "uid": "rincon_b8e93730d19801410" }
+    JSON format: { "stop": 0|1, "uid": "rincon_b8e93730d19801410" }
 
 ----
 ####set_stop
@@ -250,6 +266,8 @@ No special parameter needed.
 | stop | required | 0 or 1 | If the value is set to 'False', the Sonos speaker starts playing. |
 
 ######Example
+    JSON format:
+    
     {
         'command': 'set_stop',
         'parameter': {
@@ -262,7 +280,7 @@ No special parameter needed.
     HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
     
 ######UDP Response sent to subscribed clients:
-    _JSON_ format: { "stop": 0|1, "uid": "rincon_b8e93730d19801410" }
+    JSON format: { "stop": 0|1, "uid": "rincon_b8e93730d19801410" }
         
 ----
 ####current_state
@@ -274,6 +292,8 @@ No special parameter needed.
 | group_command | optional | 0 or 1 | If 'True', the command is performed for all zone members of the speaker. |
 
 ######Example
+    JSON format:
+    
     {
         'command': 'current_state',
         'parameter': {
