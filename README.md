@@ -34,7 +34,8 @@ v0.3
 ###Use the Developer or Master Branch instead. 
 
 
-###Available commands
+####Available commands
+
 ----
 #####client_subscribe
  Subscribes a client to the Sonos Broker. After the subscription, the client will receive all
@@ -43,38 +44,48 @@ v0.3
 | parameter | required / optional | valid values | description |     
 | :-------- | :------------------ | :----------- | :---------- |
 | ip | required |  |  The IP of the client which wants to subscribe to the broker. |
-| port | required | 1-65535 | The PORT of the client which wants to subscribe to the broker. |
+| port | required | 1-65535 | A client-side open UDP port which receives the data. |
 
-######example
+######Example
     {
         'command':
         'client_subscribe',
         'parameter':
         {
             'ip': '192.168.0.2',
-            'port': 2333,
+            'port': 2333
         }
     }
+    
+######Response
+    HTTP Status 200 - OK or Exception with HTTP status 400 and the specific error message.
+    
 ----
-####client_unsubscribe
+#####client_unsubscribe
  Unsubscribes a client from the Broker. After unssubscription the client will not longer receive
- status chages from the Sonos speakers.
+ status changes from the Sonos speakers. If your're running more than one client with the same
+ IP but with different ports, only the client with the specific port will be unsubscribed.
+ 
 | parameter | required / optional | valid values | description |     
 | :-------- | :------------------ | :----------- | :---------- |
 | ip | required |  |  The IP of the client which wants to unsubscribe from the broker. |
-| port | required | 1-65535 | The PORT of the client which wants to unsubscribe from the broker. |
+| port | required | 1-65535 | A (client-side) open UDP port. |
 
-######example
+######Example
     {
         'command': 'client_unsubscribe',
         'parameter': {
             'ip': '192.168.0.2',
-            'port': 2333,
+            'port': 2333
         }
     }
-----
-####current_state
+######Response
+    HTTP Status 200 - OK or Exception with HTTP status 400 and the specific error message.
     
+----
+#####current_state
+ Sends all available information from a Sonos speaker to the subscribed clients.
+  
 | parameter | required / optional | valid values | description |     
 | :-------- | :------------------ | :----------- | :---------- |
 | ip | required |  |  The IP of the client which wants to unsubscribe from the broker. |
@@ -82,7 +93,7 @@ v0.3
 
 ######example
     {
-        'command': 'client_unsubscribe',
+        'command': 'current_state',
         'parameter': {
             'ip': '192.168.0.2',
             'port': 2333,
