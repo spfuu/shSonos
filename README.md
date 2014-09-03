@@ -43,7 +43,7 @@ v0.3
  
 | parameter | required / optional | valid values | description |     
 | :-------- | :------------------ | :----------- | :---------- |
-| ip | required |  |  The IP of the client which wants to subscribe to the broker. |
+| ip | required | | The IP of the client which wants to subscribe to the broker. |
 | port | required | 1-65535 | A client-side open UDP port which receives the data. |
 
 ######Example
@@ -58,7 +58,7 @@ v0.3
     }
     
 ######Response
-    HTTP Status 200 - OK or Exception with HTTP status 400 and the specific error message.
+    HTTP Status 200 OK or Exception with HTTP status 400 and the specific error message.
     
 ----
 #####client_unsubscribe
@@ -68,7 +68,7 @@ v0.3
  
 | parameter | required / optional | valid values | description |     
 | :-------- | :------------------ | :----------- | :---------- |
-| ip | required |  |  The IP of the client which wants to unsubscribe from the broker. |
+| ip | required | | The IP of the client which wants to unsubscribe from the broker. |
 | port | required | 1-65535 | A (client-side) open UDP port. |
 
 ######Example
@@ -80,7 +80,7 @@ v0.3
         }
     }
 ######Response
-    HTTP Status 200 - OK or Exception with HTTP status 400 and the specific error message.
+    HTTP Status 200 OK or Exception with HTTP status 400 and the specific error message.
     
 ----
 #####current_state
@@ -88,14 +88,21 @@ v0.3
   
 | parameter | required / optional | valid values | description |     
 | :-------- | :------------------ | :----------- | :---------- |
-| ip | required |  |  The IP of the client which wants to unsubscribe from the broker. |
-| port | required | 1-65535 | The PORT of the client which wants to unsubscribe from the broker. |
+| uid | required | | The UID of the Sonos speaker. |
+| group_command | optional | 0 or 1 | If 'True', the command is performed for all zone members of the speaker. |
 
-######example
+######Example
     {
         'command': 'current_state',
         'parameter': {
-            'ip': '192.168.0.2',
-            'port': 2333,
+            'uid': 'rincon_b8e93730d19801401',
+            'group_command': 1
         }
     }
+######Response
+    Direct HTTP Response:
+        HTTP Status 200 OK or Exception with HTTP status 400 and the specific error message.
+    UDP data sent:
+        {
+            test
+        }
