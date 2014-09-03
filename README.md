@@ -48,7 +48,6 @@ v0.3
 
 ######Example
     JSON format:
-    
     {
         'command':
         'client_subscribe',
@@ -77,7 +76,6 @@ v0.3
 
 ######Example
     JSON format:
-    
     {
         'command': 'client_unsubscribe',
         'parameter': {
@@ -102,7 +100,6 @@ No special parameter needed.
 
 ######Example
     JSON format:
-    
     {
         'command': 'client_list'
     }
@@ -137,7 +134,6 @@ No special parameter needed.
 
 ######Example
     JSON format:
-    
     {
         'command': 'get_play',
         'parameter': {
@@ -149,7 +145,13 @@ No special parameter needed.
     HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
     
 ######UDP Response sent to subscribed clients:
-    JSON format: { "play": 0|1, "uid": "rincon_b8e93730d19801410" }
+    JSON format: 
+    {
+        ...
+        "play": 0|1, 
+        "uid": "rincon_b8e93730d19801410",
+         ...
+    }
 
 ----
 ####set_play
@@ -163,7 +165,6 @@ No special parameter needed.
 
 ######Example
     JSON format:
-    
     {
         'command': 'set_play',
         'parameter': {
@@ -176,8 +177,16 @@ No special parameter needed.
     HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
     
 ######UDP Response sent to subscribed clients:
-    JSON format: { "play": 0|1, "uid": "rincon_b8e93730d19801410" }
+    JSON format: 
+    {
+        ...
+        "play": 0|1, 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
 
+    The response is only sent if the new value is different from the old value.
+    
 ----
 ####get_pause
  Gets the PAUSE status for a Sonos speaker. If the speaker has additional zone members, the PAUSE status for all
@@ -189,7 +198,6 @@ No special parameter needed.
 
 ######Example
     JSON format:
-    
     {
         'command': 'get_pause',
         'parameter': {
@@ -201,7 +209,13 @@ No special parameter needed.
     HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
     
 ######UDP Response sent to subscribed clients:
-    JSON format: { "pause": 0|1, "uid": "rincon_b8e93730d19801410" }
+    JSON format: 
+    {
+        ...
+        "pause": 0|1, 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
 
 ----
 ####set_pause
@@ -215,7 +229,6 @@ No special parameter needed.
 
 ######Example
     JSON format:
-    
     {
         'command': 'set_pause',
         'parameter': {
@@ -228,8 +241,16 @@ No special parameter needed.
     HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
     
 ######UDP Response sent to subscribed clients:
-    JSON format: { "pause": 0|1, "uid": "rincon_b8e93730d19801410" }
+    JSON format: 
+    {
+        ...
+        "pause": 0|1, 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
 
+    The response is only sent if the new value is different from the old value.
+    
 ----
 ####get_stop
  Gets the STOP status for a Sonos speaker. If the speaker has additional zone members, the STOP status for all
@@ -241,7 +262,6 @@ No special parameter needed.
 
 ######Example
     JSON format:
-    
     {
         'command': 'get_stop',
         'parameter': {
@@ -253,7 +273,13 @@ No special parameter needed.
     HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
     
 ######UDP Response sent to subscribed clients:
-    JSON format: { "stop": 0|1, "uid": "rincon_b8e93730d19801410" }
+    JSON format: 
+    { 
+        ...
+        "stop": 0|1, 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
 
 ----
 ####set_stop
@@ -267,7 +293,6 @@ No special parameter needed.
 
 ######Example
     JSON format:
-    
     {
         'command': 'set_stop',
         'parameter': {
@@ -280,8 +305,80 @@ No special parameter needed.
     HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
     
 ######UDP Response sent to subscribed clients:
-    JSON format: { "stop": 0|1, "uid": "rincon_b8e93730d19801410" }
-        
+    JSON format: 
+    {   
+        ...
+        "stop": 0|1, 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+
+    The response is only sent if the new value is different from the old value.
+    
+----
+####get_volume
+ Gets the current volume from a Sonos speaker.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_volume',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        "volume": [0-100], 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+
+----
+####set_volume
+ Sets the volume for a Sonos speaker.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| volume | required | 0 - 100 | The volume to set. |
+| group_command | optional | 0 or 1 | If 'True', the command is performed for all zone members of the speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'set_volume',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410',
+            'volume': 25,
+            'group_command': 0
+        }   
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    { 
+        ...
+        "volume": [0-100], 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+    
+    The response is only sent if the new value is different from the old value.
+    
 ----
 ####current_state
  Sends all available information from a Sonos speaker to the subscribed clients.
@@ -293,7 +390,6 @@ No special parameter needed.
 
 ######Example
     JSON format:
-    
     {
         'command': 'current_state',
         'parameter': {
