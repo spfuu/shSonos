@@ -100,11 +100,10 @@ v0.3
         }
     }
 ######Response
-    <u>Direct HTTP Response:</u>
+    __Direct HTTP Response:__
         HTTP Status 200 OK or Exception with HTTP status 400 and the specific error message.
     
-    <u>UDP data sent:</u>
-    
+    __UDP data sent:__
         {
             test
         }
