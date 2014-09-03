@@ -100,13 +100,13 @@ No special parameter needed.
     HTTP Response:
         <html><head><title>Sonos Broker</title></head>
             <body>
-                <p>uid: rincon_000e58c3892e01400</p>
-                <p>ip: 192.168.178.40</p>
+                <p>uid: rincon_000e58c3892e01410</p>
+                <p>ip: 192.168.0.4</p>
                 <p>model: Sonos PLAY:1</p>
                 <p>current zone: Kitchen</p>
                 <p>----------------------</p>
-                <p>uid: rincon_b8e93730d19801400</p>
-                <p>ip: 192.168.178.23</p>
+                <p>uid: rincon_b8e93730d19801410</p>
+                <p>ip: 192.168.0.10</p>
                 <p>model: Sonos PLAY:3</p>
                 <p>current zone: Kueche</p>
                 <p>----------------------</p>
@@ -115,6 +115,37 @@ No special parameter needed.
     
     Response Code: 200 OK or Exception with Code 400 and the specific error message.        
     
+----
+####get_play
+ Gets the PLAY status for a Sonos speaker. If the speaker has additional zone members, the PLAY status for all
+ members will be sent.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    _JSON_ format: { "play": 0|1, "uid": "rincon_b8e93730d19801410" }
+
+----
+####set_play
+ Sets the PLAY status for a Sonos speaker. If the speaker has additional zone members, the PLAY status for all
+ members will be set (this is the Sonos standard behavior).
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| play | required | 0 or 1 | If the value is set to 'False', the Sonos speaker is paused. |
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    _JSON_ format: { "play": 0|1, "uid": "rincon_b8e93730d19801410" }
+        
 ----
 ####current_state
  Sends all available information from a Sonos speaker to the subscribed clients.
