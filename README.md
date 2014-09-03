@@ -99,11 +99,10 @@ v0.3
             'group_command': 1
         }
     }
-######Response
-    __Direct HTTP Response:__
-        HTTP Status 200 OK or Exception with HTTP status 400 and the specific error message.
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
     
-    __UDP data sent:__
-        {
-            test
-        }
+######UDP sent to subscribed clients:
+    {
+        test
+    }
