@@ -1264,11 +1264,11 @@ class ClientList(JsonCommandBase):
                                                                                       self)))
             data = ''
             for uid, speaker in sonos_speaker.sonos_speakers.items():
-                data += "<p>uid             : {}</p>".format(speaker.uid)
-                data += "<p>ip              : {}</p>".format(speaker.ip)
-                data += "<p>model           : {}</p>".format(speaker.model)
-                data += "<p>current zone    : {}</p>".format(speaker.zone_name)
-                data += "<p>-------------------------------------------</p><p></p><p></p>"
+                data += "<p>uid: {}</p>".format(speaker.uid)
+                data += "<p>ip: {}</p>".format(speaker.ip)
+                data += "<p>model: {}</p>".format(speaker.model)
+                data += "<p>current zone: {}</p>".format(speaker.zone_name)
+                data += "<p>----------------------</p>"
 
                 logger.debug("active speakers: {uid} | {ip} | {model} | {zone}".
                              format(uid=speaker.uid, ip=speaker.ip, model=speaker.model, zone=speaker.zone_name))

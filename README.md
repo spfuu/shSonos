@@ -37,7 +37,7 @@ v0.3
 ####Available commands
 
 ----
-#####client_subscribe
+####client_subscribe
  Subscribes a client to the Sonos Broker. After the subscription, the client will receive all
  status changes from the Sonos speakers in the network.
  
@@ -57,11 +57,13 @@ v0.3
         }
     }
     
-######Response
-    HTTP Status 200 OK or Exception with HTTP status 400 and the specific error message.
+######HTTP Response
+    HTTP Response: no additional data
+    HTTP Response Code: HTTP Status 200 OK or Exception with HTTP status 400 and the specific error message.
     
 ----
-#####client_unsubscribe
+
+####client_unsubscribe
  Unsubscribes a client from the Broker. After unssubscription the client will not longer receive
  status changes from the Sonos speakers. If your're running more than one client with the same
  IP but with different ports, only the client with the specific port will be unsubscribed.
@@ -79,8 +81,39 @@ v0.3
             'port': 2333
         }
     }
-######Response
-    HTTP Status 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######HTTP Response
+    HTTP Response: no additional data
+    HTTP Response Code: HTTP Status 200 OK or Exception with HTTP status 400 and the specific error message.    
+
+----
+
+####client_list
+ Shows all available Sonos speaker in the network.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+
+No special parameter needed.
+
+######HTTP Response
+__HTTP Response:__
+<html><head><title>Sonos Broker</title></head>
+    <body>
+        <p>uid: rincon_000e58c3892e01400</p>
+        <p>ip: 192.168.178.40</p>
+        <p>model: Sonos PLAY:1</p>
+        <p>current zone: Kitchen</p>
+        <p>----------------------</p>
+        <p>uid: rincon_b8e93730d19801400</p>
+        <p>ip: 192.168.178.23</p>
+        <p>model: Sonos PLAY:3</p>
+        <p>current zone: Kueche</p>
+        <p>----------------------</p>
+    </body>
+</html>
+    
+__HTTP Response Code:__ HTTP Status 200 OK or Exception with HTTP status 400 and the specific error message.        
     
 ----
 ####current_state
