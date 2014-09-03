@@ -59,7 +59,7 @@ v0.3
     
 ######HTTP Response
     HTTP Response: no additional data
-    HTTP Response Code: HTTP Status 200 OK or Exception with HTTP status 400 and the specific error message.
+    Response Code: 200 OK or Exception with Code 400 and the specific error message.
     
 ----
 
@@ -84,7 +84,7 @@ v0.3
     
 ######HTTP Response
     HTTP Response: no additional data
-    HTTP Response Code: HTTP Status 200 OK or Exception with HTTP status 400 and the specific error message.    
+    Response Code: 200 OK or Exception with Code 400 and the specific error message.    
 
 ----
 
@@ -97,23 +97,23 @@ v0.3
 No special parameter needed.
 
 ######HTTP Response
-__HTTP Response:__
-<html><head><title>Sonos Broker</title></head>
-    <body>
-        <p>uid: rincon_000e58c3892e01400</p>
-        <p>ip: 192.168.178.40</p>
-        <p>model: Sonos PLAY:1</p>
-        <p>current zone: Kitchen</p>
-        <p>----------------------</p>
-        <p>uid: rincon_b8e93730d19801400</p>
-        <p>ip: 192.168.178.23</p>
-        <p>model: Sonos PLAY:3</p>
-        <p>current zone: Kueche</p>
-        <p>----------------------</p>
-    </body>
-</html>
+    HTTP Response:
+        <html><head><title>Sonos Broker</title></head>
+            <body>
+                <p>uid: rincon_000e58c3892e01400</p>
+                <p>ip: 192.168.178.40</p>
+                <p>model: Sonos PLAY:1</p>
+                <p>current zone: Kitchen</p>
+                <p>----------------------</p>
+                <p>uid: rincon_b8e93730d19801400</p>
+                <p>ip: 192.168.178.23</p>
+                <p>model: Sonos PLAY:3</p>
+                <p>current zone: Kueche</p>
+                <p>----------------------</p>
+            </body>
+        </html>
     
-__HTTP Response Code:__ HTTP Status 200 OK or Exception with HTTP status 400 and the specific error message.        
+    Response Code: 200 OK or Exception with Code 400 and the specific error message.        
     
 ----
 ####current_state
