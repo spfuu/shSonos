@@ -96,6 +96,11 @@ v0.3
 
 No special parameter needed.
 
+######Example
+    {
+        'command': 'client_list'
+    }
+
 ######HTTP Response
     HTTP Response:
         <html><head><title>Sonos Broker</title></head>
@@ -124,6 +129,14 @@ No special parameter needed.
 | :-------- | :------------------ | :----------- | :---------- |
 | uid | required | | The UID of the Sonos speaker. |
 
+######Example
+    {
+        'command': 'get_play',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
 ######HTTP Response
     HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
     
@@ -140,6 +153,15 @@ No special parameter needed.
 | uid | required | | The UID of the Sonos speaker. |
 | play | required | 0 or 1 | If the value is set to 'False', the Sonos speaker is paused. |
 
+######Example
+    {
+        'command': 'set_play',
+        'parameter': {
+            'play': 1,
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
 ######HTTP Response
     HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
     
@@ -154,6 +176,14 @@ No special parameter needed.
 | parameter | required / optional | valid values | description |     
 | :-------- | :------------------ | :----------- | :---------- |
 | uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    {
+        'command': 'get_pause',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
 
 ######HTTP Response
     HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
@@ -171,6 +201,15 @@ No special parameter needed.
 | uid | required | | The UID of the Sonos speaker. |
 | pause | required | 0 or 1 | If the value is set to 'False', the Sonos speaker starts playing. |
 
+######Example
+    {
+        'command': 'set_pause',
+        'parameter': {
+            'pause': 1,
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
 ######HTTP Response
     HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
     
@@ -185,6 +224,14 @@ No special parameter needed.
 | parameter | required / optional | valid values | description |     
 | :-------- | :------------------ | :----------- | :---------- |
 | uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    {
+        'command': 'get_stop',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
 
 ######HTTP Response
     HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
@@ -201,6 +248,15 @@ No special parameter needed.
 | :-------- | :------------------ | :----------- | :---------- |
 | uid | required | | The UID of the Sonos speaker. |
 | stop | required | 0 or 1 | If the value is set to 'False', the Sonos speaker starts playing. |
+
+######Example
+    {
+        'command': 'set_stop',
+        'parameter': {
+            'stop': 1,
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
 
 ######HTTP Response
     HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
