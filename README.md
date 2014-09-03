@@ -83,7 +83,7 @@ v0.3
     HTTP Status 200 OK or Exception with HTTP status 400 and the specific error message.
     
 ----
-#####current_state
+####current_state
  Sends all available information from a Sonos speaker to the subscribed clients.
   
 | parameter | required / optional | valid values | description |     
@@ -102,7 +102,7 @@ v0.3
 ######HTTP Response
     HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
     
-######UDP sent to subscribed clients:
+######UDP Response sent to subscribed clients:
     {
         test
     }
