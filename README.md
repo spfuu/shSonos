@@ -65,7 +65,10 @@ Click on the links below to get a detailed command descriptions and their usage.
 ######[set_loudness](#s_loudness)
 ######[get_led](#g_led)
 ######[set_led](#s_led)
+######[get_playmode](#g_playmode)
+######[set_playmode](#s_playmode)
 ######[current_state](#cur_state)
+
 
 ----
 #### <a name="cl_subs"></a>client_subscribe
@@ -948,6 +951,70 @@ No special parameter needed.
         ...
         "led": 0|1, 
         "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+    
+    The response is only sent if the new value is different from the old value.
+
+----
+#### <a name="g_playmode">get_playmode
+ Gets the current playmode from a Sonos speaker.
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'playmode'-status changes.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_playmode',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        "playmode": 'normal' | 'shuffle_norepeat' | 'shuffle' | 'repeat_all' 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+
+----
+#### <a name="s_playmode">set_playmode
+ Sets the playmode for a Sonos speaker.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| playmode | required | 'normal', 'shuffle_norepeat', 'shuffle', 'repeat_all' | The playmode to be set. |
+
+######Example
+    JSON format:
+    {
+        'command': 'set_playmode',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410',
+            'playmode': 'shuffle'
+        }   
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    { 
+        ...
+        "playmode": 'normal' | 'shuffle_norepeat' | 'shuffle' | 'repeat_all'
+        "uid": "rincon_b8e93730d19801410"
         ...
     }
     
