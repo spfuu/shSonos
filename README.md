@@ -37,11 +37,16 @@ v0.3
 ###Available commands
 
 ####Overview
+Click on the links below to get a detailed command descriptions and their usage.
 ######[client_subscribe](#cl_subs)
+######[client_unsubscribe](#cl_unsubs)
 ######[client_list](#cl_li)
 ######[get_play](#g_pl)
 ######[set_play](#s_pl)
-
+######[get_pause](#g_pause)
+######[set_pause](#s_pause)
+######[get_stop](#g_stop)
+######[set_stop](#s_stop)
 
 ----
 #### <a name="cl_subs"></a>client_subscribe
@@ -71,7 +76,7 @@ v0.3
     
 ----
 
-####client_unsubscribe
+#### <a name="cl_unsubs"></a>client_unsubscribe
  Unsubscribes a client from the Broker. After unssubscription the client will not longer receive
  status changes from the Sonos speakers. If your're running more than one client with the same
  IP but with different ports, only the client with the specific port will be unsubscribed.
@@ -197,7 +202,7 @@ No special parameter needed.
     The response is only sent if the new value is different from the old value.
     
 ----
-####get_pause
+#### <a name="g_pause"></a>get_pause
  Gets the 'pause' status for a Sonos speaker. If the speaker has additional zone members, the 'pause' status for all
  members will be sent.
  In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
@@ -229,7 +234,7 @@ No special parameter needed.
     }
 
 ----
-####set_pause
+#### <a name="s_pause"></a>set_pause
  Sets the 'pause' status for a Sonos speaker. If the speaker has additional zone members, the 'pause' status for all
  members will be set (this is the Sonos standard behavior).
 
@@ -263,7 +268,7 @@ No special parameter needed.
     The response is only sent if the new value is different from the old value.
     
 ----
-####get_stop
+#### <a name="g_stop">get_stop
  Gets the 'stop' status for a Sonos speaker. If the speaker has additional zone members, the 'stop' status for all
  members will be sent.
  In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
@@ -295,7 +300,7 @@ No special parameter needed.
     }
 
 ----
-####set_stop
+#### <a name="s_stop">set_stop
  Sets the 'stop' status for a Sonos speaker. If the speaker has additional zone members, the 'stop' status for all
  members will be set (this is the Sonos standard behavior).
 
