@@ -38,7 +38,7 @@ v0.3
 
 ####Overview
 
-[<i class="icon-refresh"></i>client_subscribe](@client_subscribe)
+[client_subscribe](client_subscribe)
 
 
 
