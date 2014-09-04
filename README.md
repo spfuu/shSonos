@@ -127,6 +127,8 @@ No special parameter needed.
 ####get_play
  Gets the PLAY status for a Sonos speaker. If the speaker has additional zone members, the PLAY status for all
  members will be sent.
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'play'-status changes.
 
 | parameter | required / optional | valid values | description |     
 | :-------- | :------------------ | :----------- | :---------- |
@@ -191,6 +193,8 @@ No special parameter needed.
 ####get_pause
  Gets the PAUSE status for a Sonos speaker. If the speaker has additional zone members, the PAUSE status for all
  members will be sent.
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'pause'-status changes.
 
 | parameter | required / optional | valid values | description |     
 | :-------- | :------------------ | :----------- | :---------- |
@@ -255,6 +259,8 @@ No special parameter needed.
 ####get_stop
  Gets the STOP status for a Sonos speaker. If the speaker has additional zone members, the STOP status for all
  members will be sent.
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'stop'-status changes.
 
 | parameter | required / optional | valid values | description |     
 | :-------- | :------------------ | :----------- | :---------- |
@@ -318,6 +324,8 @@ No special parameter needed.
 ----
 ####get_volume
  Gets the current volume from a Sonos speaker.
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'volume'-status changes.
 
 | parameter | required / optional | valid values | description |     
 | :-------- | :------------------ | :----------- | :---------- |
@@ -351,8 +359,8 @@ No special parameter needed.
 | parameter | required / optional | valid values | description |     
 | :-------- | :------------------ | :----------- | :---------- |
 | uid | required | | The UID of the Sonos speaker. |
-| volume | required | 0 - 100 | The volume to set. |
-| group_command | optional | 0 or 1 | If 'True', the command is performed for all zone members of the speaker. |
+| volume | required | 0 - 100 | The volume to be set. |
+| group_command | optional | 0 or 1 | If 'True', the command is executed for all zone members of the speaker. |
 
 ######Example
     JSON format:
@@ -378,7 +386,205 @@ No special parameter needed.
     }
     
     The response is only sent if the new value is different from the old value.
+
+----
+####get_bass
+ Gets the current bass settings from a Sonos speaker.
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'bass'-status changes.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_bass',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
     
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        "bass": [-10 - 10], 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+
+----
+####set_bass
+ Sets the bass for a Sonos speaker.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| bass | required | -10 - 10 | The bass to be set. |
+| group_command | optional | 0 or 1 | If 'True', the command is executed for all zone members of the speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'set_volume',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410',
+            'bass': 5,
+            'group_command': 0
+        }   
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    { 
+        ...
+        "bass": [-10 -10], 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+    
+    The response is only sent if the new value is different from the old value.
+
+----
+####get_treble
+ Gets the current treble settings from a Sonos speaker.
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'bass'-status changes.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_treble',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        "treble": [-10 - 10], 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+
+----
+####set_treble
+ Sets the treble for a Sonos speaker.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| treble | required | -10 - 10 | The treble to be set. |
+| group_command | optional | 0 or 1 | If 'True', the command is executed for all zone members of the speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'set_volume',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410',
+            'treble': 1,
+            'group_command': 1
+        }   
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    { 
+        ...
+        "treble": [-10 - 10], 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+    
+    The response is only sent if the new value is different from the old value.
+
+----
+####get_loudness
+ Gets the current loudness settings from a Sonos speaker.
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'bass'-status changes.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_loudness',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        "loudness": 0|1, 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+
+----
+####set_loudness
+ Sets the loudness for a Sonos speaker.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| loudness | required | 0 or 1 | The loudness to be set. |
+| group_command | optional | 0 or 1 | If 'True', the command is executed for all zone members of the speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'set_loudness',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410',
+            'loudness': 1,
+            'group_command': 1
+        }   
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    { 
+        ...
+        "loudness": 0|1, 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+    
+    The response is only sent if the new value is different from the old value.
+
 ----
 ####current_state
  Sends all available information from a Sonos speaker to the subscribed clients.

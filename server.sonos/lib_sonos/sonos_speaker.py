@@ -1184,7 +1184,10 @@ class SonosSpeaker():
         Gets all alarms for the speaker
         :return:
         """
-        values = get_alarms(self.soco)
+        try:
+            values = get_alarms(self.soco)
+        except:
+            return {}
         alarm_dict = {}
         for alarm in values:
             if alarm.zone.uid.lower() != self.uid.lower():
