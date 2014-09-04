@@ -33,9 +33,13 @@ v0.3
 ###Don't use this code for your code base. It won't work. 
 ###Use the Developer or Master Branch instead. 
 
-[client_subscribe][client_subscribe]
 
-####Available commands
+###Available commands
+
+####Overview
+  [client_subscribe][]
+
+
 
 ----
 ####client_subscribe
