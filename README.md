@@ -47,6 +47,25 @@ Click on the links below to get a detailed command descriptions and their usage.
 ######[set_pause](#s_pause)
 ######[get_stop](#g_stop)
 ######[set_stop](#s_stop)
+######[get_volume](#g_volume)
+######[set_volume](#s_volume)
+######[get_max_volume](#g_m_volume)
+######[set_max_volume](#s_m_volume)
+######[get_mute](#g_mute)
+######[set_mute](#s_mute)
+######[volume_up](#v_up)
+######[volume_down](#v_down)
+######[next](#nex)
+######[previous](#prev)
+######[get_bass](#g_bass)
+######[set_bass](#s_bass)
+######[get_treble](#g_treble)
+######[set_treble](#s_treble)
+######[get_loudness](#g_loudness)
+######[set_loudness](#s_loudness)
+######[get_led](#g_led)
+######[set_led](#s_led)
+######[current_state](#cur_state)
 
 ----
 #### <a name="cl_subs"></a>client_subscribe
@@ -334,7 +353,7 @@ No special parameter needed.
     The response is only sent if the new value is different from the old value.
     
 ----
-####get_volume
+#### <a name="g_volume">get_volume
  Gets the current volume from a Sonos speaker.
  In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
  about 'volume'-status changes.
@@ -365,7 +384,7 @@ No special parameter needed.
     }
 
 ----
-####set_volume
+#### <a name="s_volume">set_volume
  Sets the volume for a Sonos speaker.
 
 | parameter | required / optional | valid values | description |     
@@ -400,7 +419,7 @@ No special parameter needed.
     The response is only sent if the new value is different from the old value.
 
 ----
-####get_max_volume
+#### <a name="g_m_volume">get_max_volume
  Gets the maximum volume value from a Sonos speaker.
  In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
  about 'max_volume'-status changes.
@@ -431,7 +450,7 @@ No special parameter needed.
     }
 
 ----
-####set_max_volume
+#### <a name="s_m_volume">set_max_volume
  Sets the maximum volume for a Sonos speaker. This also affects any volume changes performed on other devices (Android, 
  iPad). If the volume is greater than the maximum volume, the volume is changed to this maximum volume value.
 
@@ -467,7 +486,7 @@ No special parameter needed.
     The response is only sent if the new value is different from the old value.
 
 ----
-####get_mute
+#### <a name="g_mute">get_mute
  Gets the mute status from a Sonos speaker.
  In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
  about 'mute'-status changes.
@@ -498,7 +517,7 @@ No special parameter needed.
     }
 
 ----
-####set_mute
+#### <a name="s_mute">set_mute
  Mutes or unmutes a Sonos speaker.
 
 | parameter | required / optional | valid values | description |     
@@ -533,7 +552,7 @@ No special parameter needed.
     The response is only sent if the new value is different from the old value.
 
 ----
-####volume_up
+#### <a name="v_up">volume_up
  Increases the volume of a Sonos speaker by +2.
 
 | parameter | required / optional | valid values | description |     
@@ -566,7 +585,7 @@ No special parameter needed.
     The response is only sent if the new value is different from the old value.
 
 ----
-####volume_down
+#### <a name="v_down">volume_down
  Decreases the volume of a Sonos speaker by -2.
 
 | parameter | required / optional | valid values | description |     
@@ -599,7 +618,7 @@ No special parameter needed.
     The response is only sent if the new value is different from the old value.
 
 ----
-####next
+#### <a name="nex">next
  Go to the next track in the current playlist.
 
 | parameter | required / optional | valid values | description |     
@@ -635,7 +654,7 @@ No special parameter needed.
     All values for a new track will be sent, but only new and/or different values.
 
 ----
-####previous
+#### <a name="prev">previous
  Go back to the previous track in the current playlist.
 
 | parameter | required / optional | valid values | description |     
@@ -671,7 +690,7 @@ No special parameter needed.
     All values for a new track will be sent, but only new and/or different values.
 
 ----
-####get_bass
+#### <a name="g_bass">get_bass
  Gets the current bass settings from a Sonos speaker.
  In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
  about 'bass'-status changes.
@@ -702,7 +721,7 @@ No special parameter needed.
     }
 
 ----
-####set_bass
+#### <a name="s_bass">set_bass
  Sets the bass for a Sonos speaker.
 
 | parameter | required / optional | valid values | description |     
@@ -737,7 +756,7 @@ No special parameter needed.
     The response is only sent if the new value is different from the old value.
 
 ----
-####get_treble
+#### <a name="g_treble">get_treble
  Gets the current treble settings from a Sonos speaker.
  In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
  about 'treble'-status changes.
@@ -768,7 +787,7 @@ No special parameter needed.
     }
 
 ----
-####set_treble
+#### <a name="s_treble">set_treble
  Sets the treble for a Sonos speaker.
 
 | parameter | required / optional | valid values | description |     
@@ -803,7 +822,7 @@ No special parameter needed.
     The response is only sent if the new value is different from the old value.
 
 ----
-####get_loudness
+#### <a name="g_loudness">get_loudness
  Gets the current loudness settings from a Sonos speaker.
  In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
  about 'loudness'-status changes.
@@ -834,7 +853,7 @@ No special parameter needed.
     }
 
 ----
-####set_loudness
+#### <a name="s_loudness">set_loudness
  Sets the loudness for a Sonos speaker.
 
 | parameter | required / optional | valid values | description |     
@@ -869,7 +888,7 @@ No special parameter needed.
     The response is only sent if the new value is different from the old value.
 
 ----
-####get_led
+#### <a name="g_led">get_led
  Gets the current led status from a Sonos speaker.
  In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
  about 'led'-status changes.
@@ -900,7 +919,7 @@ No special parameter needed.
     }
 
 ----
-####set_led
+#### <a name="s_led">set_led
  Sets the led for a Sonos speaker.
 
 | parameter | required / optional | valid values | description |     
@@ -935,7 +954,7 @@ No special parameter needed.
     The response is only sent if the new value is different from the old value.
 
 ----
-####current_state
+#### <a name="cur_state">current_state
  Sends all available information from a Sonos speaker to the subscribed clients.
   
 | parameter | required / optional | valid values | description |     
