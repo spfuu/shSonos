@@ -37,12 +37,13 @@ v0.3
 ###Available commands
 
 ####Overview
-  [client_subscribe][]
+
+[<i class="icon-refresh"></i>client_subscribe](@client_subscribe)
 
 
 
 ----
-####client_subscribe
+#### client_subscribe
  Subscribes a client to the Sonos Broker. After the subscription, the client will receive all
  status changes from the Sonos speakers in the network.
  
