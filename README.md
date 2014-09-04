@@ -38,10 +38,10 @@ v0.3
 
 ####Overview
 
-[client_subscribe](@client_subscribe)
-[client_list](@client_list)
-[get_play](@get_play)
-[set_play](@set_play)
+[client_subscribe](#client_subscribe)
+[client_list](#client_list)
+[get_play](#get_play)
+[set_play](#set_play)
 
 
 ----
