@@ -38,7 +38,7 @@ v0.3
 
 ####Overview
 
-[client_subscribe](client_subscribe)
+[client_subscribe][client_subscribe]
 
 
 
