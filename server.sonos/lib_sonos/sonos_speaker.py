@@ -915,6 +915,7 @@ class SonosSpeaker():
             'serial_number',
             'led',
             'volume',
+            'max_volume',
             'mute',
             'additional_zone_members',
             'status',

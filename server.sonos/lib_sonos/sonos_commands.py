@@ -318,13 +318,12 @@ class SetMaxVolume(JsonCommandBase):
             if self.uid not in sonos_speaker.sonos_speakers:
                 raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
 
-            if not utils.check_int(self.maxvolume):
+            if not utils.check_int(self.max_volume):
                 raise Exception('Value has to be an Integer!')
-            maxvolume = int(self.maxvolume)
+            max_volume = int(self.max_volume)
 
-            if maxvolume not in range(-1, 101, 1):
+            if max_volume not in range(-1, 101, 1):
                 raise Exception('MaxVolume has to be set between 0 and 100!')
-            group_command = False
 
             group_command = 0
             if hasattr(self, 'group_command'):
@@ -332,7 +331,7 @@ class SetMaxVolume(JsonCommandBase):
                     raise Exception('The parameter \'group_command\' has to be 0|1 or True|False !')
                 group_command = int(self.group_command)
 
-            sonos_speaker.sonos_speakers[self.uid].set_maxvolume(maxvolume, group_command=group_command)
+            sonos_speaker.sonos_speakers[self.uid].set_maxvolume(max_volume, group_command=group_command)
 
             '''
             max_volume is not triggered by sonos events, do it manually
