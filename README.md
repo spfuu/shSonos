@@ -37,14 +37,14 @@ v0.3
 ###Available commands
 
 ####Overview
-######[client_subscribe](#client_subscribe)
-######[client_list](#client_list)
-######[get_play](#get_play)
-######[set_play](#set_play)
+######[client_subscribe](#cl_subs)
+######[client_list](#cl_li)
+######[get_play](#g_pl)
+######[set_play](#s_pl)
 
 
 ----
-#### <a name="client_subscribe"></a>client_subscribe
+#### <a name="cl_subs"></a>client_subscribe
  Subscribes a client to the Sonos Broker. After the subscription, the client will receive all
  status changes from the Sonos speakers in the network.
  
@@ -97,7 +97,7 @@ v0.3
 
 ----
 
-#### <a name="client_list">client_list
+#### <a name="cl_li">client_list
  Shows all available Sonos speaker in the network.
 
 | parameter | required / optional | valid values | description |     
@@ -131,7 +131,7 @@ No special parameter needed.
     Response Code: 200 OK or Exception with Code 400 and the specific error message.        
     
 ----
-#### <a name="get_play">get_play
+#### <a name="g_pl">get_play
  Gets the 'play' status for a Sonos speaker. If the speaker has additional zone members, the 'play' status for all
  members will be sent.
  In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
@@ -163,7 +163,7 @@ No special parameter needed.
     }
 
 ----
-#### <a name="set_play">set_play
+#### <a name="s_pl">set_play
  Sets the PLAY status for a Sonos speaker. If the speaker has additional zone members, the 'play' status for all
  members will be set (this is the Sonos standard behavior).
 
