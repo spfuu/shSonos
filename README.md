@@ -78,6 +78,7 @@ Click on the links below to get a detailed command descriptions and their usage.
 ######[join](#s_join)
 ######[unjoin](#s_unjoin)
 ######[partymode](#s_partymode)
+######[play_uri](#p_uri)
 ######[current_state](#cur_state)
 
 
@@ -1308,8 +1309,9 @@ No special parameter needed.
         ...
     }
     
-    After a successfully join, the complete metadata for all speakers in the group wil be sent to all subscribed
-    clients. This is exactly the same behavior for a single speaker if a current_state command is triggered. 
+    After a successfully join, the complete metadata for all speakers in the group
+    wil be sent to all subscribed clients. This is exactly the same behavior for
+    a single speaker if a current_state command is triggered. 
 
 #### <a name="s_unjoin">unjoin
  Unjoins a Sonos speaker from a group. 
@@ -1338,8 +1340,9 @@ No special parameter needed.
         ...
     }
     
-    After a successfully unjoin, the complete metadata for the speaker wil be sent to all subscribed
-    clients. This is exactly the same behavior if a current_state command is triggered. 
+    After a successfully unjoin, the complete metadata for the speaker wil be sent to 
+    all subscribed clients. This is exactly the same behavior if a current_state 
+    command is triggered. 
 
 #### <a name="s_partymode">partymode
  Joins all Sonos speaker in the network to one group.
@@ -1368,8 +1371,51 @@ No special parameter needed.
         ...
     }
     
-    After a successfully 'partymode' command, the complete metadata for all speakers in the group wil be sent to all 
-    subscribed clients. This is exactly the same behavior for a single speaker if a current_state command is triggered.
+    After a successfully 'partymode' command, the complete metadata for all speakers 
+    in the group wil be sent to all subscribed clients. This is exactly the same behavior 
+    for a single speaker if a current_state command is triggered.
+
+----
+#### <a name="p_uri">play_uri
+ Plays a track or a music stream by URI.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| uri | required | | A valid url. This can be an internal sonos url (see get_track_uri or an external url. |
+
+
+######Example
+    JSON format:
+    {
+        'command': 'play_uri',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410',
+            'uri': 'x-sonos-spotify:spotify%3atrack%3a1AGslpGIhRzXSOYtE52VcB?sid=9&flags=32'
+            
+            # external url: http://www.tonycuffe.com/mp3/tail%20toddle.mp3
+            # internal sonos url: x-sonos-spotify:spotify%3atrack%3a3xCk8npVehdV55KuPdjrmZ?sid=9&flags=32
+        }   
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    { 
+        ...
+        "track_album_art": "http://192.168.0.4:1400/getaa?s=1&u=x-sonos-spotify%3aspotify%253atrack%253a1AGslpGIhRzXSOYtE52VcB%3fsid%3d9%26flags%3d32",
+        "track_artist": "Willi Röbke",
+        "track_duration": "0:10:16",
+        "track_position": "0:00:10",
+        "track_title": "Steuermann Norman",
+        "track_uri": "x-sonos-spotify:spotify%3atrack%3a1AGslpGIhRzXSOYtE52VcB?sid=9&flags=32",
+        "uid": "rincon_000e58c3892e01410",
+        ...
+    }
+    
+    All values for a new track will be sent, but only new and/or different values.
 
 ----
 #### <a name="cur_state">current_state
