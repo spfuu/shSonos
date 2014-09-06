@@ -67,6 +67,8 @@ Click on the links below to get a detailed command descriptions and their usage.
 ######[set_led](#s_led)
 ######[get_playmode](#g_playmode)
 ######[set_playmode](#s_playmode)
+######[get_track_position](#g_track_position)
+######[set_track_position](#s_track_position)
 ######[current_state](#cur_state)
 
 
@@ -1014,7 +1016,73 @@ No special parameter needed.
     { 
         ...
         "playmode": 'normal' | 'shuffle_norepeat' | 'shuffle' | 'repeat_all'
-        "uid": "rincon_b8e93730d19801410"
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+    
+    The response is only sent if the new value is different from the old value.
+
+----
+#### <a name="g_track_position">get_track_position
+ Gets the current track position. To get a real-time track position ( e.g. for a GUI) you have to poll this
+ function manually and frequently with the 'force_refresh = 1' option since there is no automatism from the
+ Sonos API side.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| force_refresh | optional | 0 or 1 | If true, the Broker polls the Sonos speaker to get the current track position. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_track_position',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+            'force_refresh': 1
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        "track_position": "00:02:14",
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+
+----
+#### <a name="s_track_position">set_track_position
+ Moves the currently playing track a given elapsed time. 
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| timestamp | required | format: HH:MM:ss | The track position to be set. |
+
+######Example
+    JSON format:
+    {
+        'command': 'set_playmode',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410',
+            'timestamp': '00:01:12'
+        }   
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    { 
+        ...
+        "track_position": "00:02:14",
+        "uid": "rincon_b8e93730d19801410",
         ...
     }
     
