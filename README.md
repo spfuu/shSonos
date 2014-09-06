@@ -69,6 +69,15 @@ Click on the links below to get a detailed command descriptions and their usage.
 ######[set_playmode](#s_playmode)
 ######[get_track_position](#g_track_position)
 ######[set_track_position](#s_track_position)
+######[get_track_title](#g_track_title)
+######[get_track_artist](#g_track_artist)
+######[get_track_album_art](#g_track_album_art)
+######[get_track_uri](#g_track_uri)
+######[get_radio_station](#g_radio_station)
+######[get_radio_show](#g_radio_show)
+######[join](#s_join)
+######[unjoin](#s_unjoin)
+######[partymode](#s_partymode)
 ######[current_state](#cur_state)
 
 
@@ -1087,6 +1096,280 @@ No special parameter needed.
     }
     
     The response is only sent if the new value is different from the old value.
+
+#### <a name="g_track_title">get_track_title
+ Returns the title of the currently played track.
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'track_title'-status changes.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_track_title',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        "track_title": "Ordinary Love",
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+
+#### <a name="g_track_artist">get_track_artist
+ Returns the artist of the currently played track.
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'track_artist'-status changes.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_track_artist',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        "track_artist": "U2",
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+
+#### <a name="g_track_album_art">get_track_album_art
+ Returns the album-cover url of the currently played track.
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'track_album_art'-status changes.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_track_album_art',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        "track_album_art": "http://192.168.0.23:1400/getaa?s=1&u=x-sonos-spotify%3aspotify%253atrack%253a7kCrYUDtWsPldoh\OKPTKPL%3fsid%3d9%26flags%3d32",
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+
+#### <a name="g_track_uri">get_track_uri
+ Returns the track url of the currently played track.
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'track_uri'-status changes.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_track_uri',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        "track_uri": "x-sonos-spotify:spotify%3atrack%3a7kCrYUDtWsPldohOKPTKPL?sid=9&flags=32",
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+    
+    All URIs can be passed to the play_uri and play_snippet functions.
+
+#### <a name="g_radio_station">get_radio_station
+ Returns the title of the currently played radio station. 
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'radio_station'-status changes.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_radio_station',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        "radio_station": "radioeins vom rbb",
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+
+#### <a name="g_radio_show">get_radio_show
+ Returns the title of the currently played radio show. 
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'radio_show'-status changes.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_radio_show',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        "radio_show": "Die Profis",
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+
+#### <a name="s_join">join
+ Joins a Sonos speaker to another speaker(s). 
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| join_uid | required | | A UID of a Sonos speaker to join. This can also be a uid of any speaker within an existing group. |
+
+######Example
+    JSON format:
+    {
+        'command': 'join',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+            'join_uid': 'rincon_00e33110q27811000'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        [many value here, see current_state command]
+        ...
+    }
+    
+    After a successfully join, the complete metadata for all speakers in the group wil be sent to all subscribed
+    clients. This is exactly the same behavior for a single speaker if a current_state command is triggered. 
+
+#### <a name="s_unjoin">unjoin
+ Unjoins a Sonos speaker from a group. 
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'unjoin',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        [many value here, see current_state command]
+        ...
+    }
+    
+    After a successfully unjoin, the complete metadata for the speaker wil be sent to all subscribed
+    clients. This is exactly the same behavior if a current_state command is triggered. 
+
+#### <a name="s_partymode">partymode
+ Joins all Sonos speaker in the network to one group.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of any Sonos speaker in the network. |
+
+######Example
+    JSON format:
+    {
+        'command': 'partymode',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        [many value here, see current_state command]
+        ...
+    }
+    
+    After a successfully 'partymode' command, the complete metadata for all speakers in the group wil be sent to all 
+    subscribed clients. This is exactly the same behavior for a single speaker if a current_state command is triggered.
 
 ----
 #### <a name="cur_state">current_state
