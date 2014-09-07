@@ -1382,7 +1382,7 @@ No special parameter needed.
 | parameter | required / optional | valid values | description |     
 | :-------- | :------------------ | :----------- | :---------- |
 | uid | required | | The UID of the Sonos speaker. |
-| uri | required | | A valid url. This can be an internal sonos url (see get_track_uri or an external url. |
+| uri | required | | A valid url. This can be an internal sonos url (see get_track_uri or) an external url. |
 
 
 ######Example
@@ -1413,6 +1413,46 @@ No special parameter needed.
         "track_uri": "x-sonos-spotify:spotify%3atrack%3a1AGslpGIhRzXSOYtE52VcB?sid=9&flags=32",
         "uid": "rincon_000e58c3892e01410",
         ...
+    }
+    
+    All values for a new track will be sent, but only new and/or different values.
+
+----
+#### <a name="p_snippet">play_snippet
+ Plays a audio snippet. After the snippet was played (maximum 60 seconds, longer snippets will be truncated)
+ the previous played song will be resumed. You can queue up to 10 snippets. They're played in the order they 
+ are called.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| uri | required | | A valid url. This can be an internal sonos url (see get_track_uri or) an external url. |
+| volume | optional | -1 - 100 | The snippet volume. If -1 (default) the current volume is used.  After the snippet was played, the prevoius volume value is set. |
+| group_command | optional | 0 or 1 | If 'True', the command is executed for all zone members of the speaker. This affects only the parameter 'volume'.|
+
+######Example
+    JSON format:
+    {
+        'command': 'play_snippet',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410',
+            'uri': 'x-sonos-spotify:spotify%3atrack%3a1AGslpGIhRzXSOYtE52VcB?sid=9&flags=32'
+            'volume': 8.
+            'group_command': 0
+            
+            # external url: http://www.tonycuffe.com/mp3/tail%20toddle.mp3
+            # internal sonos url: x-sonos-spotify:spotify%3atrack%3a3xCk8npVehdV55KuPdjrmZ?sid=9&flags=32
+        }   
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    { 
+        [snippet metadata will be sent. After the snippet was played, the metadata for the resumed track will be sent]
+        [e.g. see play_uri UDP response]
     }
     
     All values for a new track will be sent, but only new and/or different values.
