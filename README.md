@@ -81,8 +81,9 @@ Click on the links below to get a detailed command descriptions and their usage.
 ######[play_uri](#p_uri)
 ######[play_snipptet](#p_snippet)
 ######[play_tts](#p_tts)
+######[get_alarms](#g_alarms)
 ######[current_state](#cur_state)
-
+######[get_favorite_radio_stations](#g_fav_radio)
 
 ----
 #### <a name="cl_subs"></a>client_subscribe
@@ -1437,7 +1438,7 @@ No special parameter needed.
     {
         'command': 'play_snippet',
         'parameter': {
-            'uid': 'rincon_b8e93730d19801410',
+            'uid': 'rincon_000e58c3892e01410',
             'uri': 'x-sonos-spotify:spotify%3atrack%3a1AGslpGIhRzXSOYtE52VcB?sid=9&flags=32'
             'volume': 8,
             'group_command': 0
@@ -1479,7 +1480,7 @@ No special parameter needed.
     {
         'command': 'play_snippet',
         'parameter': {
-            'uid': 'rincon_b8e93730d19801410',
+            'uid': 'rincon_000e58c3892e01410',
             'tts': 'Die Temperatur im Wohnzimmer ist 2 Grad Celsius.'
             'language': 'de',
             'volume': 30,
@@ -1500,8 +1501,50 @@ No special parameter needed.
     All values for a new track will be sent, but only new and/or different values.
 
 ----
+#### <a name="g_alarms"></a>get_alarms
+ Gets all registered alarms for a Sonos speaker.
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'alarms'-status changes.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_pause',
+        'parameter': {
+            'uid': 'rincon_000e58c3892e01410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {
+        ...
+        "alarms": {
+        "32": {
+            "Duration": "02:00:00",
+            "Enabled": false,
+            "IncludedLinkZones": false,
+            "PlayMode": "SHUFFLE_NOREPEAT",
+            "Recurrence": "DAILY",
+            "StartTime": "07:00:00",
+            "Volume": 25
+            }
+        },
+        "uid": "rincon_000e58c3892e01410",
+        ...
+    }
+
+----
 #### <a name="cur_state">current_state
- Sends all available information from a Sonos speaker to the subscribed clients.
+ Sends all available information from a Sonos speaker to the subscribed clients. You should use this command right after
+ your client has been subscribed to the Broker to get the actual Sonos speaker state.
   
 | parameter | required / optional | valid values | description |     
 | :-------- | :------------------ | :----------- | :---------- |
@@ -1513,7 +1556,7 @@ No special parameter needed.
     {
         'command': 'current_state',
         'parameter': {
-            'uid': 'rincon_b8e93730d19801401',
+            'uid': 'rincon_000e58c3892e01410',
             'group_command': 1
         }
     }
@@ -1521,6 +1564,100 @@ No special parameter needed.
     HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
     
 ######UDP Response sent to subscribed clients:
+    JSON format:
     {
-        test
+        "additional_zone_members": "rincon_112ef9e4892e00001",
+        "alarms": {
+            "32": {
+                "Duration": "02:00:00",
+                "Enabled": false,
+                "IncludedLinkZones": false,
+                "PlayMode": "SHUFFLE_NOREPEAT",
+                "Recurrence": "DAILY",
+                "StartTime": "07:00:00",
+                "Volume": 25
+            }
+        },
+        "bass": 0,
+        "hardware_version": "1.8.3.7-2",
+        "ip": "192.168.0.4",
+        "led": 1,
+        "loudness": 1,
+        "mac_address": "10:1F:21:C3:77:1A",
+        "max_volume": -1,
+        "model": "Sonos PLAY:1",
+        "mute": "0",
+        "pause": 0,
+        "play": 0,
+        "playlist_position": 0,
+        "playmode": "normal",
+        "radio_show": "",
+        "radio_station": "",
+        "serial_number": "00-0E-58-C3-89-2E:7",
+        "software_version": "27.2-80271",
+        "status": true,
+        "stop": 1,
+        "streamtype": "music",
+        "track_album_art": "http://192.168.0.4:1400/getaa?s=1&u=x-sonos-spotify%3aspotify%253atrack%253a3xCk8npVehdV55KuPdjrmZ%3fsid%3d9%26flags%3d32",
+        "track_artist": "Feuerwehrmann Sam & Clemens Gerhard",
+        "track_duration": "0:10:15",
+        "track_position": "00:00:00",
+        "track_title": "Das Baby im Schafspelz",
+        "track_uri": "x-sonos-spotify:spotify%3atrack%3a3xCk8npVehdV55KuPdjrmZ?sid=9&flags=32",
+        "treble": 0,
+        "uid": "rincon_000e58c3892e01410",
+        "volume": 8,
+        "zone_icon": "x-rincon-roomicon:bedroom",
+        "zone_name": "Kinderzimmer"
     }
+    
+    This is a complete status response for a Sonos speaker.
+
+----
+#### <a name="g_fav_radio"></a>get_favorite_radio_stations
+ Returns the favorite radio stations.
+ 
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| start_item | optional | | Start position within the Sonos radio favorite list starting with 0. Default: 0 |
+| max_items | optional | | Maximum returned items. Default: 50 |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_favorite_radio_stations',
+        'parameter': {
+            'start_item': 0, # optional, default: 0
+            'max_items': 10, # optional, default: 50
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+    JSON format:
+    {
+        "total": "2",
+        "favorites": [
+            {
+                "title": "Radio TEDDY",
+                "uri": "x-sonosapi-stream:s80044?sid=254&flags=32"
+            },
+            {
+                "title": "radioeins vom rbb 95.8 (Pop)",
+                "uri": "x-sonosapi-stream:s25111?sid=254&flags=32"
+            }
+        ],
+        "returned": 2
+    }
+    
+    Returns a list containing the total number of favorites, the number of favorites returned, 
+    and the actual list of favorite radio stations, represented as a dictionary with 'title' 
+    and 'uri' keys.
+    Depending on what you're building, you'll want to check to see if the total number of 
+    favorites is greater than the amount you requested (`max_items`), if it is, use `start` 
+    to page through and get the entire list of favorites.
+
+    
+######UDP Response sent to subscribed clients:
+    No UDP response

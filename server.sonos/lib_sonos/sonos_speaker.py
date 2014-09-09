@@ -1074,8 +1074,10 @@ class SonosSpeaker():
                 self.set_volume(volume, trigger_action=True, group_command=group_command)
 
             self.play_uri(uri, '')
+            time.sleep(1)
             h, m, s = self.track_duration.split(":")
             seconds = int(h) * 3600 + int(m) * 60 + int(s) + 1
+            logger.debug('Esimated snippet length: {seconds}'.format(seconds=seconds))
 
             # maximum snippet length is 60 sec
             if seconds > 60:
