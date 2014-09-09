@@ -1080,6 +1080,8 @@ class SonosSpeaker():
             # maximum snippet length is 60 sec
             if seconds > 60:
                 seconds = 60
+            if seconds < 2:
+                seconds = 2
 
             logger.debug('Waiting {seconds} seconds until snippet has finished playing.'.format(seconds=seconds))
             time.sleep(seconds)

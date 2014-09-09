@@ -79,6 +79,8 @@ Click on the links below to get a detailed command descriptions and their usage.
 ######[unjoin](#s_unjoin)
 ######[partymode](#s_partymode)
 ######[play_uri](#p_uri)
+######[play_snipptet](#p_snippet)
+######[play_tts](#p_tts)
 ######[current_state](#cur_state)
 
 
@@ -1437,7 +1439,7 @@ No special parameter needed.
         'parameter': {
             'uid': 'rincon_b8e93730d19801410',
             'uri': 'x-sonos-spotify:spotify%3atrack%3a1AGslpGIhRzXSOYtE52VcB?sid=9&flags=32'
-            'volume': 8.
+            'volume': 8,
             'group_command': 0
             
             # external url: http://www.tonycuffe.com/mp3/tail%20toddle.mp3
@@ -1451,8 +1453,48 @@ No special parameter needed.
 ######UDP Response sent to subscribed clients:
     JSON format: 
     { 
-        [snippet metadata will be sent. After the snippet was played, the metadata for the resumed track will be sent]
-        [e.g. see play_uri UDP response]
+        [snippet metadata will be sent. After the snippet was played, the metadata for] 
+        [the resumed track will be sent (e.g. see play_uri UDP response)]
+    }
+    
+    All values for a new track will be sent, but only new and/or different values.
+
+----
+#### <a name="p_tts">play_tts
+ Plays a text-to-speech snippet using the Google TTS API. After the snippet was played (maximum 60 seconds, longer 
+ snippets will be truncated) the previous played song will be resumed. You can queue up to 10 snippets. 
+ They're played in the order they are called. To setup the Broker for TTS support, please take a deeper look at the 
+ dedicated Google TTS section in this document.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| tts | required | | The text to be auditioned, max. 100 chars. |
+| language | optional | en, de, es, fr, it| The tts language. Default: 'de'. |
+| volume | optional | -1 - 100 | The snippet volume. If -1 (default) the current volume is used.  After the snippet was played, the prevoius volume value is set. |
+| group_command | optional | 0 or 1 | If 'True', the command is executed for all zone members of the speaker. This affects only the parameter 'volume'.|
+
+######Example
+    JSON format:
+    {
+        'command': 'play_snippet',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410',
+            'tts': 'Die Temperatur im Wohnzimmer ist 2 Grad Celsius.'
+            'language': 'de',
+            'volume': 30,
+            'group_command': 1
+        }   
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    { 
+        [snippet metadata will be sent. After the tts snippet was played, the metadata for] 
+        [the resumed track will be sent (e.g. see play_uri UDP response)]
     }
     
     All values for a new track will be sent, but only new and/or different values.
