@@ -45,12 +45,12 @@ smart home environment (https://github.com/mknx/smarthome/).
 Server:	python3 (with library 'requests')
 
 Client-side: nothing special, just send your commands over http (JSON format) or use the Smarthome.py plugin to control 
-the speakers within Smarthome.py
+the speakers within Smarthome.py.
 
 
 ## Installation
 
-### Setup
+#### Setup
 
 Under the github folder "server.sonos/dist/" you'll find the actual release as a tar.gz file.
 Unzip this file with:
@@ -79,7 +79,7 @@ Normally, the script finds the internal ip address of your computer. If not, you
 (x.x.x.x means your ip: run ifconfig - a to find it out)
 
 
-### Configuration / Start options
+#### Configuration / Start options
 
 You can edit the settings of Sonos Broker. Open 'sonos_broker.cfg' with your favorite editor and edit the file.
 All values within the config file should be self-explaining. For Google-TTS options, see the appropriate section in this
@@ -125,14 +125,13 @@ Additionally, you can specify a file to pipe the debug log to this file.
 Sonos broker features the Google Text-To-Speech API. You can play any text limited to 100 chars.
 
 
-### Prerequisite:
+#### Prerequisite:
 
 - local / remote mounted folder or share with read/write access
 - http access to this local folder (e.g. /var/www)
 - settings configured in sonos_broker.conf
 
-
-### Internals
+#### Internals
 
 If a text is given to the google tts function, sonos broker makes a http request to the Google API. The response is
 stored as a mp3-file to the local / remote folder. Before the request is made, the broker checks whether a file exists
@@ -142,23 +141,23 @@ If the quota exceeds, you will receive a message. By default the quota is set to
 
     sonos_broker.cfg:
 
-        [google_tts]
-        quota = 200
+    [google_tts]
+    quota = 200
 
 By default, Google TTS support is disabled. To enable the service, add following line to sonos_broker.cfg:
 
     sonos_broker.cfg:
 
-        [google_tts]
-        enable = true
+    [google_tts]
+    enable = true
 
 You have to set the local save path (where the mp3 is stored) and the accessible local url:
 
-     sonos_broker.cfg
+    sonos_broker.cfg
 
-        [google_tts]
-        save_path =/your/path/here
-        server_url = http://192.168.0.2/tts
+    [google_tts]
+    save_path =/your/path/here
+    server_url = http://192.168.0.2/tts
 
 This is an example of a google_tts section in the sonos_broker.cfg file:
 
@@ -171,30 +170,24 @@ This is an example of a google_tts section in the sonos_broker.cfg file:
 
 ## Raspberry Pi User
 
-For raspberry pi user, please follow these instruction prior to point 2:
+For raspberry pi user, please follow these instruction prior the Broker installation:
 
     sudo apt-get update
     sudo apt-get upgrade
     sudo easy_install3 requests
-
-To get samba shares working on your Pi (to get Google TTS support), here is a good how-to:
-
-http://raspberrypihelp.net/tutorials/12-mount-a-samba-share-on-raspberry-pi
-
 
 ## Implementation:
 
 Because of the server-client design, you're not bound to Python to communicate
 with the Sonos broker instance. You just have to implement a client which is listening on an open UDP port to receive 
 Sonos speaker status changes. To control the server your client has to send [JSON commands](#available-commands). 
-This project is focused on
-house automation, therefore there is no dedicated web interface. (maybe this is your contribution :-) ). You can find
-a sonos widget for smartVISU here:
+At this moment there is no dedicated web interface. (maybe this is your contribution :-) ). You can find a sonos widget 
+for smartVISU / Smarthome.py here:
 
 https://github.com/pfischi/shSonos/tree/develop/widget.smartvisu
 
 
-### Client subscription
+#### Client subscription
 
 To subscribe your client to the Broker, simply send the appropriate [JSON command](#client_subscribe)(this step is not 
 necessary for smarthome.py-plugin user, it's done automatically).
@@ -204,7 +197,7 @@ After subscription, your client will receive all status updates of all sonos spe
 whether	they were triggered by you or other clients (iPad, Android). The received data comes in a JSON format and looks
 like this:
 
-### Sonos speaker data:
+#### Sonos speaker data:
 
 In almost any cases, you'll get the appropriate response in the following JSON format (by udp):
 
@@ -261,7 +254,7 @@ In almost any cases, you'll get the appropriate response in the following JSON f
  To put it in a nutshell: code your own client (Python, Perl, C#...) with an open and listening UDP port and subscribe
  your client to the Sonos Broker. Send JSON commands to control your Sonos speaker(s).
 
-### Get the UID
+#### Get the UID
 
 Most of the commands need a speaker uid. Send the [client_list](#client_list) command to get a short overview of your 
 sonos speakers in the network and to retrieve the uid.
@@ -269,7 +262,7 @@ sonos speakers in the network and to retrieve the uid.
 
 ## Available commands
 
-### Overview
+#### Overview
 
 Click on the links below to get a detailed command descriptions and their usage.
 
