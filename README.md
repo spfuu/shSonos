@@ -187,7 +187,7 @@ http://raspberrypihelp.net/tutorials/12-mount-a-samba-share-on-raspberry-pi
 
 Because of the server-client design, you're not bound to Python to communicate
 with the Sonos broker instance. You just have to implement a client which is listening on an open UDP port to receive 
-Sonos speaker status changes. To control the server your client has to send [JSON commands](#overview). 
+Sonos speaker status changes. To control the server your client has to send [JSON commands](#available-commands). 
 This project is focused on
 house automation, therefore there is no dedicated web interface. (maybe this is your contribution :-) ). You can find
 a sonos widget for smartVISU here:
@@ -197,7 +197,7 @@ https://github.com/pfischi/shSonos/tree/develop/widget.smartvisu
 The html commands return a simple "200 - OK" or "400 Bad Request". If a sonos speaker property has changed, a json data
 structure is send to all subscribed clients. To receive these messages, you must have an UDP port open on your client.
 
-##Client subscription
+## Client subscription
 
 To subscribe your client for this messages, simply type in following command in your browser:
 (this step is not necessary for smarthome.py-plugin user, it's done automatically)
@@ -212,7 +212,7 @@ After subscription, your client will receive all status updates of all sonos spe
 whether	they were triggered by you or other clients (iPad, Android). The received data comes in a JSON format and looks
 like this:
 
-##Sonos speaker data:
+## Sonos speaker data:
 
 In almost any cases, you'll get the appropriate response in the following JSON format (by udp):
 
