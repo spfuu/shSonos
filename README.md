@@ -1,4 +1,4 @@
-#Release
+## Release
 v0.3
 
     --  !! ATTENTION !!: commands are changed to JSON commands. They are more flexible 
@@ -29,7 +29,7 @@ v0.3
     --  much cleaner code and improvements 
 
 
-#Overview
+## Overview
 
 	
 The shSonos project is Sonos control server, mainly based on the brilliant SoCo project (https://github.com/SoCo/SoCo). 
@@ -40,7 +40,7 @@ In addition , i decided to write a plugin for the fantastic "Smarthome.py Projec
 smart home environment (https://github.com/mknx/smarthome/).
 
 
-#Requirements
+## Requirements
 
 Server:	python3 (with library 'requests')
 
@@ -48,10 +48,9 @@ Client-side: nothing special, just send your commands over http (JSON format) or
 the speakers within Smarthome.py
 
 
-#Install
+## Installation
 
-
-##Setup
+### Setup
 
 Under the github folder "server.sonos/dist/" you'll find the actual release as a tar.gz file.
 Unzip this file with:
@@ -72,7 +71,7 @@ Make the file executable and run the sonos_broker with:
     chmod +x sonos_broker
     ./sonos_broker
 
-Normally, the script finds the interal ip address of your computer. If not, you have to edit your sonos_broker.cfg.
+Normally, the script finds the internal ip address of your computer. If not, you have to edit your sonos_broker.cfg.
 
     [sonos_broker]
     server_ip = x.x.x.x
@@ -80,7 +79,7 @@ Normally, the script finds the interal ip address of your computer. If not, you 
 (x.x.x.x means your ip: run ifconfig - a to find it out)
 
 
-##Configuration / Start options
+### Configuration / Start options
 
 You can edit the settings of Sonos Broker. Open 'sonos_broker.cfg' with your favorite editor and edit the file.
 All values within the config file should be self-explaining. For Google-TTS options, see the appropriate section in this
@@ -121,19 +120,19 @@ Additionally, you can specify a file to pipe the debug log to this file.
     logfile = log.txt
 
 
-##Google TTS Support
+## Google TTS Support
 
 Sonos broker features the Google Text-To-Speech API. You can play any text limited to 100 chars.
 
 
-###Prerequisite:
+### Prerequisite:
 
 - local / remote mounted folder or share with read/write access
 - http access to this local folder (e.g. /var/www)
 - settings configured in sonos_broker.conf
 
 
-###Internals
+### Internals
 
 If a text is given to the google tts function, sonos broker makes a http request to the Google API. The response is
 stored as a mp3-file to the local / remote folder. Before the request is made, the broker checks whether a file exists
@@ -170,7 +169,7 @@ This is an example of a google_tts section in the sonos_broker.cfg file:
     server_url = http://192.168.0.2/tts
 
 
-##Raspberry Pi User
+## Raspberry Pi User
 
 For raspberry pi user, please follow these instruction prior to point 2:
 
@@ -183,7 +182,7 @@ To get samba shares working on your Pi (to get Google TTS support), here is a go
 http://raspberrypihelp.net/tutorials/12-mount-a-samba-share-on-raspberry-pi
 
 
-#Implementation:
+## Implementation:
 
 Because of the server-client design, you're not bound to Python to communicate
 with the Sonos broker instance. You just have to implement a client which is listening on an open UDP port to receive 
@@ -194,128 +193,132 @@ a sonos widget for smartVISU here:
 
 https://github.com/pfischi/shSonos/tree/develop/widget.smartvisu
 
-The html commands return a simple "200 - OK" or "400 Bad Request". If a sonos speaker property has changed, a json data
-structure is send to all subscribed clients. To receive these messages, you must have an UDP port open on your client.
 
-## Client subscription
+### Client subscription
 
-To subscribe your client for this messages, simply type in following command in your browser:
-(this step is not necessary for smarthome.py-plugin user, it's done automatically)
-
-    http://<sonos_server_ip:port>/client/subscribe/<udp_port>    (udp port is your client port)
-	
-To unsubscribe:
-	
-    http://<sonos_server_ip:port>/client/unsubscribe/<udp_port>
+To subscribe your client to the Broker, simply send the appropriate [JSON command](#client_subscribe)(this step is not 
+necessary for smarthome.py-plugin user, it's done automatically).
+Use this [command](#client_unsubscribe) to unsubscribe.
 	
 After subscription, your client will receive all status updates of all sonos speakers in the network,
 whether	they were triggered by you or other clients (iPad, Android). The received data comes in a JSON format and looks
 like this:
 
-## Sonos speaker data:
+### Sonos speaker data:
 
 In almost any cases, you'll get the appropriate response in the following JSON format (by udp):
 
     {
+        "additional_zone_members": "rincon_112ef9e4892e00001",
+        "alarms": {
+            "32": {
+                "Duration": "02:00:00",
+                "Enabled": false,
+                "IncludedLinkZones": false,
+                "PlayMode": "SHUFFLE_NOREPEAT",
+                "Recurrence": "DAILY",
+                "StartTime": "07:00:00",
+                "Volume": 25
+            }
+        },
+        "bass": 0,
         "hardware_version": "1.8.3.7-2",
-        "ip": "192.168.0.40",
-        "led": true,
-        "mac_address": "00:0F:12:D4:88:2F",
+        "ip": "192.168.0.4",
+        "led": 1,
+        "loudness": 1,
+        "mac_address": "10:1F:21:C3:77:1A",
         "max_volume": -1,
-        "model": "ZPS1",
-        "mute": false,
-        "pause": false,
-        "play": true,
-        "playlist_position": "10",
+        "model": "Sonos PLAY:1",
+        "mute": "0",
+        "pause": 0,
+        "play": 0,
+        "playlist_position": 0,
+        "playmode": "normal",
         "radio_show": "",
         "radio_station": "",
-        "serial_number": "00-0F-12-D4-88-2F:1",
-        "software_version": "26.1-76230",
+        "serial_number": "00-0E-58-C3-89-2E:7",
+        "software_version": "27.2-80271",
         "status": true,
-        "stop": false,
+        "stop": 1,
         "streamtype": "music",
-        "track_album_art": "http://192.168.0.40:1400/getaa?s=1&u=x-sonos-spotify%3aspotify%253atrack%253a3ZJSDh87VrZXvJGwZ82zQu%3fsid%3d9%26flags%3d32",
-        "track_artist": "Herbert Grönemeyer",
-        "track_duration": "0:03:30",
-        "track_position": "0:02:21",
-        "track_title": "Halt Mich",
-        "track_uri": "x-sonos-spotify:spotify%3atrack%3a3ZJSDh87VrZXvJGwZ82zQu?sid=9&flags=32",
-        "uid": "rincon_000f44c3892e01400",
-        "volume": "2",
-        "zone_coordinator": "rincon_000f44c3892e01400",
+        "track_album_art": "http://192.168.0.4:1400/getaa?s=1&u=x-sonos-spotify%3aspotify%253atrack%253a3xCk8npVehdV55KuPdjrmZ%3fsid%3d9%26flags%3d32",
+        "track_artist": "Feuerwehrmann Sam & Clemens Gerhard",
+        "track_duration": "0:10:15",
+        "track_position": "00:00:00",
+        "track_title": "Das Baby im Schafspelz",
+        "track_uri": "x-sonos-spotify:spotify%3atrack%3a3xCk8npVehdV55KuPdjrmZ?sid=9&flags=32",
+        "treble": 0,
+        "uid": "rincon_000e58c3892e01410",
+        "volume": 8,
         "zone_icon": "x-rincon-roomicon:bedroom",
-        "zone_id": "RINCON_B9E94030D19801400:19",
-        "additional zone_members": "rincon_000f44c3892e01400,rincon_b9e94030d19801400"
-        "zone_name": "child room",
-        "bass": "5",
-        "treble": "2",
-        "loudness": true,
-        "playmode": "shuffle_norepeat"
+        "zone_name": "Kinderzimmer"
     }
+    
+ Please notice: the Broker sends only **new** or changed data to the clients. In most case you'll ge only a subset of
+ the data shown above. To force the Broker to send all data, your client have to trigger the 
+ [current_state](#current-state) command. 
+    
+ To put it in a nutshell: code your own client (Python, Perl, C#...) with an open and listening UDP port and subscribe
+ your client to the Sonos Broker. Send JSON commands to control your Sonos speaker(s).
 
-To put it in a nutshell: code your own client (Python, Perl, C#...) with an open and listening udp port and subscribe
-your client to the Sonos Broker. And / or use your browser to control your sonos speaker.
+### Get the UID
+
+Most of the commands need a speaker uid. Send the [client_list](#client_list) command to get a short overview of your 
+sonos speakers in the network and to retrieve the uid.
 
 
-##Get the UID
+## Available commands
 
-Most of the commands need a speaker uid. Just type
-	
-    http://<sonos_server_ip:port>/client/list
-		
-to get a short overview of your sonos speakers in the network and to retrieve the uid.
+### Overview
 
-
-### Available commands
-
-####Overview
 Click on the links below to get a detailed command descriptions and their usage.
-######[client_subscribe](#cl_subs)
-######[client_unsubscribe](#cl_unsubs)
-######[client_list](#cl_li)
-######[get_play](#g_pl)
-######[set_play](#s_pl)
-######[get_pause](#g_pause)
-######[set_pause](#s_pause)
-######[get_stop](#g_stop)
-######[set_stop](#s_stop)
-######[get_volume](#g_volume)
-######[set_volume](#s_volume)
-######[get_max_volume](#g_m_volume)
-######[set_max_volume](#s_m_volume)
-######[get_mute](#g_mute)
-######[set_mute](#s_mute)
-######[volume_up](#v_up)
-######[volume_down](#v_down)
-######[next](#nex)
-######[previous](#prev)
-######[get_bass](#g_bass)
-######[set_bass](#s_bass)
-######[get_treble](#g_treble)
-######[set_treble](#s_treble)
-######[get_loudness](#g_loudness)
-######[set_loudness](#s_loudness)
-######[get_led](#g_led)
-######[set_led](#s_led)
-######[get_playmode](#g_playmode)
-######[set_playmode](#s_playmode)
-######[get_track_position](#g_track_position)
-######[set_track_position](#s_track_position)
-######[get_track_title](#g_track_title)
-######[get_track_artist](#g_track_artist)
-######[get_track_album_art](#g_track_album_art)
-######[get_track_uri](#g_track_uri)
-######[get_radio_station](#g_radio_station)
-######[get_radio_show](#g_radio_show)
-######[join](#s_join)
-######[unjoin](#s_unjoin)
-######[partymode](#s_partymode)
-######[play_uri](#p_uri)
-######[play_snipptet](#p_snippet)
-######[play_tts](#p_tts)
-######[get_alarms](#g_alarms)
-######[current_state](#cur_state)
-######[get_favorite_radio_stations](#g_fav_radio)
+
+###### [client_subscribe](#cl_subs)
+###### [client_unsubscribe](#cl_unsubs)
+###### [client_list](#cl_li)
+###### [get_play](#g_pl)
+###### [set_play](#s_pl)
+###### [get_pause](#g_pause)
+###### [set_pause](#s_pause)
+###### [get_stop](#g_stop)
+###### [set_stop](#s_stop)
+###### [get_volume](#g_volume)
+###### [set_volume](#s_volume)
+###### [get_max_volume](#g_m_volume)
+###### [set_max_volume](#s_m_volume)
+###### [get_mute](#g_mute)
+###### [set_mute](#s_mute)
+###### [volume_up](#v_up)
+###### [volume_down](#v_down)
+###### [next](#nex)
+###### [previous](#prev)
+###### [get_bass](#g_bass)
+###### [set_bass](#s_bass)
+###### [get_treble](#g_treble)
+###### [set_treble](#s_treble)
+###### [get_loudness](#g_loudness)
+###### [set_loudness](#s_loudness)
+###### [get_led](#g_led)
+###### [set_led](#s_led)
+###### [get_playmode](#g_playmode)
+###### [set_playmode](#s_playmode)
+###### [get_track_position](#g_track_position)
+###### [set_track_position](#s_track_position)
+###### [get_track_title](#g_track_title)
+###### [get_track_artist](#g_track_artist)
+###### [get_track_album_art](#g_track_album_art)
+###### [get_track_uri](#g_track_uri)
+###### [get_radio_station](#g_radio_station)
+###### [get_radio_show](#g_radio_show)
+###### [join](#s_join)
+###### [unjoin](#s_unjoin)
+###### [partymode](#s_partymode)
+###### [play_uri](#p_uri)
+###### [play_snipptet](#p_snippet)
+###### [play_tts](#p_tts)
+###### [get_alarms](#g_alarms)
+###### [current_state](#cur_state)
+###### [get_favorite_radio_stations](#g_fav_radio)
 
 ----
 #### <a name="cl_subs"></a>client_subscribe
