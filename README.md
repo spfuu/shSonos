@@ -29,12 +29,244 @@ v0.3
     --  much cleaner code and improvements 
 
 
-###This is just the working developer branch. I'm using it as a backup. 
-###Don't use this code for your code base. It won't work. 
-###Use the Developer or Master Branch instead. 
+#Overview
+
+	
+The shSonos project is Sonos control server, mainly based on the brilliant SoCo project (https://github.com/SoCo/SoCo). 
+It implements a lightweight http server, which is controlled by simple HTTP json commands. 
+It sends all available Sonos speaker data to all subscribed clients and notifies them of all changes.   
+
+In addition , i decided to write a plugin for the fantastic "Smarthome.py Project" to control Sonos speakers in a 
+smart home environment (https://github.com/mknx/smarthome/).
 
 
-###Available commands
+#Requirements
+
+Server:	python3 (with library 'requests')
+
+Client-side: nothing special, just send your commands over http (JSON format) or use the Smarthome.py plugin to control 
+the speakers within Smarthome.py
+
+
+#Install
+
+
+##Setup
+
+Under the github folder "server.sonos/dist/" you'll find the actual release as a tar.gz file.
+Unzip this file with:
+
+    tar -xvf sonos_broker_release.tar.gz
+
+(adjust the filename to your needs)
+
+Go to the unpacked folder and run setup.py with:
+
+    sudo python3 setup.py install
+
+This command will install all the python packages and places the start script to the python folder
+"/user/local/bin"
+
+Make the file executable and run the sonos_broker with:
+
+    chmod +x sonos_broker
+    ./sonos_broker
+
+Normally, the script finds the interal ip address of your computer. If not, you have to edit your sonos_broker.cfg.
+
+    [sonos_broker]
+    server_ip = x.x.x.x
+
+(x.x.x.x means your ip: run ifconfig - a to find it out)
+
+
+##Configuration / Start options
+
+You can edit the settings of Sonos Broker. Open 'sonos_broker.cfg' with your favorite editor and edit the file.
+All values within the config file should be self-explaining. For Google-TTS options, see the appropriate section in this
+Readme.
+
+If you start the sonos broker with
+```
+./sonos_broker
+```
+the server will be automatically daemonized.
+
+You can add the -d (--debug) parameter to hold the process in the foreground.
+```
+./sonos_broker -d
+```
+
+You can stop the server with
+```
+sonos_broker -s
+```
+
+To get an overview of all parameters type
+```
+sonos_broker -h
+```
+
+To autostart the service on system boot, please follow the instruction for your linux distribution and put this
+script in the right place.
+
+To get some debug output, please edit the sonos_broker.cfg and uncomment this line in the logging section (or use the 
+-d start parameter):
+
+    loglevel = debug
+
+You can set the debug level to debug, info, warning, error, critical.
+Additionally, you can specify a file to pipe the debug log to this file.
+
+    logfile = log.txt
+
+
+##Google TTS Support
+
+Sonos broker features the Google Text-To-Speech API. You can play any text limited to 100 chars.
+
+
+###Prerequisite:
+
+- local / remote mounted folder or share with read/write access
+- http access to this local folder (e.g. /var/www)
+- settings configured in sonos_broker.conf
+
+
+###Internals
+
+If a text is given to the google tts function, sonos broker makes a http request to the Google API. The response is
+stored as a mp3-file to the local / remote folder. Before the request is made, the broker checks whether a file exists
+with the same name. The file name of a tts-file is always:  BASE64(<tts_txt>_<tts_language>).mp3
+You can set a file quota in the config file. This limits the amount of disk space the broker can use to save tts files. 
+If the quota exceeds, you will receive a message. By default the quota is set to 100 mb.
+
+    sonos_broker.cfg:
+
+        [google_tts]
+        quota = 200
+
+By default, Google TTS support is disabled. To enable the service, add following line to sonos_broker.cfg:
+
+    sonos_broker.cfg:
+
+        [google_tts]
+        enable = true
+
+You have to set the local save path (where the mp3 is stored) and the accessible local url:
+
+     sonos_broker.cfg
+
+        [google_tts]
+        save_path =/your/path/here
+        server_url = http://192.168.0.2/tts
+
+This is an example of a google_tts section in the sonos_broker.cfg file:
+
+    [google_tts]
+    enable=true
+    quota=200
+    save_path =/your/path/here
+    server_url = http://192.168.0.2/tts
+
+
+##Raspberry Pi User
+
+For raspberry pi user, please follow these instruction prior to point 2:
+
+    sudo apt-get update
+    sudo apt-get upgrade
+    sudo easy_install3 requests
+
+To get samba shares working on your Pi (to get Google TTS support), here is a good how-to:
+
+http://raspberrypihelp.net/tutorials/12-mount-a-samba-share-on-raspberry-pi
+
+
+#Implementation:
+
+Because of the server-client design, you're not bound to Python to communicate
+with the Sonos broker instance. You just have to implement a client which is listening on an open UDP port to receive 
+Sonos speaker status changes. To control the server your client has to send [JSON commands](#overview). 
+This project is focused on
+house automation, therefore there is no dedicated web interface. (maybe this is your contribution :-) ). You can find
+a sonos widget for smartVISU here:
+
+https://github.com/pfischi/shSonos/tree/develop/widget.smartvisu
+
+The html commands return a simple "200 - OK" or "400 Bad Request". If a sonos speaker property has changed, a json data
+structure is send to all subscribed clients. To receive these messages, you must have an UDP port open on your client.
+
+##Client subscription
+
+To subscribe your client for this messages, simply type in following command in your browser:
+(this step is not necessary for smarthome.py-plugin user, it's done automatically)
+
+    http://<sonos_server_ip:port>/client/subscribe/<udp_port>    (udp port is your client port)
+	
+To unsubscribe:
+	
+    http://<sonos_server_ip:port>/client/unsubscribe/<udp_port>
+	
+After subscription, your client will receive all status updates of all sonos speakers in the network,
+whether	they were triggered by you or other clients (iPad, Android). The received data comes in a JSON format and looks
+like this:
+
+##Sonos speaker data:
+
+In almost any cases, you'll get the appropriate response in the following JSON format (by udp):
+
+    {
+        "hardware_version": "1.8.3.7-2",
+        "ip": "192.168.0.40",
+        "led": true,
+        "mac_address": "00:0F:12:D4:88:2F",
+        "max_volume": -1,
+        "model": "ZPS1",
+        "mute": false,
+        "pause": false,
+        "play": true,
+        "playlist_position": "10",
+        "radio_show": "",
+        "radio_station": "",
+        "serial_number": "00-0F-12-D4-88-2F:1",
+        "software_version": "26.1-76230",
+        "status": true,
+        "stop": false,
+        "streamtype": "music",
+        "track_album_art": "http://192.168.0.40:1400/getaa?s=1&u=x-sonos-spotify%3aspotify%253atrack%253a3ZJSDh87VrZXvJGwZ82zQu%3fsid%3d9%26flags%3d32",
+        "track_artist": "Herbert Grönemeyer",
+        "track_duration": "0:03:30",
+        "track_position": "0:02:21",
+        "track_title": "Halt Mich",
+        "track_uri": "x-sonos-spotify:spotify%3atrack%3a3ZJSDh87VrZXvJGwZ82zQu?sid=9&flags=32",
+        "uid": "rincon_000f44c3892e01400",
+        "volume": "2",
+        "zone_coordinator": "rincon_000f44c3892e01400",
+        "zone_icon": "x-rincon-roomicon:bedroom",
+        "zone_id": "RINCON_B9E94030D19801400:19",
+        "additional zone_members": "rincon_000f44c3892e01400,rincon_b9e94030d19801400"
+        "zone_name": "child room",
+        "bass": "5",
+        "treble": "2",
+        "loudness": true,
+        "playmode": "shuffle_norepeat"
+    }
+
+To put it in a nutshell: code your own client (Python, Perl, C#...) with an open and listening udp port and subscribe
+your client to the Sonos Broker. And / or use your browser to control your sonos speaker.
+
+
+##Get the UID
+
+Most of the commands need a speaker uid. Just type
+	
+    http://<sonos_server_ip:port>/client/list
+		
+to get a short overview of your sonos speakers in the network and to retrieve the uid.
+
+
+### Available commands
 
 ####Overview
 Click on the links below to get a detailed command descriptions and their usage.
