@@ -1041,8 +1041,12 @@ class SetLed(JsonCommandBase):
                     raise Exception('The parameter \'group_command\' has to be 0|1 or True|False !')
                 group_command = int(self.group_command)
 
+
             sonos_speaker.sonos_speakers[self.uid].set_led(led, trigger_action=True,
                                                            group_command=group_command)
+
+            # there is no led event, we have to trigger it manually
+            sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
         except ConnectionError:
             self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
@@ -1068,6 +1072,7 @@ class GetLed(JsonCommandBase):
                 raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
 
             sonos_speaker.sonos_speakers[self.uid].dirty_property('led')
+            sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
         except ConnectionError:
             self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\

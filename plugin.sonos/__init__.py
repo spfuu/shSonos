@@ -31,6 +31,7 @@ import urllib
 from urllib.parse import urlparse
 import fcntl
 import struct
+import requests
 
 logger = logging.getLogger('')
 sonos_speaker = {}
@@ -77,10 +78,14 @@ class UDPDispatcher(lib.connection.Server):
 class Sonos():
     def __init__(self, smarthome, listen_host='0.0.0.0', listen_port=9999, broker_url=None, refresh=120):
 
+        # get lan ip
+        self._lan_ip = get_lan_ip()
+
+        # check broker variable
         if broker_url:
             self._broker_url = broker_url
         else:
-            self._broker_url = "{ip}:12900".format(ip=get_lan_ip())
+            self._broker_url = "http://{ip}:12900".format(ip=self._lan_ip)
             if self._broker_url:
                 logger.warning("No broker url given, assuming current ip and default broker port: {url}".
                                format(url=self._broker_url))
@@ -88,29 +93,47 @@ class Sonos():
                 logger.error("Could not detect broker url !!!")
                 return
 
+        # normalize broker url
+        if not self._broker_url.startswith('http://'):
+            self._broker_url = "http://{url}".format(url=self._broker_url)
+
         self._listen_host = listen_host
         self._listen_port = listen_port
         self._sh = smarthome
         self._command = SonosCommand()
         self._sonoslock = threading.Lock()
-        self._sh.scheduler.add('sonos-update', self._subscribe, cycle=refresh)
 
         logger.debug('refresh sonos speakers every {refresh} seconds'.format(refresh=refresh))
+        self._sh.scheduler.add('sonos-update', self._subscribe, cycle=refresh)
 
-        self._sh.trigger('sonos-update', self._subscribe)
         UDPDispatcher(self._listen_host, self._listen_port)
 
     def run(self):
         self.alive = True
 
     def _subscribe(self):
+        """
+        Subscribe the plugin to the Sonos Broker
+        """
         logger.debug('(re)registering to sonos broker server ...')
-        self._send_cmd('client/subscribe/{}'.format(self._listen_port))
+        self._send_cmd(SonosCommand.subscribe(self._lan_ip, self._listen_port))
 
         for uid, speaker in sonos_speaker.items():
             self._send_cmd(SonosCommand.current_state(uid))
 
+    def _unsubscribe(self):
+        """
+        Unsubscribe the plugin from the Sonos Broker
+        """
+        logger.debug('unsubscribing from sonos broker server ...')
+        self._send_cmd(SonosCommand.unsubscribe(self._lan_ip, self._listen_port))
+
     def stop(self):
+        """
+        Will be executed, if Smarthome.py receives a terminate signal
+        """
+        # try to unsubscribe the plugin from the Sonos Broker
+        self._unsubscribe()
         self.alive = False
 
     def _resolve_uid(self, item):
@@ -176,10 +199,20 @@ class Sonos():
 
                 if command == 'mute':
                     if isinstance(value, bool):
-                        cmd = self._command.mute(uid, value)
+                        group_item_name = '{}.group_command'.format(item._name)
+                        group_command = 0
+                        for child in item.return_children():
+                            if child._name.lower() == group_item_name.lower():
+                                group_command = child()
+                        cmd = self._command.mute(uid, value, group_command)
                 if command == 'led':
                     if isinstance(value, bool):
-                        cmd = self._command.led(uid, value)
+                        group_item_name = '{}.group_command'.format(item._name)
+                        group_command = 0
+                        for child in item.return_children():
+                            if child._name.lower() == group_item_name.lower():
+                                group_command = child()
+                        cmd = self._command.led(uid, value, group_command)
                 if command == 'play':
                     if isinstance(value, bool):
                         cmd = self._command.play(uid, value)
@@ -191,7 +224,12 @@ class Sonos():
                         cmd = self._command.stop(uid, value)
                 if command == 'volume':
                     if isinstance(value, int):
-                        cmd = self._command.volume(uid, int(value))
+                        group_item_name = '{}.group_command'.format(item._name)
+                        group_command = 0
+                        for child in item.return_children():
+                            if child._name.lower() == group_item_name.lower():
+                                group_command = child()
+                        cmd = self._command.volume(uid, value, group_command)
                 if command == 'max_volume':
                     if isinstance(value, int):
                         cmd = self._command.max_volume(uid, int(value))
@@ -253,33 +291,39 @@ class Sonos():
                 if command == 'partymode':
                     cmd = self._command.partymode(uid)
                 if command == 'volume_up':
-                    cmd = self._command.volume_up(uid)
+                    group_item_name = '{}.group_command'.format(item._name)
+                    group_command = 0
+                    for child in item.return_children():
+                        if child._name.lower() == group_item_name.lower():
+                            group_command = child()
+                    cmd = self._command.volume_up(uid, group_command)
                 if command == 'volume_down':
-                    cmd = self._command.volume_down(uid)
+                    group_item_name = '{}.group_command'.format(item._name)
+                    group_command = 0
+                    for child in item.return_children():
+                        if child._name.lower() == group_item_name.lower():
+                            group_command = child()
+                    cmd = self._command.volume_down(uid, group_command)
                 if cmd:
                     self._send_cmd(cmd)
         return None
 
-    def _send_cmd(self, cmd):
-
+    def _send_cmd(self, payload):
         try:
-            conn = http.client.HTTPConnection(self._broker_url)
-            conn.request("GET", cmd)
-            response = conn.getresponse()
-            if response.status == 200:
+            headers = {'Content-type': 'application/json', 'Accept': 'text/plain'}
+            response = requests.post(self._broker_url, data=json.dumps(payload), headers=headers)
+
+            if response.status_code == 200:
                 logger.info("Sonos: Message %s %s successfully sent - %s %s" %
-                            (self._broker_url, cmd, response.status, response.reason))
+                            (self._broker_url, payload, response.status_code, response.reason))
             else:
                 logger.warning("Sonos: Could not send message %s %s - %s %s" %
-                               (self._broker_url, cmd, response.status, response.reason))
-            data = response.read()
-            conn.close()
-
+                               (self._broker_url, payload, response.status_code, response.reason))
         except Exception as e:
             logger.warning(
-                "Could not send sonos notification: {0}. Error: {1}".format(cmd, e))
+                "Could not send sonos notification: {0}. Error: {1}".format(payload, e))
 
-        logger.debug("Sending request: {0}".format(cmd))
+        logger.debug("Sending request: {0}".format(payload))
 
     def _send_cmd_response(self, cmd):
         try:
@@ -349,53 +393,156 @@ class SonosSpeaker():
 
 
 class SonosCommand():
+
+    @staticmethod
+    def subscribe(ip, port):
+        return {
+            'command': 'client_subscribe',
+            'parameter': {
+                'ip': ip,
+                'port': port,
+            }
+        }
+
+    @staticmethod
+    def unsubscribe(ip, port):
+        return {
+            'command': 'client_unsubscribe',
+            'parameter': {
+                'ip': ip,
+                'port': port,
+            }
+        }
+
+    @staticmethod
+    def current_state(uid, group_command=0):
+        return {
+            'command': 'current_state',
+            'parameter': {
+                'uid': '{uid}'.format(uid=uid),
+                'group_command': int(group_command)
+            }
+        }
+
     @staticmethod
     def join(uid, value):
-        return "speaker/{}/join/{}".format(uid, value)
+        return {
+            'command': 'join',
+            'parameter': {
+                'join_uid': '{j_uid}'.format(j_uid=value),
+                'uid': '{uid}'.format(uid=uid)
+            }
+        }
 
     @staticmethod
     def unjoin(uid):
-        return "speaker/{}/unjoin".format(uid)
+        return {
+            'command': 'unjoin',
+            'parameter': {
+                'uid': '{uid}'.format(uid=uid)
+            }
+        }
 
     @staticmethod
-    def mute(uid, value):
-        return "speaker/{uid}/mute/{value}".format(uid=uid, value=int(value))
+    def mute(uid, value, group_command=0):
+        return {
+            'command': 'set_mute',
+            'parameter': {
+                'uid': '{uid}'.format(uid=uid),
+                'mute': int(value),
+                'group_command': int(group_command)
+            }
+        }
 
     @staticmethod
     def next(uid):
-        return "speaker/{}/next".format(uid)
+        return {
+            'command': 'next',
+            'parameter': {
+                'uid': '{uid}'.format(uid=uid)
+            }
+        }
 
     @staticmethod
     def previous(uid):
-        return "speaker/{}/previous".format(uid)
+        return {
+            'command': 'previous',
+            'parameter': {
+                'uid': '{uid}'.format(uid=uid)
+            }
+        }
 
     @staticmethod
     def play(uid, value):
-        return "speaker/{uid}/play/{value}".format(uid=uid, value=int(value))
+        return {
+            'command': 'set_play',
+            'parameter': {
+                'play': int(value),
+                'uid': '{uid}'.format(uid=uid),
+            }
+        }
 
     @staticmethod
     def pause(uid, value):
-        return "speaker/{uid}/pause/{value}".format(uid=uid, value=int(value))
+        return {
+            'command': 'set_pause',
+            'parameter': {
+                'pause': int(value),
+                'uid': '{uid}'.format(uid=uid),
+            }
+        }
 
     @staticmethod
     def stop(uid, value):
-        return "speaker/{uid}/stop/{value}".format(uid=uid, value=int(value))
+        return {
+            'command': 'set_stop',
+            'parameter': {
+                'stop': int(value),
+                'uid': '{uid}'.format(uid=uid),
+            }
+        }
 
     @staticmethod
-    def led(uid, value):
-        return "speaker/{uid}/led/{value}".format(uid=uid, value=int(value))
+    def led(uid, value, group_command=0):
+        return {
+            'command': 'set_led',
+            'parameter': {
+                'led': int(value),
+                'group_command': int(group_command),
+                'uid': '{uid}'.format(uid=uid),
+            }
+        }
 
     @staticmethod
-    def volume(uid, value):
-        return "speaker/{}/volume/{}".format(uid, value)
+    def volume(uid, value, group_command=0):
+        return {
+            'command': 'set_volume',
+            'parameter': {
+                'uid': '{uid}'.format(uid=uid),
+                'volume': int(value),
+                'group_command': int(group_command)
+            }
+        }
 
     @staticmethod
-    def volume_up(uid):
-        return "speaker/{}/volume_up".format(uid)
+    def volume_up(uid, group_command=0):
+        return {
+            'command': 'volume_up',
+            'parameter': {
+                'group_command': int(group_command),
+                'uid': '{uid}'.format(uid=uid)
+            }
+        }
 
     @staticmethod
-    def volume_down(uid):
-        return "speaker/{}/volume_down".format(uid)
+    def volume_down(uid, group_command=0):
+        return {
+            'command': 'volume_down',
+            'parameter': {
+                'group_command': int(group_command),
+                'uid': '{uid}'.format(uid=uid)
+            }
+        }
 
     @staticmethod
     def max_volume(uid, value):
@@ -419,10 +566,6 @@ class SonosCommand():
     def play_tts(uid, uri, language, volume):
         uri = urllib.parse.quote_plus(uri, '&%=')
         return "speaker/{}/play_tts/{}/{}/{}".format(uid, uri, language, volume)
-
-    @staticmethod
-    def current_state(uid):
-        return "speaker/{}/current_state".format(uid)
 
     @staticmethod
     def partymode(uid):

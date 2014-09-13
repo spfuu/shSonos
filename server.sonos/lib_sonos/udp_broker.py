@@ -66,4 +66,6 @@ class UdpBroker():
                         logger.error("Got IO error: {}".format(e))
                 except Exception as err:
                     logger.error(err)
+                    # remove client from the list
+                    UdpBroker.unsubscribe_client(host, port)
                     pass

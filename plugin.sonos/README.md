@@ -3,9 +3,19 @@ The plugin is designed to control the sonos speakers in connection with the sono
 
 
 ##Release
+  v1.1  2014-09-14
+
+    --  added group_command parameter to following items (update your sonos.conf !!!):
+        -   mute, led, volume, volume_up, volume_down
+        
+    
+    --  broker_url parameter was not checked properly for invalid values 
+    
+
   v1.1  2014-08-15
   
     --  added alarms property
+
 
   v1.0  2014-07-08
     

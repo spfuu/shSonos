@@ -358,13 +358,13 @@ class SonosServerService():
                 if utils.check_max_volume_exceeded(volume, speaker.max_volume):
                     speaker.set_volume(speaker.max_volume, trigger_action=True)
                 else:
-                    speaker.volume = volume
+                    speaker.volume = int(volume)
 
         mute_state_element = dom.find(".//%sMute[@channel='Master']" % namespace)
         if mute_state_element is not None:
             mute = mute_state_element.get('val')
             if mute:
-                speaker.mute = mute
+                speaker.mute = int(mute)
 
         bass_state_element = dom.find(".//%sBass" % namespace)
         if bass_state_element is not None:
