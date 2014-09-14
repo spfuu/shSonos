@@ -1,14 +1,15 @@
 This is the subproject 'plugin.sonos' for the Smarthome.py framework (https://github.com/mknx/smarthome).
 The plugin is designed to control the sonos speakers in connection with the sonos server.
 
-
 ##Release
-  v1.1  2014-09-14
 
+  v1.1  2014-09-15
+
+    --  changed commands to JSON requests to implement the new command interface introduced in Broker v0.3 
     --  added group_command parameter to following items (update your sonos.conf !!!):
-        -   mute, led, volume, volume_up, volume_down
+        -   mute, led, volume, volume_up, volume_down, play_tts, play_snippet, max_volume, bass, treble, loudness
+        - play_tts, play_snippet: the group parameter only affects the 'volume'-sub-parameter
         
-    
     --  broker_url parameter was not checked properly for invalid values 
     
 
@@ -58,20 +59,6 @@ The plugin is designed to control the sonos speakers in connection with the sono
         -   additional_zone_members [read]: additional zone members if speaker is in a group
     --  changed commands: pause, play, stop, led, mute now toggle commands
     --  documentation: 'Group behaviour' added
-
-  v0.7    2014-04-27
-
-    --  version string added
-    --  changed subscription method from own thread to internal scheduler function
-    --  thread stable change of sonos values added
-    --  new command:
-        -   status [readonly] (Is the speaker online / offline, should be updated within 20sec)
-        -   max_volume [read/write] (set maximum volume for the speaker. This setting will be ignored, if play_tts or
-            play_snippet are used.
-    --  new functions:
-        -   get_favorite_radiostations()    Gets favorite radio stations from sonos library
-        -   version                         Just the version of the current plugin
-
 
 ##Requirements:
 
