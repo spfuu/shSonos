@@ -1,5 +1,5 @@
-This is the subproject 'plugin.sonos' for the Smarthome.py framework (https://github.com/mknx/smarthome).
-The plugin is designed to control the sonos speakers in connection with the sonos server.
+This sub-project is a client implementation fpr the Sonos Broker. It is a plugin for the 
+Smarthome.py framework (https://github.com/mknx/smarthome).
 
 ##Release
 
@@ -7,8 +7,9 @@ The plugin is designed to control the sonos speakers in connection with the sono
 
     --  changed commands to JSON requests to implement the new command interface introduced in Broker v0.3 
     --  added group_command parameter to following items (update your sonos.conf !!!):
-        -   mute, led, volume, volume_up, volume_down, play_tts, play_snippet, max_volume, bass, treble, loudness
-        - play_tts, play_snippet: the group parameter only affects the 'volume'-sub-parameter
+        -   mute, led, volume, volume_up, volume_down, play_tts, play_snippet, max_volume, bass, 
+            treble, loudness
+        -   play_tts, play_snippet: the group parameter only affects the 'volume'-sub-parameter
         
     --  broker_url parameter was not checked properly for invalid values 
     
@@ -60,16 +61,16 @@ The plugin is designed to control the sonos speakers in connection with the sono
     --  changed commands: pause, play, stop, led, mute now toggle commands
     --  documentation: 'Group behaviour' added
 
-##Requirements:
+## Requirements:
 
   sonos_broker server v0.3
   (https://github.com/pfischi/shSonos)
 
   smarthome.py
-  https://github.com/mknx/smarthome
+  (https://github.com/mknx/smarthome)
 
 
-##Integration in Smarthome.py
+## Integration in Smarthome.py
 
 Go to /usr/smarthome/etc and edit plugins.conf and add ths entry:
 
@@ -406,16 +407,15 @@ To get your sonos speaker id, type this command in your browser (while sonos ser
   
     http://<sonos_server_ip:port>/client/list
 
+## Group behaviour
 
-##Group behaviour
+ If two or more speakers are in the same zone, [most of the commands](#these-commands-will-always-act-as-group-commands:) are automatically executed for all zone
+ members. Normally the Sonos API requires to send the command to the zone master. This is done by the Broker
+ automatically. You don't have to worry about which speaker is the zone master. Just send your command to one 
+ of the zone member speaker. 
 
-If one or more speakers are in the same zone, almost all commands will be passed to the master speaker. You don't
-have to worry about which speaker is the zone master. Just send your command to one of the zone speaker. There are
-few 'single' speaker commands like 'volume', which are passed to the specified speaker exclusively.
+##### These commands will always act as group commands:
 
-###Group commands
-
-    mute
     stop
     play
     seek
@@ -423,16 +423,19 @@ few 'single' speaker commands like 'volume', which are passed to the specified s
     next
     previous
     play_uri
-    play_snippet
-    play_tts
+    play_snippet ('group_command' parameter only affects the snippet volume)
+    play_tts ('group_command' parameter only affects the snippet volume)
     partymode
     playmode
 
-###Single Speaker commands
+###### These commands only act as group commands if the parameter 'group_command' is set to 1:
 
+    mute
     led
     volume
     max_volume
+    volume_up
+    volume_down
     join
     unjoin
     bass
@@ -474,12 +477,12 @@ version()
     current plugin version
 
 
-##smartVISU Integration
+## smartVISU Integration
 
 more information here: https://github.com/pfischi/shSonos/tree/develop/widget.smartvisu
 
 
-##Logic examples
+## Logic examples
 
 To run this plugin with a logic, here is my example:
     
