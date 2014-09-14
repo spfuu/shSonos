@@ -8,7 +8,6 @@ registered_clients = {}
 
 
 class UdpBroker():
-
     @staticmethod
     def subscribe_client(ip, port):
         logger.info('register client for udp messages: {host}:{port}'.format(host=ip, port=port))
@@ -19,23 +18,29 @@ class UdpBroker():
             if port not in ports:
                 registered_clients[ip].append(port)
 
-        logger.info("registered clients: {clients}".format(clients=", ".join(['{ip}:{port}'.format(ip=key, port=value) for (key, value)
-                                                                      in registered_clients.items()])))
+        logger.info("registered clients: {clients}".format(clients=", ".join(['{ip}:{port}'.format(ip=key, port=value)
+                                                                              for (key, value) in
+                                                                              registered_clients.items()])))
 
     @staticmethod
     def unsubscribe_client(ip, port):
-        logger.info('unregister client for udp messages: {host}:{port}'.format(host=ip, port=port))
+        logger.info('un-register client for udp messages: {host}:{port}'.format(host=ip, port=port))
         if ip in registered_clients:
             if port in registered_clients[ip]:
                 registered_clients[ip].remove(port)
 
-        logger.info("registered clients: {clients}".format(clients=", ".join(['{ip}:{port}'.format(ip=key, port=value) for (key, value)
-                                                                      in registered_clients.items()])))
+            if len(registered_clients[ip]) == 0:
+                registered_clients.pop(ip)
+
+        logger.info("registered clients: {clients}".format(
+            clients=", ".join(['{ip}:{port}'.format(ip=key, port=value) for (key, value)
+                               in registered_clients.items()])))
 
     @staticmethod
     def udp_send(data):
-        logger.info("registered clients: {clients}".format(clients=", ".join(['{ip}:{port}'.format(ip=key, port=value) for (key, value)
-                                                                      in registered_clients.items()])))
+        logger.info("registered clients: {clients}".format(
+            clients=", ".join(['{ip}:{port}'.format(ip=key, port=value) for (key, value)
+                               in registered_clients.items()])))
         logger.info("sending sonos speaker data: {}".format(data))
         for host, ports in registered_clients.items():
             for port in ports:
@@ -61,4 +66,6 @@ class UdpBroker():
                         logger.error("Got IO error: {}".format(e))
                 except Exception as err:
                     logger.error(err)
+                    # remove client from the list
+                    UdpBroker.unsubscribe_client(host, port)
                     pass

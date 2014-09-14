@@ -1,13 +1,13 @@
 from lib_sonos import sonos_speaker
 from lib_sonos import utils
 
+
 class SonosLibrary:
-    def __init__(self):
-        pass
 
-    def get_fav_radiostations(self, start_item, max_items):
+    @classmethod
+    def get_fav_radiostations(cls, start_item, max_items):
 
-        #get at least one ip from our online speakers
+        #get any speaker in our list
         stations = {}
         found = False
 

@@ -12,6 +12,7 @@ import re
 import urllib
 import urllib.request
 import logging
+import sys
 
 if os.name != "nt":
     import fcntl
@@ -64,8 +65,10 @@ def camel_to_underscore(string):
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', string)
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
+
 def underscore_to_camel(value):
     return ''.join(x.capitalize() or '_' for x in value.split('_'))
+
 
 def prettify(unicode_text):
     """Return a pretty-printed version of a unicode XML string. Useful for
@@ -133,7 +136,7 @@ def save_google_tts(local_share, tts_string, tts_language, quota):
         if response and response.status_code == 200:
             with open(abs_fname, 'wb') as file:
                 file.write(response.content)
-            os.chmod(abs_fname, 0o660)
+            os.chmod(abs_fname, 0o444)
             return fname
         else:
             raise requests.RequestException('Status code: {}'.format(response.status_code))
@@ -141,8 +144,8 @@ def save_google_tts(local_share, tts_string, tts_language, quota):
         raise ("Couldn't obtain TTS from Google.\nError: {}".format(e.errno))
 
 
-def to_JSON(value):
-    return json.dumps(value, default=lambda o: value, ensure_ascii=False)
+def to_json(value):
+    return json.dumps(value, default=lambda o: value, ensure_ascii=False, indent=4)
 
 
 def check_volume_range(volume):
@@ -200,6 +203,35 @@ def get_interface_ip(ifname):
     return socket.inet_ntoa(fcntl.ioctl(s.fileno(), 0x8915, struct.pack('256s', ifname[:15].encode('utf-8')))[20:24])
 
 
+def dump_attributes(obj):
+    attrs = vars(obj)
+    attributes = ', '.join("%s: %s" % item for item in attrs.items() if not item[0].startswith('_'))
+    return attributes
+
+def ip_address_is_valid(address):
+
+    """
+    Tests if an ip address is valid.
+    http://stackoverflow.com/questions/4011855/regexp-to-check-if-an-ip-is-valid
+    :param address:
+    :return: True or False
+    """
+
+    try:
+        socket.inet_aton(address)
+    except socket.error:
+        return False
+    else:
+        return address.count('.') == 3
+
+def check_int(s):
+    if isinstance(s, int):
+        return True
+    if s[0] in ('-', '+'):
+        return s[1:].isdigit()
+    return s.isdigit()
+
+
 def get_lan_ip():
     ip = socket.gethostbyname(socket.gethostname())
     if ip.startswith("127.") and os.name != "nt":
@@ -211,3 +243,62 @@ def get_lan_ip():
             except IOError:
                 pass
     return ip
+
+# #######################################################################################################################
+'''
+Notification list from http://stackoverflow.com/questions/13259179/list-callbacks
+'''
+
+def callback_method(func):
+    def notify(self, *args, **kwargs):
+        for _, callback in self._callbacks:
+            callback()
+        return func(self, *args, **kwargs)
+
+    return notify
+
+
+_pyversion = sys.version_info[0]
+
+
+class NotifyList(list):
+    extend = callback_method(list.extend)
+    append = callback_method(list.append)
+    remove = callback_method(list.remove)
+    pop = callback_method(list.pop)
+    __delitem__ = callback_method(list.__delitem__)
+    __setitem__ = callback_method(list.__setitem__)
+    __iadd__ = callback_method(list.__iadd__)
+    #__imul__ = callback_method(list.__imul__)
+
+    #Take care to return a new NotifyList if we slice it.
+    if _pyversion < 3:
+        __setslice__ = callback_method(list.__setslice__)
+        __delslice__ = callback_method(list.__delslice__)
+
+        def __getslice__(self, *args):
+            return self.__class__(list.__getslice__(self, *args))
+
+    def __getitem__(self, item):
+        if isinstance(item, slice):
+            return self.__class__(list.__getitem__(self, item))
+        else:
+            return list.__getitem__(self, item)
+
+    def __init__(self, *args):
+        list.__init__(self, *args)
+        self._callbacks = []
+        self._callback_cntr = 0
+
+    def register_callback(self, cb):
+        self._callbacks.append((self._callback_cntr, cb))
+        self._callback_cntr += 1
+        return self._callback_cntr - 1
+
+    def unregister_callback(self, cbid):
+        for idx, (i, cb) in enumerate(self._callbacks):
+            if i == cbid:
+                self._callbacks.pop(idx)
+                return cb
+        else:
+            return None
