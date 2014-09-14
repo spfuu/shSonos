@@ -14,7 +14,9 @@ lib_sonos/udp_broker.py
 lib_sonos/utils.py
 soco/__init__.py
 soco/alarms.py
+soco/cache.py
 soco/compat.py
+soco/config.py
 soco/core.py
 soco/data_structures.py
 soco/events.py
