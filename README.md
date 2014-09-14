@@ -261,7 +261,7 @@ In almost any cases, you'll get the appropriate response in the following JSON f
 
 #### Client Implementation Example
 
- [Here you can find](#plugin.sonos/README.md) a client implementation for the Broker. It is a sonos plugin for the [Smarthome.py](https://github.com/mknx/smarthome) 
+ [Here you can find](plugin.sonos/README.md) a client implementation for the Broker. It is a sonos plugin for the [Smarthome.py](https://github.com/mknx/smarthome) 
  home automation framework.
 
 ## Available commands
