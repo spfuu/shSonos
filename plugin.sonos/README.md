@@ -397,7 +397,7 @@ Edit file with this sample of mine:
         sonos_send = alarms
     
 This sonos.conf file implements most of the commands to interact with the Sonos Broker. Please follow the detailed
-description under the [command section in the Broker manual](../README.md).
+description under the [command section in the Broker manual](../README.md#available-commands).
 
 You can find an example config in the plugin sub-directory "examples". 
 
