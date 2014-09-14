@@ -62,10 +62,11 @@ The plugin is designed to control the sonos speakers in connection with the sono
 
 ##Requirements:
 
-  sonos_broker server v0.2
+  sonos_broker server v0.3
   (https://github.com/pfischi/shSonos)
 
   smarthome.py
+  https://github.com/mknx/smarthome
 
 
 ##Integration in Smarthome.py
@@ -86,19 +87,20 @@ Normally, all changes to the speakers will be triggered automatically to the plu
 
 Go to /usr/smarthome/items
     
-Create a file named sonos.conf
+Create a file named sonos.conf.
   
 Edit file with this sample of mine:
   
-    [sonos]
-        sonos_uid = RINCON_000E58C3892E01400
-
     [[mute]]
         type = bool
         enforce_updates = True
         visu_acl = rw
         sonos_recv = mute
         sonos_send = mute
+
+        [[[group_command]]]
+            type = bool
+            value = 0
 
     [[led]]
         type = bool
@@ -107,6 +109,10 @@ Edit file with this sample of mine:
         sonos_recv = led
         sonos_send = led
 
+        [[[group_command]]]
+            type = bool
+            value = 0
+
     [[volume]]
         type = num
         enforce_updates = True
@@ -114,28 +120,20 @@ Edit file with this sample of mine:
         sonos_recv = volume
         sonos_send = volume
 
-    [[volume_up]]
-        type = foo
-        visu_acl = rw
-        enforce_updates = True
-        sonos_send = volume_up
-
-    [[volume_down]]
-        type = foo
-        visu_acl = rw
-        enforce_updates = True
-        sonos_send = volume_down
+        [[[group_command]]]
+            type = bool
+            value = 0
 
     [[max_volume]]
         type = num
-        value = -1
         enforce_updates = True
         visu_acl = rw
         sonos_recv = max_volume
         sonos_send = max_volume
 
-        #This setting will be ignored, if play_tts or 'play_snippet' are used.
-        #Unset max_volume with value -1
+        [[[group_command]]]
+            type = bool
+            value = 0
 
     [[stop]]
         type = bool
@@ -167,164 +165,187 @@ Edit file with this sample of mine:
     [[next]]
         type = foo
         enforce_updates = True
-        visu_acl = rw
         sonos_send = next
+        visu_acl = rw
 
     [[previous]]
         type = foo
-        visu_acl = rw
         enforce_updates = True
         sonos_send = previous
+        visu_acl = rw
 
     [[track_title]]
         type = str
-        visu_acl = rw
         sonos_recv = track_title
 
     [[track_duration]]
         type = str
-        visu_acl = rw
         sonos_recv = track_duration
+        visu_acl = rw
 
     [[track_position]]
         type = str
-        visu_acl = rw
         sonos_recv = track_position
+        visu_acl = rw
 
     [[track_artist]]
         type = str
-        visu_acl = rw
         sonos_recv = track_artist
 
     [[track_uri]]
         type = str
-        visu_acl = rw
         sonos_recv = track_uri
+        visu_acl = rw
 
     [[track_album_art]]
         type = str
-        visu_acl = rw
         sonos_recv = track_album_art
 
     [[playlist_position]]
         type = num
-        visu_acl = rw
         sonos_recv = playlist_position
-
-    [[radio_show]]
-        type = str
         visu_acl = rw
-        sonos_recv = radio_show
-
-    [[radio_station]]
-        type = str
-        visu_acl = rw
-        sonos_recv = radio_station
 
     [[streamtype]]
         type = str
-        visu_acl = rw
         sonos_recv = streamtype
+        visu_acl = rw
 
     [[play_uri]]
-        type = str                  #x-file-cifs://192.168.0.10/music/Depeche Mode - Heaven.mp3
-        visu_acl = rw
+        type = str
         enforce_updates = True
         sonos_send = play_uri
+        visu_acl = rw
 
     [[play_snippet]]
-        type = str                  #x-file-cifs://192.168.0.10/music/snippets/welcome.mp3
-        visu_acl = rw
+        type = str
         enforce_updates = True
         sonos_send = play_snippet
+        visu_acl = rw
 
-        [[[volume]]
+        [[[volume]]]
             type = num
-            value = -1              #-1: use current volume for tts snippet
+            value = -1
+
+        [[[group_command]]]
+            type = bool
+            value = 0
 
     [[play_tts]]
-        type = str                  #text is truncated to 100 chars
-        visu_acl = rw
+        type = str
         enforce_updates = True
         sonos_send = play_tts
+        visu_acl = rw
 
-        [[[volume]]
+        [[[volume]]]
             type = num
-            value = -1              #-1: use current volume for tts snippet
+            value = -1
 
         [[[language]]]
             type = str
-            value = 'de'            #(see google translate url http://translate.google.com/translate_tts?tl=en....
-                                    #for more languages e.g. 'en', 'fr')
-                                    #If no value is given, 'en' is used
+            value = 'de'
+
+        [[[group_command]]]
+            type = bool
+            value = 0
+
+    [[radio_show]]
+        type = str
+        sonos_recv = radio_show
+        visu_acl = rw
+
+    [[radio_station]]
+        type = str
+        sonos_recv = radio_station
+        visu_acl = rw
 
     [[uid]]
         type = str
-        visu_acl = rw
         sonos_recv = uid
+        visu_acl = rw
 
     [[ip]]
         type = str
-        visu_acl = rw
         sonos_recv = ip
+        visu_acl = rw
 
     [[model]]
         type = str
-        visu_acl = rw
         sonos_recv = model
+        visu_acl = rw
 
     [[zone_name]]
         type = str
-        visu_acl = rw
         sonos_recv = zone_name
+        visu_acl = rw
 
     [[zone_icon]]
         type = str
-        visu_acl = rw
         sonos_recv = zone_icon
+        visu_acl = rw
 
     [[serial_number]]
         type = str
-        visu_acl = rw
         sonos_recv = serial_number
+        visu_acl = rw
 
     [[software_version]]
         type = str
-        visu_acl = rw
         sonos_recv = software_version
+        visu_acl = rw
 
     [[hardware_version]]
         type = str
-        visu_acl = rw
         sonos_recv = hardware_version
+        visu_acl = rw
 
     [[mac_address]]
         type = str
-        visu_acl = rw
         sonos_recv = mac_address
+        visu_acl = rw
 
     [[status]]
         type = bool
-        visu_acl = rw
         sonos_recv = status
+        visu_acl = rw
 
     [[join]]
-        type = str              #uid from speaker to join
-        visu_acl = rw
+        type = str
         enforce_updates = True
         sonos_send = join
+        visu_acl = rw
 
     [[unjoin]]
         type = foo
-        visu_acl = rw
         enforce_updates = True
         sonos_send = unjoin
+        visu_acl = rw
 
     [[partymode]]
         type = foo
-        visu_acl = rw
         enforce_updates = True
         sonos_send = partymode
+        visu_acl = rw
+
+    [[volume_up]]
+        type = foo
+        enforce_updates = True
+        visu_acl = rw
+        sonos_send = volume_up
+
+        [[[group_command]]]
+            type = bool
+            value = 0
+
+    [[volume_down]]
+        type = foo
+        enforce_updates = True
+        visu_acl = rw
+        sonos_send = volume_down
+
+        [[[group_command]]]
+            type = bool
+            value = 0
 
     [[additional_zone_members]]
         type = str
@@ -333,33 +354,51 @@ Edit file with this sample of mine:
 
     [[bass]]
         type = num
-        enforce_updates = True
         visu_acl = rw
         sonos_recv = bass
         sonos_send = bass
-    
+
+        [[[group_command]]]
+            type = bool
+            value = 0
+
     [[treble]]
         type = num
-        enforce_updates = True
         visu_acl = rw
         sonos_recv = treble
         sonos_send = treble
-        
+
+        [[[group_command]]]
+            type = bool
+            value = 0
+
     [[loudness]]
         type = bool
-        enforce_updates = True
         visu_acl = rw
         sonos_recv = loudness
         sonos_send = loudness
-    
+
+        [[[group_command]]]
+            type = bool
+            value = 0
+
     [[playmode]]
         type = str
         enforce_updates = True
         visu_acl = rw
         sonos_recv = playmode
         sonos_send = playmode
-        
-        
+
+    [[alarms]]
+        type = dict
+        enforce_updates = True
+        visu_acl = rw
+        sonos_recv = alarms
+        sonos_send = alarms
+    
+This sonos.conf file implements most of the commands to interact with the Sonos Broker. Please follow the detailed
+description under the [command section in the Broker manual](../README.md).
+
 You can find an example config in the plugin sub-directory "examples". 
 
 
