@@ -256,9 +256,13 @@ In almost any cases, you'll get the appropriate response in the following JSON f
 
 #### Get the UID
 
-Most of the commands need a speaker uid. Send the [client_list](#client_list) command to get a short overview of your 
-sonos speakers in the network and to retrieve the uid.
+ Most of the commands need a speaker uid. Send the [client_list](#client_list) command to get a short overview of your 
+ sonos speakers in the network and to retrieve the uid.
 
+#### Client Implementation Example
+
+ [Here you can find](#plugin.sonos/README.md) a client implementation for the Broker. It is a sonos plugin for the [Smarthome.py](https://github.com/mknx/smarthome) 
+ home automation framework.
 
 ## Available commands
 
@@ -1887,5 +1891,5 @@ No special parameter needed.
     to page through and get the entire list of favorites.
 
     
-######UDP Response sent to subscribed clients:
+###### UDP Response sent to subscribed clients:
     No UDP response

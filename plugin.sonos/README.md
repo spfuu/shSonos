@@ -10,7 +10,6 @@ Smarthome.py framework (https://github.com/mknx/smarthome).
         -   mute, led, volume, volume_up, volume_down, play_tts, play_snippet, max_volume, bass, 
             treble, loudness
         -   play_tts, play_snippet: the group parameter only affects the 'volume'-sub-parameter
-        
     --  broker_url parameter was not checked properly for invalid values 
     
 
@@ -25,9 +24,11 @@ Smarthome.py framework (https://github.com/mknx/smarthome).
         -   if value is not set, the current system ip and the default broker port (12900) will be assumed
         -   manually add  this parameter, if the sonos broker is not running on the same system
     --  added optional parameter 'refresh' to plugin configuration (edit /usr/smarthome/etc/plugin.conf)
-        -   this parameter specifies, how often the broker is requested for sonos status updates (default: 120s)
+        -   this parameter specifies, how often the broker is requested for sonos status updates 
+            (default: 120s)
         -   Normally, all changes to the speakers will be triggered automatically to the plugin.
-    --  bug: if a sonos speaker was reported by the broker but was not declared in sonos.conf, an error occured
+    --  bug: if a sonos speaker was reported by the broker but was not declared in sonos.conf, an error 
+        occured
     
   
   v0.9    2014-06-15
@@ -47,8 +48,8 @@ Smarthome.py framework (https://github.com/mknx/smarthome).
 
   v0.8    2014-06-06
 
-    --  changed some values in sonos plugin config to 'foo' (commands without parameter like play, pause, next etc),
-        updated usage of 'enforce_updates = True' for some values,
+    --  changed some values in sonos plugin config to 'foo' (commands without parameter like play, 
+        pause, next etc), updated usage of 'enforce_updates = True' for some values,
         !! please update / replace  your sonos config file !!
     --  new command:
         -   join [write]: joins a speaker to another speaker (uid as parameter)
@@ -409,7 +410,7 @@ To get your sonos speaker id, type this command in your browser (while sonos ser
 
 ## Group behaviour
 
- If two or more speakers are in the same zone, [most of the commands](#these-commands-will-always-act-as-group-commands:) are automatically executed for all zone
+ If two or more speakers are in the same zone, most of the commands are automatically executed for all zone
  members. Normally the Sonos API requires to send the command to the zone master. This is done by the Broker
  automatically. You don't have to worry about which speaker is the zone master. Just send your command to one 
  of the zone member speaker. 
@@ -442,7 +443,7 @@ To get your sonos speaker id, type this command in your browser (while sonos ser
     treble
     loudness
 
-##Methods
+## Methods
 
 get_favorite_radiostations(<start_item>, <max_items>)
 
