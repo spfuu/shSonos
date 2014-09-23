@@ -4,6 +4,7 @@
 # ####################################################################
 # Imports
 # ####################################################################
+import json
 
 import os
 import argparse
@@ -18,9 +19,9 @@ import signal
 import time
 from lib_sonos import utils
 from lib_sonos import definitions
-from lib_sonos.sonos_commands import Command
 from lib_sonos.sonos_service import SonosServerService
 from lib_sonos import daemon
+from lib_sonos import sonos_commands
 
 # ####################################################################
 # GLOBALS
@@ -28,6 +29,7 @@ from lib_sonos import daemon
 command_service = None
 homedir = os.path.dirname(os.path.realpath(__file__))
 logger = logging.getLogger('')
+
 
 class SonosHttpHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -44,6 +46,35 @@ class SonosHttpHandler(BaseHTTPRequestHandler):
         finally:
             self.connection.close()
 
+    def do_POST(self):
+        try:
+            size = int(self.headers["Content-length"])
+            command = self.rfile.read(size).decode('utf-8')
+
+            try:
+                cmd_obj = json.loads(command, cls=sonos_commands.MyDecoder)
+            except AttributeError as err:
+                err_command = list(filter(None, err.args[0].split("'")))[-1]
+                self.make_response(False, "No command '{command}' found!".format(command=err_command))
+                return
+            status, response = cmd_obj.run()
+            self.make_response(status, response)
+            logger.debug('Server response -- status: {status} -- response: {response}'.format(status=status,
+                                                                                              response=response))
+
+        finally:
+            self.connection.close()
+
+    def make_response(self, status, response):
+        if status:
+            self.send_response(definitions.HTTP_SUCCESS, 'OK')
+        else:
+            self.send_response(definitions.HTTP_ERROR, 'Bad request')
+        self.send_header("Content-type", "text/html")
+        self.end_headers()
+        self.wfile.write("<html><head><title>Sonos Broker</title></head>".encode('utf-8'))
+        self.wfile.write("<body>{response}".format(response=response).encode('utf-8'))
+        self.wfile.write("</body></html>".encode('utf-8'))
 
 class ThreadedHTTPServer(socketserver.ThreadingMixIn, HTTPServer):
     """Handle requests in a separate thread."""
@@ -86,9 +117,9 @@ class SonosBroker():
         config_path = os.path.join(homedir, definitions.DEFAULT_CFG)
         config.read(config_path)
 
-        #############################################################
+        # ############################################################
         # Logging
-        #############################################################
+        # ############################################################
 
         if config.has_section('logging'):
             if config.has_option('logging', 'loglevel'):
@@ -118,6 +149,7 @@ class SonosBroker():
                     path=os.path.dirname(self._logfile, def_path=definitions.DEFAULT_LOG)))
 
             numeric_level = getattr(logging, loglevel.upper(), None)
+
             if not isinstance(numeric_level, int):
                 raise ValueError('Invalid log level: %s' % loglevel)
 
@@ -153,6 +185,8 @@ class SonosBroker():
                         self._loghandler.doRollover()
                     logger.addHandler(self._loghandler)
 
+                    # set the loglevel for soco framework
+                    logging.getLogger('soco.core').addHandler(self._loghandler)
                 except IOError as e:
                     print("Error creating logfile {}: {}".format(self._logfile, e))
 
@@ -227,7 +261,6 @@ class SonosBroker():
         time.sleep(1)
         self._sonos_service = SonosServerService(self._server_ip, self._port, self._server_url, self._save_path,
                                                  self._quota, self._tts_enabled)
-        command_service = Command(self._sonos_service)
         self._http_server = ThreadedHTTPServer((self._host, self._port), SonosHttpHandler)
         logger.info('Starting http server, use <Ctrl-C> to stop')
 
@@ -253,6 +286,7 @@ class SonosBroker():
         else:
             logger.info("Sonos Broker stopped")
 
+
 def kill(pid, wait=10):
     delay = 0.25
     waited = 0
@@ -270,9 +304,11 @@ def kill(pid, wait=10):
         except OSError:
             os._exit(0)
 
+
 if __name__ == '__main__':
     argparser = argparse.ArgumentParser()
-    argparser.add_argument('-d', '--debug', help='Debug Mode: Broker stays in foreground with verbose output', action='store_true')
+    argparser.add_argument('-d', '--debug', help='Debug Mode: Broker stays in foreground with verbose output',
+                           action='store_true')
     argparser.add_argument('-s', '--stop', help='Stops the Sonos Broker', action='store_true')
     args = argparser.parse_args()
 

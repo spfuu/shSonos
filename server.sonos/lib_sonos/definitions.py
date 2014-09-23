@@ -24,7 +24,7 @@ NS = {'dc': '{http://purl.org/dc/elements/1.1/}',
 
 ip_pattern = '^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$'
 
-VERSION = "v0.2.3.1"
+VERSION = "v0.3"
 
 DEFAULT_HOST = '0.0.0.0'
 DEFAULT_PORT = 12900
@@ -35,3 +35,4 @@ DEFAULT_PID = os.path.join(tempfile.gettempdir(), 'sonos_broker.pid')
 HTTP_SUCCESS = 200
 HTTP_ERROR = 400
 SCAN_TIMEOUT = 60
+TIMESTAMP_PATTERN = "([0-5]?[0-9]):([0-5]?[0-9]):([0-5][0-9])"

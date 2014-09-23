@@ -1,94 +1,56 @@
-#Release
+## Release
+v0.3
 
-v0.2.3.1    2014-07-21
+    --  !! ATTENTION !!: commands are changed to JSON commands. They are more flexible 
+        than the old HTTP GET commands.
+        Please adapt your clients to this new feature. Older clients won't work. 
+        Please read the manual to set it up and get some example implementations.
+        If you're running the Broker together with the Smarthome.py framework, 
+        make sure you use the newest Sonos plugin. 
 
-    -- logging now works with daemonized sonos broker
-    -- added '-s / --stop' parameter to stop the daemonized sonos broker
-    -- logfile parameter in sonos_broker.cfg now optional
-        -- default logfile path: /[temp path]/sonos_broker.log (usually /tmp/sonos_broker.log)
-    
-
-v0.2.3      2014-07-08
-
-    -- sonos_broker start script now daemonized (use -d parameter to prevent daemonize behaviour)
-        -- you don't need the sonos_broker.sh script anymore
-    -- logger functionality added (see sonos_broker.cfg and documentation)
-    -- added radio station parser to get normalized artist and track titles
-        -- you can add more regular expressions to lib_sonos/radio_parser.py to handle your stations
-    -- system signal handling now implemented (signal.SIGHUP, signal.SIGINT, signal.SIGTERM)
-    -- better exception handling in cases of uncritical soco exceptions
-    -- small changes in sonos discover function
-    -- event subscription now processed by the soco library
-    -- some adjustments to thread-safe event handling
-    -- bug: now exceptions in event subscriptions handled as was intended 
-    -- bug: thread start as daemon didn't work properly
-
-
-v0.2.1      2014-06-15
-
-    --  stop, play, pause, led, mute command now supports two value behaviours:
-        -- toggle mode [if no parameter was passed]
-        -- direct mode [if parameter was passed]
-    --  Command: added bass command
-    --  Command: added treble command
-    --  Command: added loudness command (direct / toggle mode)
-    --  Command: added playmode command ('normal', 'shuffle_norepeat', 'shuffle', 'repeat_all')
-    --  changed pause command behaviour, if radio is played (wrapped to stop command). 
-        This is the default sonos app behaviour.
-    --  bugifx: additional_zone_member_property was not set correctly
-    --  some minor soco framework updates
-        
-
-v0.2.0      2014-06-06
-
-    --  Command: added join command (joins the speaker to another speaker)
-    --  Command: added unjoin command (unjoins the speaker from the current group)
-    --  Command: added partymode command (joins all speaker to one group)
-    --  Command: added volume_up command (+2 volume, this is the default sonos speaker behaviour)
-    --  Command: added volume_down command (-2 volume, this is the default sonos speaker behaviour)
-    --  Event handling now based on soco core functionality
-    --  added ZoneGroup event handling
-    --  changed commands pause, play, stop, led, mute to toggle commands (no arguments necessary)
-    --  fixed bug in play_snippet and play_uri command (case sensitive uri)
-    --  speaker metadata will only be send, if something has changed
-    --  many many code improvements
-
-v0.1.9      2014-04-27
-
-    --  removed startup parameters
-    --  sonos broker is now configured by a config file
-    --  Google-TTS: removed the requirement for a working smb share
-    --  Google-TTS: removed auto config for smb shares (not necessary any more)
-    --  Command: added favorite radiostation command
-    --  Command: added maxvolume command
-
-v0.1.8.1    2014-03-27
-
-    --  bugfix: server does not start correctly if no local share for Google TTS was found
+    --  !! ATTENTION !! Read previous point !!
+    --  !! ATTENTION !! Read previous point !!
+     
+    --  commands 'Volume', 'Mute', 'Led', 'Treble', 'Bass', 'Loudness' can now be group 
+        commands by adding 'group_command: 1' to the json command structure 
+    --  !! seek command is now named SetTrackPosition (see documentation)
+    --  !! to get the current track position, poll GetTrackInfo with 'force_refresh' option
+        (see documentation)
+    --  removed command track_info() (this was only useful to get the current track 
+        position; use GetTrackInfo instead
+    --  the Broker now sends only the current changed speaker values instead of the whole 
+        sonos data structure. This results in much less network traffic / overhead.
+    --  Bug: fixed a problem with join command: join could fail, if the group to join have
+        had more than ne speaker
+    --  Bug: fixed permission problem when saving a google tts sound file
+    --  Bug: sometimes the search for the group coordinator doesn't found a valid object
+    --  Bug: Loglevel for the SoCo framework differed from the Broker settings
+    --  added some debug outputs, especially the commands are now logged more detailed
+    --  much cleaner code and improvements 
 
 
-#Overview
+## Overview
 
 	
-The shSonos project is primary a simple (python) sonos control server, mainly based on the brilliant SoCo project 
-https://github.com/SoCo/SoCo). It implements a lightweight http server, which is controlled by simple url commands.
- 
-In addition , i decided to write a plugin for the fantastic "Smarthome.py Project" to control sonos speakers in a 
+The shSonos project is Sonos control server, mainly based on the brilliant SoCo project (https://github.com/SoCo/SoCo). 
+It implements a lightweight http server, which is controlled by simple HTTP json commands. 
+It sends all available Sonos speaker data to all subscribed clients and notifies them of all changes.   
+
+In addition , i decided to write a plugin for the fantastic "Smarthome.py Project" to control Sonos speakers in a 
 smart home environment (https://github.com/mknx/smarthome/).
 
- 
-#Requirements
+
+## Requirements
 
 Server:	python3 (with library 'requests')
 
-Client-side: nothing special, just send your commands over http or use the Smarthome.py plugin to control the speakers
-within smarthome.py
+Client-side: nothing special, just send your commands over http (JSON format) or use the Smarthome.py plugin to control 
+the speakers within Smarthome.py.
 
 
-#Install
+## Installation
 
-
-##Setup
+#### Setup
 
 Under the github folder "server.sonos/dist/" you'll find the actual release as a tar.gz file.
 Unzip this file with:
@@ -109,7 +71,7 @@ Make the file executable and run the sonos_broker with:
     chmod +x sonos_broker
     ./sonos_broker
 
-Normally, the script finds the interal ip address of your computer. If not, you have to edit your sonos_broker.cfg.
+Normally, the script finds the internal ip address of your computer. If not, you have to edit your sonos_broker.cfg.
 
     [sonos_broker]
     server_ip = x.x.x.x
@@ -117,7 +79,7 @@ Normally, the script finds the interal ip address of your computer. If not, you 
 (x.x.x.x means your ip: run ifconfig - a to find it out)
 
 
-##Configuration / Start options
+#### Configuration / Start options
 
 You can edit the settings of Sonos Broker. Open 'sonos_broker.cfg' with your favorite editor and edit the file.
 All values within the config file should be self-explaining. For Google-TTS options, see the appropriate section in this
@@ -158,45 +120,44 @@ Additionally, you can specify a file to pipe the debug log to this file.
     logfile = log.txt
 
 
-##Google TTS Support
+## Google TTS Support
 
 Sonos broker features the Google Text-To-Speech API. You can play any text limited to 100 chars.
 
 
-###Prerequisite:
+#### Prerequisite:
 
 - local / remote mounted folder or share with read/write access
 - http access to this local folder (e.g. /var/www)
 - settings configured in sonos_broker.conf
 
-
-###Internals
+#### Internals
 
 If a text is given to the google tts function, sonos broker makes a http request to the Google API. The response is
-stored as a mp3-file to local mounted samba share. Before the request is made, the broker checks whether a file exists
-with the name. The file name of a tts-file is always:  BASE64(<tts_txt>_<tts_language>).mp3
+stored as a mp3-file to the local / remote folder. Before the request is made, the broker checks whether a file exists
+with the same name. The file name of a tts-file is always:  BASE64(<tts_txt>_<tts_language>).mp3
 You can set a file quota in the config file. This limits the amount of disk space the broker can use to save tts files. 
 If the quota exceeds, you will receive a message. By default the quota is set to 100 mb.
 
     sonos_broker.cfg:
 
-        [google_tts]
-        quota = 200
+    [google_tts]
+    quota = 200
 
 By default, Google TTS support is disabled. To enable the service, add following line to sonos_broker.cfg:
 
     sonos_broker.cfg:
 
-        [google_tts]
-        enable = true
+    [google_tts]
+    enable = true
 
 You have to set the local save path (where the mp3 is stored) and the accessible local url:
 
-     sonos_broker.cfg
+    sonos_broker.cfg
 
-        [google_tts]
-        save_path =/your/path/here
-        server_url = http://192.168.0.2/tts
+    [google_tts]
+    save_path =/your/path/here
+    server_url = http://192.168.0.2/tts
 
 This is an example of a google_tts section in the sonos_broker.cfg file:
 
@@ -207,436 +168,1728 @@ This is an example of a google_tts section in the sonos_broker.cfg file:
     server_url = http://192.168.0.2/tts
 
 
-##Raspberry Pi User
+## Raspberry Pi User
 
-For raspberry pi user, please follow these instruction prior to point 2:
+For raspberry pi user, please follow these instruction prior the Broker installation:
 
     sudo apt-get update
     sudo apt-get upgrade
     sudo easy_install3 requests
 
-To get samba shares working on your Pi (to get Google TTS support), here is a good how-to:
-
-http://raspberrypihelp.net/tutorials/12-mount-a-samba-share-on-raspberry-pi
-
-
-#Implementation:
+## Implementation:
 
 Because of the server-client design, you're not bound to Python to communicate
-with the sonos broker instance. Open your browser and control your speaker. This project is focused on
-house automation, therefore there is no dedicated web interface. (maybe this is your contribution :-) ). You can find
-a sonos widget for smartVISU here:
+with the Sonos broker instance. You just have to implement a client which is listening on an open UDP port to receive 
+Sonos speaker status changes. To control the server your client has to send [JSON commands](#available-commands). 
+At this moment there is no dedicated web interface. (maybe this is your contribution :-) ). You can find a sonos widget 
+for smartVISU / Smarthome.py here:
 
 https://github.com/pfischi/shSonos/tree/develop/widget.smartvisu
 
-The html commands return a simple "200 - OK" or "400 Bad Request". If a sonos speaker property has changed, a json data
-structure is send to all subscribed clients. To receive these messages, you must have an UDP port open on your client.
 
-##Client subscription
+#### Client subscription
 
-To subscribe your client for this messages, simply type in following command in your browser:
-(this step is not necessary for smarthome.py-plugin user, it's done automatically)
-
-    http://<sonos_server_ip:port>/client/subscribe/<udp_port>    (udp port is your client port)
-	
-To unsubscribe:
-	
-    http://<sonos_server_ip:port>/client/unsubscribe/<udp_port>
+To subscribe your client to the Broker, simply send the appropriate [JSON command](#client_subscribe)(this step is not 
+necessary for smarthome.py-plugin user, it's done automatically).
+Use this [command](#client_unsubscribe) to unsubscribe.
 	
 After subscription, your client will receive all status updates of all sonos speakers in the network,
 whether	they were triggered by you or other clients (iPad, Android). The received data comes in a JSON format and looks
 like this:
 
-##Sonos speaker data:
+#### Sonos speaker data:
 
 In almost any cases, you'll get the appropriate response in the following JSON format (by udp):
 
     {
+        "additional_zone_members": "rincon_112ef9e4892e00001",
+        "alarms": {
+            "32": {
+                "Duration": "02:00:00",
+                "Enabled": false,
+                "IncludedLinkZones": false,
+                "PlayMode": "SHUFFLE_NOREPEAT",
+                "Recurrence": "DAILY",
+                "StartTime": "07:00:00",
+                "Volume": 25
+            }
+        },
+        "bass": 0,
         "hardware_version": "1.8.3.7-2",
-        "ip": "192.168.0.40",
-        "led": true,
-        "mac_address": "00:0F:12:D4:88:2F",
+        "ip": "192.168.0.4",
+        "led": 1,
+        "loudness": 1,
+        "mac_address": "10:1F:21:C3:77:1A",
         "max_volume": -1,
-        "model": "ZPS1",
-        "mute": false,
-        "pause": false,
-        "play": true,
-        "playlist_position": "10",
+        "model": "Sonos PLAY:1",
+        "mute": "0",
+        "pause": 0,
+        "play": 0,
+        "playlist_position": 0,
+        "playmode": "normal",
         "radio_show": "",
         "radio_station": "",
-        "serial_number": "00-0F-12-D4-88-2F:1",
-        "software_version": "26.1-76230",
+        "serial_number": "00-0E-58-C3-89-2E:7",
+        "software_version": "27.2-80271",
         "status": true,
-        "stop": false,
+        "stop": 1,
         "streamtype": "music",
-        "track_album_art": "http://192.168.0.40:1400/getaa?s=1&u=x-sonos-spotify%3aspotify%253atrack%253a3ZJSDh87VrZXvJGwZ82zQu%3fsid%3d9%26flags%3d32",
-        "track_artist": "Herbert Grönemeyer",
-        "track_duration": "0:03:30",
-        "track_position": "0:02:21",
-        "track_title": "Halt Mich",
-        "track_uri": "x-sonos-spotify:spotify%3atrack%3a3ZJSDh87VrZXvJGwZ82zQu?sid=9&flags=32",
-        "uid": "rincon_000f44c3892e01400",
-        "volume": "2",
-        "zone_coordinator": "rincon_000f44c3892e01400",
+        "track_album_art": "http://192.168.0.4:1400/getaa?s=1&u=x-sonos-spotify%3aspotify%253atrack%253a3xCk8npVehdV55KuPdjrmZ%3fsid%3d9%26flags%3d32",
+        "track_artist": "Feuerwehrmann Sam & Clemens Gerhard",
+        "track_duration": "0:10:15",
+        "track_position": "00:00:00",
+        "track_title": "Das Baby im Schafspelz",
+        "track_uri": "x-sonos-spotify:spotify%3atrack%3a3xCk8npVehdV55KuPdjrmZ?sid=9&flags=32",
+        "treble": 0,
+        "uid": "rincon_000e58c3892e01410",
+        "volume": 8,
         "zone_icon": "x-rincon-roomicon:bedroom",
-        "zone_id": "RINCON_B9E94030D19801400:19",
-        "additional zone_members": "rincon_000f44c3892e01400,rincon_b9e94030d19801400"
-        "zone_name": "child room",
-        "bass": "5",
-        "treble": "2",
-        "loudness": true,
-        "playmode": "shuffle_norepeat"
+        "zone_name": "Kinderzimmer"
+    }
+    
+ Please notice: the Broker sends only **new** or changed data to the clients. In most case you'll ge only a subset of
+ the data shown above. To force the Broker to send all data, your client have to trigger the 
+ [current_state](#current-state) command. 
+    
+ To put it in a nutshell: code your own client (Python, Perl, C#...) with an open and listening UDP port and subscribe
+ your client to the Sonos Broker. Send JSON commands to control your Sonos speaker(s).
+
+#### Get the UID
+
+ Most of the commands need a speaker uid. Send the [client_list](#client_list) command to get a short overview of your 
+ sonos speakers in the network and to retrieve the uid.
+
+#### Client Implementation Example
+
+ [Here you can find](plugin.sonos/README.md) a client implementation for the Broker. It is a sonos plugin for the [Smarthome.py](https://github.com/mknx/smarthome) 
+ home automation framework.
+
+## Available commands
+
+#### Overview
+
+Click on the links below to get a detailed command descriptions and their usage.
+
+###### [client_subscribe](#cl_subs)
+###### [client_unsubscribe](#cl_unsubs)
+###### [client_list](#cl_li)
+###### [get_play](#g_pl)
+###### [set_play](#s_pl)
+###### [get_pause](#g_pause)
+###### [set_pause](#s_pause)
+###### [get_stop](#g_stop)
+###### [set_stop](#s_stop)
+###### [get_volume](#g_volume)
+###### [set_volume](#s_volume)
+###### [get_max_volume](#g_m_volume)
+###### [set_max_volume](#s_m_volume)
+###### [get_mute](#g_mute)
+###### [set_mute](#s_mute)
+###### [volume_up](#v_up)
+###### [volume_down](#v_down)
+###### [next](#nex)
+###### [previous](#prev)
+###### [get_bass](#g_bass)
+###### [set_bass](#s_bass)
+###### [get_treble](#g_treble)
+###### [set_treble](#s_treble)
+###### [get_loudness](#g_loudness)
+###### [set_loudness](#s_loudness)
+###### [get_led](#g_led)
+###### [set_led](#s_led)
+###### [get_playmode](#g_playmode)
+###### [set_playmode](#s_playmode)
+###### [get_track_position](#g_track_position)
+###### [set_track_position](#s_track_position)
+###### [get_track_title](#g_track_title)
+###### [get_track_artist](#g_track_artist)
+###### [get_track_album_art](#g_track_album_art)
+###### [get_track_uri](#g_track_uri)
+###### [get_radio_station](#g_radio_station)
+###### [get_radio_show](#g_radio_show)
+###### [join](#s_join)
+###### [unjoin](#s_unjoin)
+###### [partymode](#s_partymode)
+###### [play_uri](#p_uri)
+###### [play_snipptet](#p_snippet)
+###### [play_tts](#p_tts)
+###### [get_alarms](#g_alarms)
+###### [current_state](#cur_state)
+###### [get_favorite_radio_stations](#g_fav_radio)
+
+----
+#### <a name="cl_subs"></a>client_subscribe
+ Subscribes a client to the Sonos Broker. After the subscription, the client will receive all
+ status changes from the Sonos speakers in the network.
+ 
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| ip | required | | The IP of the client which wants to subscribe to the broker. |
+| port | required | 1-65535 | A client-side open UDP port which receives the data. |
+
+######Example
+    JSON format:
+    {
+        'command':
+        'client_subscribe',
+        'parameter':
+        {
+            'ip': '192.168.0.2',
+            'port': 2333
+        }
+    }
+    
+######HTTP Response
+    HTTP Response: no additional data
+    Response Code: 200 OK or Exception with Code 400 and the specific error message.
+    
+----
+
+#### <a name="cl_unsubs"></a>client_unsubscribe
+ Unsubscribes a client from the Broker. After unssubscription the client will not longer receive
+ status changes from the Sonos speakers. If your're running more than one client with the same
+ IP but with different ports, only the client with the specific port will be unsubscribed.
+ 
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| ip | required | | The IP of the client which wants to unsubscribe from the broker. |
+| port | required | 1-65535 | A (client-side) open UDP port. |
+
+######Example
+    JSON format:
+    {
+        'command': 'client_unsubscribe',
+        'parameter': {
+            'ip': '192.168.0.2',
+            'port': 2333
+        }
+    }
+    
+######HTTP Response
+    HTTP Response: no additional data
+    Response Code: 200 OK or Exception with Code 400 and the specific error message.    
+
+----
+
+#### <a name="cl_li">client_list
+ Shows all available Sonos speaker in the network.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+
+No special parameter needed.
+
+######Example
+    JSON format:
+    {
+        'command': 'client_list'
     }
 
-To put it in a nutshell: code your own client (Python, Perl, C#...) with an open and listening udp port and subscribe
-your client to the Sonos Broker. And / or use your browser to control your sonos speaker.
-
-
-##Get the UID
-
-Most of the commands need a speaker uid. Just type
-	
-    http://<sonos_server_ip:port>/client/list
-		
-to get a short overview of your sonos speakers in the network and to retrieve the uid.
-		
-
-#Speaker commands
-
-    current_state
-
-        get:
-            http://<sonos_server:port>/speaker/<sonos_uid>/current_state
-
-            Dumps the current sonos player state with all values
-
-        response (udp):
-            JSON speaker structure
-
-
-	volume
-
-		set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/volume/<value:0-100>
-		
-		response (udp):
-	        JSON speaker structure
-
-
-    volume_up
-
-		set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/volume_up
-
-		response (udp):
-	        JSON speaker structure
-
-        The volume_up commands triggers a +2 volume. This is the default sonos speaker behaviour, if the volume-up
-        button was pressed.
-
-
-    volume_down
-
-		set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/volume_down
-
-		response (udp):
-	        JSON speaker structure
-
-        The volume_down commands triggers a -2 volume. This is the default sonos speaker behaviour, if the volume-down
-        button was pressed.
-
-
-    maxvolume
-
-		set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/maxvolume/<value:-1-100>
-
-		response (udp):
-	        JSON speaker structure
-
-        Sets the maximum volume for a sonos speaker. This setting also affects other sonos clients (iPad, Android etc).
-        If a volume greater than maxvolume is set, the volume is set to maxvolume.
-        The maximum volume will be ignored if play_snippet or play_tts are used.
-        To unset maxvolume, set the value to -1.
-
-
-    bass
-
-		set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/bass/<value:-10-10>
-			
-			value: sonos default setting is 0
-		
-		response (udp):
-	        JSON speaker structure
-	        
-	
-	treble
-
-		set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/treble/<value:-10-10>
-		
-		    value: sonos default setting is 0 
-		    
-		response (udp):
-	        JSON speaker structure
-	        
-	        
-	loudness
-
-		set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/loudness/<optiona value: 0|1>
-			
-			loudness: by default, the command is a toggle command
-            optional value: set the value directly [no toggle behaviour]  
-			value: sonos default setting is 1
-		
-		response (udp):
-	        JSON speaker structure
-
-
-	mute
-
-		set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/mute/<optional value: 0|1>
-
-		    mute: by default, the command is a toggle command
-            optional value: set the value directly [no toggle behaviour]  
+######HTTP Response
+    HTTP Response:
+        <html><head><title>Sonos Broker</title></head>
+            <body>
+                <p>uid: rincon_000e58c3892e01410</p>
+                <p>ip: 192.168.0.4</p>
+                <p>model: Sonos PLAY:1</p>
+                <p>current zone: Kitchen</p>
+                <p>----------------------</p>
+                <p>uid: rincon_b8e93730d19801410</p>
+                <p>ip: 192.168.0.10</p>
+                <p>model: Sonos PLAY:3</p>
+                <p>current zone: Kueche</p>
+                <p>----------------------</p>
+            </body>
+        </html>
     
-		response (udp)
-			JSON speaker structure
-
-
-	led
-
-		set:
-
-			http://<sonos_server:port>/speaker/<sonos_uid>/led/<optional value: 0|1>
-
-		    led: by default, the command is a toggle command
-            optional value: set the value directly [no toggle behaviour]  
-
-		response (udp)
-		    JSON speaker structure
-
-
-	play
-
-	    set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/play
-
-            play: command is a toggle command
-
-		response (udp)
-		    JSON speaker structure
-
-
-    pause
-
-        set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/pause
-
-            pause: command is a toggle command
-
-		response (udp)
-			JSON speaker structure
-
-
-    stop
-
-        set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/stop/[optional value: 0|1]
-
-            stop: by default, the command is a toggle command
-            optional value: set the value directly [no toggle behaviour]  
-
-		response (udp)
-			JSON speaker structure
-
-
-    next
-
-        set:
-            http://<sonos_server:port>/speaker/<sonos_uid>/next/<value:0|1>
-
-        response:
-			no explicit response, but events will be triggered, if new track title
-
-
-    previous
-
-        set:
-            http://<sonos_server:port>/speaker/<sonos_uid>/previous/<value:0|1>
-
-        response:
-			no explicit response, but events will be triggered, if new track title
-
-
-    seek
-
-        set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/seek/<value> #value format = HH:MM:ss
-
-        response:
-			no explicit response, but events will be triggered, if the track position is changed
-
-
-    artist
-
-		get:
-			http://<sonos_server:port>/speaker/<sonos_uid>/artist
-
-		response (udp)
-			response:
-			no explicit response, but events will be triggered, if new track title
-
-
-    play_uri
-
-        set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/play_uri/<uri>
-
-			    <uri> has to be urlsafe, qoute_plus
-			    If you want to play a title from your network share use following format:
-
-                x-file-cifs%3A%2F%2F192.168.178.100%2Fmusic%2Ftest.mp3
-                (unqouted: x-file-cifs://192.168.0.3/music/test.mp3)
-
-		response:
-			no explicit response, but events will be triggered, if new track title
-
-
-    play_snippet
-
-        set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/play_snippet/<uri>/<volume [-1-100]>
-
-			<uri>. has to be urlsafe, qoute_plus
-			If you want to play a title from your network share use following format:
-
-            x-file-cifs%3A%2F%2F192.168.178.100%2Fmusic%2Ftest.mp3
-            (unqouted: x-file-cifs://192.168.0.3/music/test.mp3)
-
-            <volume> Plays the snippet with <volume>. The volume is set back  to its original value.
-            If -1 i used, the snippet volume is set to the current volume of the sonos speaker
-
-		response:
-			no explicit response, but events will be triggered, if new track title
-
-
-    play_tts
-
-        set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/play_tts/<text>/<google_tts_language><volume [-1-100]>
-
-			<text>  has to be urlsafe, qoute_plus, max. 100 chars
-
-            <google_tts_language> e.g: 'de', 'en, 'fr' ...
-
-            <volume> Plays the tts_snippet with <volume>. The volume is set back to its original value.
-            If -1 i used, the snippet volume is set to the current volume of the sonos speaker
-
-
-		response:
-			no explicit response, but events will be triggered, if the tts_snippet is played
-
-
-    track_info
-
-        get:
-            http://<sonos_server:port>/speaker/<sonos_uid>/track_info
-
-        response (udp)
-            JSON speaker structure
-
-            Gets the current track info. Only usefull to get the current track position. You need to poll this value,
-            since there is no event for this property
-
-
-    join
-
-        set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/join/<sonos_uid_to_join>
-
-			<sonos_uid_to_join> the uid of the sonos speaker to join
-
-		response:
-			no explicit response, but events will be triggered, if the zone group has been changed
-
-
-    unjoin
-
-        set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/unjoin
-
-		response:
-			no explicit response, but events will be triggered, if the zone group has been changed
-
-
-    playmode
-
-        set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/playmode/<value>
-
-            value:  'normal', 'shuffle_norepeat', 'shuffle', 'repeat_all'
-                    If no parameter was passed, the default value is 'normal'
+    Response Code: 200 OK or Exception with Code 400 and the specific error message.        
+    
+----
+#### <a name="g_pl">get_play
+ Gets the 'play' status for a Sonos speaker. If the speaker has additional zone members, the 'play' status for all
+ members will be sent.
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'play'-status changes.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_play',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {
+        ...
+        "play": 0|1, 
+        "uid": "rincon_b8e93730d19801410",
+         ...
+    }
+
+----
+#### <a name="s_pl">set_play
+ Sets the PLAY status for a Sonos speaker. If the speaker has additional zone members, the 'play' status for all
+ members will be set (this is the Sonos standard behavior).
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| play | required | 0 or 1 | If the value is set to 'False', the Sonos speaker is paused. |
+
+######Example
+    JSON format:
+    {
+        'command': 'set_play',
+        'parameter': {
+            'play': 1,
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {
+        ...
+        "play": 0|1, 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+
+    The response is only sent if the new value is different from the old value.
+    
+----
+#### <a name="g_pause"></a>get_pause
+ Gets the 'pause' status for a Sonos speaker. If the speaker has additional zone members, the 'pause' status for all
+ members will be sent.
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'pause'-status changes.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_pause',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {
+        ...
+        "pause": 0|1, 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+
+----
+#### <a name="s_pause"></a>set_pause
+ Sets the 'pause' status for a Sonos speaker. If the speaker has additional zone members, the 'pause' status for all
+ members will be set (this is the Sonos standard behavior).
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| pause | required | 0 or 1 | If the value is set to 'False', the Sonos speaker starts playing. |
+
+######Example
+    JSON format:
+    {
+        'command': 'set_pause',
+        'parameter': {
+            'pause': 1,
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {
+        ...
+        "pause": 0|1, 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+
+    The response is only sent if the new value is different from the old value.
+    
+----
+#### <a name="g_stop">get_stop
+ Gets the 'stop' status for a Sonos speaker. If the speaker has additional zone members, the 'stop' status for all
+ members will be sent.
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'stop'-status changes.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_stop',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    { 
+        ...
+        "stop": 0|1, 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+
+----
+#### <a name="s_stop">set_stop
+ Sets the 'stop' status for a Sonos speaker. If the speaker has additional zone members, the 'stop' status for all
+ members will be set (this is the Sonos standard behavior).
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| stop | required | 0 or 1 | If the value is set to 'False', the Sonos speaker starts playing. |
+
+######Example
+    JSON format:
+    {
+        'command': 'set_stop',
+        'parameter': {
+            'stop': 1,
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        "stop": 0|1, 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+
+    The response is only sent if the new value is different from the old value.
+    
+----
+#### <a name="g_volume">get_volume
+ Gets the current volume from a Sonos speaker.
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'volume'-status changes.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_volume',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        "volume": [0-100], 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+
+----
+#### <a name="s_volume">set_volume
+ Sets the volume for a Sonos speaker.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| volume | required | 0 - 100 | The volume to be set. |
+| group_command | optional | 0 or 1 | If 'True', the command is executed for all zone members of the speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'set_volume',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410',
+            'volume': 25,
+            'group_command': 0
+        }   
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    { 
+        ...
+        "volume": [0-100], 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+    
+    The response is only sent if the new value is different from the old value.
+
+----
+#### <a name="g_m_volume">get_max_volume
+ Gets the maximum volume value from a Sonos speaker.
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'max_volume'-status changes.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_max_volume',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        "max_volume": [-1 - 100], 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+
+----
+#### <a name="s_m_volume">set_max_volume
+ Sets the maximum volume for a Sonos speaker. This also affects any volume changes performed on other devices (Android, 
+ iPad). If the volume is greater than the maximum volume, the volume is changed to this maximum volume value.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| max_volume | required | -1-100 | If the value is -1 (default), maximum volume will be ignored / unset. |
+| group_command | optional | 0 or 1 | If 'True', the command is executed for all zone members of the speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'set_max_volume',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410',
+            'max_volume': -1,
+            'group_command': 1
+        }   
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    { 
+        ...
+        "max_volume": [-1 - 100], 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+    
+    The response is only sent if the new value is different from the old value.
+
+----
+#### <a name="g_mute">get_mute
+ Gets the mute status from a Sonos speaker.
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'mute'-status changes.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_mute',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        "mute": 0|1, 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+
+----
+#### <a name="s_mute">set_mute
+ Mutes or unmutes a Sonos speaker.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| mute | required | 0 or 1 | To mute the speaker set the value to 1, to unmute 0. |
+| group_command | optional | 0 or 1 | If 'True', the command is executed for all zone members of the speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'set_mute',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410',
+            'mute': 1,
+            'group_command': 0
+        }   
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    { 
+        ...
+        "mute": 0|1, 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+    
+    The response is only sent if the new value is different from the old value.
+
+----
+#### <a name="v_up">volume_up
+ Increases the volume of a Sonos speaker by +2.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| group_command | optional | 0 or 1 | If 'True', the command is executed for all zone members of the speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'volume_up',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410',
+            'group_command': 0
+        }   
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    { 
+        ...
+        "volume": [0 - 100], 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+    
+    The response is only sent if the new value is different from the old value.
+
+----
+#### <a name="v_down">volume_down
+ Decreases the volume of a Sonos speaker by -2.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| group_command | optional | 0 or 1 | If 'True', the command is executed for all zone members of the speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'volume_down',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410',
+            'group_command': 0
+        }   
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    { 
+        ...
+        "volume": [0 - 100], 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+    
+    The response is only sent if the new value is different from the old value.
+
+----
+#### <a name="nex">next
+ Go to the next track in the current playlist.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'next',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410',
+        }   
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    { 
+        ...
+        "track_album_art": "http://192.168.0.4:1400/getaa?s=1&u=x-sonos-spotify%3aspotify%253atrack%253a1AGslpGIhRzXSOYtE52VcB%3fsid%3d9%26flags%3d32",
+        "track_artist": "Willi Röbke",
+        "track_duration": "0:10:16",
+        "track_position": "0:00:10",
+        "track_title": "Steuermann Norman",
+        "track_uri": "x-sonos-spotify:spotify%3atrack%3a1AGslpGIhRzXSOYtE52VcB?sid=9&flags=32",
+        "uid": "rincon_000e58c3892e01410",
+        ...
+    }
+    
+    All values for a new track will be sent, but only new and/or different values.
+
+----
+#### <a name="prev">previous
+ Go back to the previous track in the current playlist.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'previous',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410',
+        }   
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    { 
+        ...
+        "track_album_art": "http://192.168.0.4:1400/getaa?s=1&u=x-sonos-spotify%3aspotify%253atrack%253a1AGslpGIhRzXSOYtE52VcB%3fsid%3d9%26flags%3d32",
+        "track_artist": "Willi Röbke",
+        "track_duration": "0:10:16",
+        "track_position": "0:00:10",
+        "track_title": "Steuermann Norman",
+        "track_uri": "x-sonos-spotify:spotify%3atrack%3a1AGslpGIhRzXSOYtE52VcB?sid=9&flags=32",
+        "uid": "rincon_000e58c3892e01410",
+        ...
+    }
+    
+    All values for a new track will be sent, but only new and/or different values.
+
+----
+#### <a name="g_bass">get_bass
+ Gets the current bass settings from a Sonos speaker.
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'bass'-status changes.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_bass',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        "bass": [-10 - 10], 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+
+----
+#### <a name="s_bass">set_bass
+ Sets the bass for a Sonos speaker.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| bass | required | -10 - 10 | The bass to be set. |
+| group_command | optional | 0 or 1 | If 'True', the command is executed for all zone members of the speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'set_volume',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410',
+            'bass': 5,
+            'group_command': 0
+        }   
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    { 
+        ...
+        "bass": [-10 -10], 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+    
+    The response is only sent if the new value is different from the old value.
+
+----
+#### <a name="g_treble">get_treble
+ Gets the current treble settings from a Sonos speaker.
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'treble'-status changes.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_treble',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        "treble": [-10 - 10], 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+
+----
+#### <a name="s_treble">set_treble
+ Sets the treble for a Sonos speaker.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| treble | required | -10 - 10 | The treble to be set. |
+| group_command | optional | 0 or 1 | If 'True', the command is executed for all zone members of the speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'set_volume',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410',
+            'treble': 1,
+            'group_command': 1
+        }   
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    { 
+        ...
+        "treble": [-10 - 10], 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+    
+    The response is only sent if the new value is different from the old value.
+
+----
+#### <a name="g_loudness">get_loudness
+ Gets the current loudness settings from a Sonos speaker.
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'loudness'-status changes.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_loudness',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        "loudness": 0|1, 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+
+----
+#### <a name="s_loudness">set_loudness
+ Sets the loudness for a Sonos speaker.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| loudness | required | 0 or 1 | The loudness to be set. |
+| group_command | optional | 0 or 1 | If 'True', the command is executed for all zone members of the speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'set_loudness',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410',
+            'loudness': 1,
+            'group_command': 1
+        }   
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    { 
+        ...
+        "loudness": 0|1, 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+    
+    The response is only sent if the new value is different from the old value.
+
+----
+#### <a name="g_led">get_led
+ Gets the current led status from a Sonos speaker.
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'led'-status changes.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_led',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        "led": 0|1, 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+
+----
+#### <a name="s_led">set_led
+ Sets the led for a Sonos speaker.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| led | required | 0 or 1 | The led status to be set. |
+| group_command | optional | 0 or 1 | If 'True', the command is executed for all zone members of the speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'set_led',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410',
+            'led': 1,
+            'group_command': 1
+        }   
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    { 
+        ...
+        "led": 0|1, 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+    
+    The response is only sent if the new value is different from the old value.
+
+----
+#### <a name="g_playmode">get_playmode
+ Gets the current playmode from a Sonos speaker.
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'playmode'-status changes.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_playmode',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        "playmode": 'normal' | 'shuffle_norepeat' | 'shuffle' | 'repeat_all' 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+
+----
+#### <a name="s_playmode">set_playmode
+ Sets the playmode for a Sonos speaker.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| playmode | required | 'normal', 'shuffle_norepeat', 'shuffle', 'repeat_all' | The playmode to be set. |
+
+######Example
+    JSON format:
+    {
+        'command': 'set_playmode',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410',
+            'playmode': 'shuffle'
+        }   
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    { 
+        ...
+        "playmode": 'normal' | 'shuffle_norepeat' | 'shuffle' | 'repeat_all'
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+    
+    The response is only sent if the new value is different from the old value.
+
+----
+#### <a name="g_track_position">get_track_position
+ Gets the current track position. To get a real-time track position ( e.g. for a GUI) you have to poll this
+ function manually and frequently with the 'force_refresh = 1' option since there is no automatism from the
+ Sonos API side.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| force_refresh | optional | 0 or 1 | If true, the Broker polls the Sonos speaker to get the current track position. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_track_position',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+            'force_refresh': 1
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        "track_position": "00:02:14",
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+
+----
+#### <a name="s_track_position">set_track_position
+ Moves the currently playing track a given elapsed time. 
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| timestamp | required | format: HH:MM:ss | The track position to be set. |
+
+######Example
+    JSON format:
+    {
+        'command': 'set_playmode',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410',
+            'timestamp': '00:01:12'
+        }   
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    { 
+        ...
+        "track_position": "00:02:14",
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+    
+    The response is only sent if the new value is different from the old value.
+
+#### <a name="g_track_title">get_track_title
+ Returns the title of the currently played track.
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'track_title'-status changes.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_track_title',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        "track_title": "Ordinary Love",
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+
+#### <a name="g_track_artist">get_track_artist
+ Returns the artist of the currently played track.
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'track_artist'-status changes.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_track_artist',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        "track_artist": "U2",
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+
+#### <a name="g_track_album_art">get_track_album_art
+ Returns the album-cover url of the currently played track.
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'track_album_art'-status changes.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_track_album_art',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        "track_album_art": "http://192.168.0.23:1400/getaa?s=1&u=x-sonos-spotify%3aspotify%253atrack%253a7kCrYUDtWsPldoh\OKPTKPL%3fsid%3d9%26flags%3d32",
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+
+#### <a name="g_track_uri">get_track_uri
+ Returns the track url of the currently played track.
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'track_uri'-status changes.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_track_uri',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        "track_uri": "x-sonos-spotify:spotify%3atrack%3a7kCrYUDtWsPldohOKPTKPL?sid=9&flags=32",
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+    
+    All URIs can be passed to the play_uri and play_snippet functions.
+
+#### <a name="g_radio_station">get_radio_station
+ Returns the title of the currently played radio station. 
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'radio_station'-status changes.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_radio_station',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        "radio_station": "radioeins vom rbb",
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+
+#### <a name="g_radio_show">get_radio_show
+ Returns the title of the currently played radio show. 
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'radio_show'-status changes.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_radio_show',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        "radio_show": "Die Profis",
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+
+#### <a name="s_join">join
+ Joins a Sonos speaker to another speaker(s). 
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| join_uid | required | | A UID of a Sonos speaker to join. This can also be a uid of any speaker within an existing group. |
+
+######Example
+    JSON format:
+    {
+        'command': 'join',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+            'join_uid': 'rincon_00e33110q27811000'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        [many value here, see current_state command]
+        ...
+    }
+    
+    After a successfully join, the complete metadata for all speakers in the group
+    wil be sent to all subscribed clients. This is exactly the same behavior for
+    a single speaker if a current_state command is triggered. 
+
+#### <a name="s_unjoin">unjoin
+ Unjoins a Sonos speaker from a group. 
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'unjoin',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        [many value here, see current_state command]
+        ...
+    }
+    
+    After a successfully unjoin, the complete metadata for the speaker wil be sent to 
+    all subscribed clients. This is exactly the same behavior if a current_state 
+    command is triggered. 
+
+#### <a name="s_partymode">partymode
+ Joins all Sonos speaker in the network to one group.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of any Sonos speaker in the network. |
+
+######Example
+    JSON format:
+    {
+        'command': 'partymode',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        [many value here, see current_state command]
+        ...
+    }
+    
+    After a successfully 'partymode' command, the complete metadata for all speakers 
+    in the group wil be sent to all subscribed clients. This is exactly the same behavior 
+    for a single speaker if a current_state command is triggered.
+
+----
+#### <a name="p_uri">play_uri
+ Plays a track or a music stream by URI.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| uri | required | | A valid url. This can be an internal sonos url (see get_track_uri or) an external url. |
+
+
+######Example
+    JSON format:
+    {
+        'command': 'play_uri',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410',
+            'uri': 'x-sonos-spotify:spotify%3atrack%3a1AGslpGIhRzXSOYtE52VcB?sid=9&flags=32'
             
-		response:
-			no explicit response, but events will be triggered, if the zone group has been changed
+            # external url: http://www.tonycuffe.com/mp3/tail%20toddle.mp3
+            # internal sonos url: x-sonos-spotify:spotify%3atrack%3a3xCk8npVehdV55KuPdjrmZ?sid=9&flags=32
+        }   
+    }
 
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    { 
+        ...
+        "track_album_art": "http://192.168.0.4:1400/getaa?s=1&u=x-sonos-spotify%3aspotify%253atrack%253a1AGslpGIhRzXSOYtE52VcB%3fsid%3d9%26flags%3d32",
+        "track_artist": "Willi Röbke",
+        "track_duration": "0:10:16",
+        "track_position": "0:00:10",
+        "track_title": "Steuermann Norman",
+        "track_uri": "x-sonos-spotify:spotify%3atrack%3a1AGslpGIhRzXSOYtE52VcB?sid=9&flags=32",
+        "uid": "rincon_000e58c3892e01410",
+        ...
+    }
+    
+    All values for a new track will be sent, but only new and/or different values.
 
-    partymode
+----
+#### <a name="p_snippet">play_snippet
+ Plays a audio snippet. After the snippet was played (maximum 60 seconds, longer snippets will be truncated)
+ the previous played song will be resumed. You can queue up to 10 snippets. They're played in the order they 
+ are called.
 
-        set:
-			http://<sonos_server:port>/speaker/<sonos_uid>/partymode
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| uri | required | | A valid url. This can be an internal sonos url (see get_track_uri or) an external url. |
+| volume | optional | -1 - 100 | The snippet volume. If -1 (default) the current volume is used.  After the snippet was played, the prevoius volume value is set. |
+| group_command | optional | 0 or 1 | If 'True', the command is executed for all zone members of the speaker. This affects only the parameter 'volume'.|
 
-		response:
-			no explicit response, but events will be triggered, if the zone group has been changed
+######Example
+    JSON format:
+    {
+        'command': 'play_snippet',
+        'parameter': {
+            'uid': 'rincon_000e58c3892e01410',
+            'uri': 'x-sonos-spotify:spotify%3atrack%3a1AGslpGIhRzXSOYtE52VcB?sid=9&flags=32'
+            'volume': 8,
+            'group_command': 0
+            
+            # external url: http://www.tonycuffe.com/mp3/tail%20toddle.mp3
+            # internal sonos url: x-sonos-spotify:spotify%3atrack%3a3xCk8npVehdV55KuPdjrmZ?sid=9&flags=32
+        }   
+    }
 
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    { 
+        [snippet metadata will be sent. After the snippet was played, the metadata for] 
+        [the resumed track will be sent (e.g. see play_uri UDP response)]
+    }
+    
+    All values for a new track will be sent, but only new and/or different values.
 
-	list
+----
+#### <a name="p_tts">play_tts
+ Plays a text-to-speech snippet using the Google TTS API. After the snippet was played (maximum 60 seconds, longer 
+ snippets will be truncated) the previous played song will be resumed. You can queue up to 10 snippets. 
+ They're played in the order they are called. To setup the Broker for TTS support, please take a deeper look at the 
+ dedicated Google TTS section in this document.
 
-		get:
-			http://<sonos_server:port>/client/list
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| tts | required | | The text to be auditioned, max. 100 chars. |
+| language | optional | en, de, es, fr, it| The tts language. Default: 'de'. |
+| volume | optional | -1 - 100 | The snippet volume. If -1 (default) the current volume is used.  After the snippet was played, the prevoius volume value is set. |
+| group_command | optional | 0 or 1 | If 'True', the command is executed for all zone members of the speaker. This affects only the parameter 'volume'.|
 
-		response (http)
-			<html code ....
-				uid             : rincon_000f44c3892e01400
-                ip              : 192.168.0.40
-                model           : ZPS1
-                current zone    : child room
-			/>
+######Example
+    JSON format:
+    {
+        'command': 'play_snippet',
+        'parameter': {
+            'uid': 'rincon_000e58c3892e01410',
+            'tts': 'Die Temperatur im Wohnzimmer ist 2 Grad Celsius.'
+            'language': 'de',
+            'volume': 30,
+            'group_command': 1
+        }   
+    }
 
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    { 
+        [snippet metadata will be sent. After the tts snippet was played, the metadata for] 
+        [the resumed track will be sent (e.g. see play_uri UDP response)]
+    }
+    
+    All values for a new track will be sent, but only new and/or different values.
 
-##Library commands
+----
+#### <a name="g_alarms"></a>get_alarms
+ Gets all registered alarms for a Sonos speaker.
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'alarms'-status changes.
 
-    favorite radio stations
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
 
-        get:
-            http://<sonos_server:port>/library/favradio/<start_item>/<max_items>
+######Example
+    JSON format:
+    {
+        'command': 'get_pause',
+        'parameter': {
+            'uid': 'rincon_000e58c3892e01410'
+        }
+    }
 
-            Get all favorite radio stations from sonos library
-
-            start_item [optional]: item to start, starting with 0 (default: 0)
-            max_items [optional]: maximum items to fetch. (default: 50)
-
-            Parameter max_items can only be used, if start_item is set (positional argument)
-
-            It's a good idea to check to see if the total number of favorites is greater than the amount you
-            requested (`max_items`), if it is, use `start` to page through and  get the entire list of favorites.
-
-        response (http):
-            JSON object, utf-8 encoded
-
-            Example:
-
-            {
-                "favorites":
-                    [
-                        { "title": "Radio TEDDY", "uri": "x-sonosapi-stream:s80044?sid=254&flags=32" },
-                        { "title": "radioeins vom rbb 95.8 (Pop)", "uri": "x-sonosapi-stream:s25111?sid=254&flags=32" }
-                    ],
-                "returned": 2,
-                "total": "10"
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {
+        ...
+        "alarms": {
+        "32": {
+            "Duration": "02:00:00",
+            "Enabled": false,
+            "IncludedLinkZones": false,
+            "PlayMode": "SHUFFLE_NOREPEAT",
+            "Recurrence": "DAILY",
+            "StartTime": "07:00:00",
+            "Volume": 25
             }
+        },
+        "uid": "rincon_000e58c3892e01410",
+        ...
+    }
+
+----
+#### <a name="cur_state">current_state
+ Sends all available information from a Sonos speaker to the subscribed clients. You should use this command right after
+ your client has been subscribed to the Broker to get the actual Sonos speaker state.
+  
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| group_command | optional | 0 or 1 | If 'True', the command is performed for all zone members of the speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'current_state',
+        'parameter': {
+            'uid': 'rincon_000e58c3892e01410',
+            'group_command': 1
+        }
+    }
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format:
+    {
+        "additional_zone_members": "rincon_112ef9e4892e00001",
+        "alarms": {
+            "32": {
+                "Duration": "02:00:00",
+                "Enabled": false,
+                "IncludedLinkZones": false,
+                "PlayMode": "SHUFFLE_NOREPEAT",
+                "Recurrence": "DAILY",
+                "StartTime": "07:00:00",
+                "Volume": 25
+            }
+        },
+        "bass": 0,
+        "hardware_version": "1.8.3.7-2",
+        "ip": "192.168.0.4",
+        "led": 1,
+        "loudness": 1,
+        "mac_address": "10:1F:21:C3:77:1A",
+        "max_volume": -1,
+        "model": "Sonos PLAY:1",
+        "mute": "0",
+        "pause": 0,
+        "play": 0,
+        "playlist_position": 0,
+        "playmode": "normal",
+        "radio_show": "",
+        "radio_station": "",
+        "serial_number": "00-0E-58-C3-89-2E:7",
+        "software_version": "27.2-80271",
+        "status": true,
+        "stop": 1,
+        "streamtype": "music",
+        "track_album_art": "http://192.168.0.4:1400/getaa?s=1&u=x-sonos-spotify%3aspotify%253atrack%253a3xCk8npVehdV55KuPdjrmZ%3fsid%3d9%26flags%3d32",
+        "track_artist": "Feuerwehrmann Sam & Clemens Gerhard",
+        "track_duration": "0:10:15",
+        "track_position": "00:00:00",
+        "track_title": "Das Baby im Schafspelz",
+        "track_uri": "x-sonos-spotify:spotify%3atrack%3a3xCk8npVehdV55KuPdjrmZ?sid=9&flags=32",
+        "treble": 0,
+        "uid": "rincon_000e58c3892e01410",
+        "volume": 8,
+        "zone_icon": "x-rincon-roomicon:bedroom",
+        "zone_name": "Kinderzimmer"
+    }
+    
+    This is a complete status response for a Sonos speaker.
+
+----
+#### <a name="g_fav_radio"></a>get_favorite_radio_stations
+ Returns the favorite radio stations.
+ 
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| start_item | optional | | Start position within the Sonos radio favorite list starting with 0. Default: 0 |
+| max_items | optional | | Maximum returned items. Default: 50 |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_favorite_radio_stations',
+        'parameter': {
+            'start_item': 0, # optional, default: 0
+            'max_items': 10, # optional, default: 50
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+    JSON format:
+    {
+        "total": "2",
+        "favorites": [
+            {
+                "title": "Radio TEDDY",
+                "uri": "x-sonosapi-stream:s80044?sid=254&flags=32"
+            },
+            {
+                "title": "radioeins vom rbb 95.8 (Pop)",
+                "uri": "x-sonosapi-stream:s25111?sid=254&flags=32"
+            }
+        ],
+        "returned": 2
+    }
+    
+    Returns a list containing the total number of favorites, the number of favorites returned, 
+    and the actual list of favorite radio stations, represented as a dictionary with 'title' 
+    and 'uri' keys.
+    Depending on what you're building, you'll want to check to see if the total number of 
+    favorites is greater than the amount you requested (`max_items`), if it is, use `start` 
+    to page through and get the entire list of favorites.
+
+    
+###### UDP Response sent to subscribed clients:
+    No UDP response
