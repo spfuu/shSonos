@@ -20,12 +20,13 @@ from .services import AlarmClock
 from .groups import ZoneGroup
 from .exceptions import CannotCreateDIDLMetadata
 from .data_structures import get_ml_item, QueueItem, URI, MLSonosPlaylist,\
-    MLShare
+    MLShare, SearchResult, Queue, MusicLibraryItem
 from .utils import really_utf8, camel_to_underscore
 from .xml import XML
 from soco import config
 
 LOGGER = logging.getLogger(__name__)
+
 
 def discover(timeout=1, include_invisible=False):
     """ Discover Sonos zones on the local network.
@@ -188,6 +189,7 @@ class SoCo(_SocoSingletonBase):
         get_playlists -- Get playlists from the music library
         get_music_library_information -- Get information from the music library
         get_current_transport_info -- get speakers playing state
+        browse_by_idstring -- Browse (get sub-elements) a given type
         add_uri_to_queue -- Adds an URI to the queue
         add_to_queue -- Add a track to the end of the queue
         remove_from_queue -- Remove a track from the queue
@@ -195,6 +197,9 @@ class SoCo(_SocoSingletonBase):
         get_favorite_radio_shows -- Get favorite radio shows from Sonos'
                                     Radio app.
         get_favorite_radio_stations -- Get favorite radio stations.
+        create_sonos_playlist -- Creates a new Sonos' playlist
+        add_item_to_sonos_playlist -- Adds a queueable item to a Sonos'
+                                       playlist
 
     Properties::
 
@@ -217,6 +222,18 @@ class SoCo(_SocoSingletonBase):
     """
 
     _class_group = 'SoCo'
+
+    # Key words used when performing searches
+    SEARCH_TRANSLATION = {'artists': 'A:ARTIST',
+                          'album_artists': 'A:ALBUMARTIST',
+                          'albums': 'A:ALBUM',
+                          'genres': 'A:GENRE',
+                          'composers': 'A:COMPOSER',
+                          'tracks': 'A:TRACKS',
+                          'playlists': 'A:PLAYLISTS',
+                          'share': 'S:',
+                          'sonos_playlists': 'SQ:',
+                          'categories': 'A:'}
 
     # pylint: disable=super-on-old-class
     def __init__(self, ip_address):
@@ -1092,12 +1109,14 @@ class SoCo(_SocoSingletonBase):
 
         return playstate
 
-    def get_queue(self, start=0, max_items=100):
+    def get_queue(self, start=0, max_items=100, full_album_art_uri=False):
         """ Get information about the queue
 
         :param start: Starting number of returned matches
         :param max_items: Maximum number of returned matches
-        :returns: A list of :py:class:`~.soco.data_structures.QueueItem`.
+        :param full_album_art_uri: If the album art URI should include the
+            IP address
+        :returns: A :py:class:`~.soco.data_structures.Queue` object
 
         This method is heavly based on Sam Soffes (aka soffes) ruby
         implementation
@@ -1113,18 +1132,31 @@ class SoCo(_SocoSingletonBase):
             ('SortCriteria', '')
             ])
         result = response['Result']
+
+        metadata = {}
+        for tag in ['NumberReturned', 'TotalMatches', 'UpdateID']:
+            metadata[camel_to_underscore(tag)] = int(response[tag])
+
+        # I'm not sure this necessary (any more). Even with an empty queue,
+        # there is still a result object. This shoud be investigated.
         if not result:
-            return queue
+            # pylint: disable=star-args
+            return Queue(queue, **metadata)
 
         result_dom = XML.fromstring(really_utf8(result))
         for element in result_dom.findall(
                 '{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}item'):
             item = QueueItem.from_xml(element)
+            # Check if the album art URI should be fully qualified
+            if full_album_art_uri:
+                self._update_album_art_to_full_uri(item)
             queue.append(item)
 
-        return queue
+        # pylint: disable=star-args
+        return Queue(queue, **metadata)
 
-    def get_sonos_playlists(self, start=0, max_items=100):
+    def get_sonos_playlists(self, start=0, max_items=100,
+                            full_album_art_uri=False):
         """ Convenience method for:
             get_music_library_information('sonos_playlists')
             Refer to the docstring for that method
@@ -1133,65 +1165,73 @@ class SoCo(_SocoSingletonBase):
         out = self.get_music_library_information(
             'sonos_playlists',
             start,
-            max_items)
+            max_items,
+            full_album_art_uri)
         return out
 
-    def get_artists(self, start=0, max_items=100):
+    def get_artists(self, start=0, max_items=100, full_album_art_uri=False):
         """ Convinience method for :py:meth:`get_music_library_information`
         with `search_type='artists'`. For details on remaining arguments refer
         to the docstring for that method.
 
         """
-        out = self.get_music_library_information('artists', start, max_items)
+        out = self.get_music_library_information('artists', start, max_items,
+                                                 full_album_art_uri)
         return out
 
-    def get_album_artists(self, start=0, max_items=100):
+    def get_album_artists(self, start=0, max_items=100,
+                          full_album_art_uri=False):
         """ Convinience method for :py:meth:`get_music_library_information`
         with `search_type='album_artists'`. For details on remaining arguments
         refer to the docstring for that method.
 
         """
         out = self.get_music_library_information('album_artists',
-                                                 start, max_items)
+                                                 start, max_items,
+                                                 full_album_art_uri)
         return out
 
-    def get_albums(self, start=0, max_items=100):
+    def get_albums(self, start=0, max_items=100, full_album_art_uri=False):
         """ Convinience method for :py:meth:`get_music_library_information`
         with `search_type='albums'`. For details on remaining arguments refer
         to the docstring for that method.
 
         """
-        out = self.get_music_library_information('albums', start, max_items)
+        out = self.get_music_library_information('albums', start, max_items,
+                                                 full_album_art_uri)
         return out
 
-    def get_genres(self, start=0, max_items=100):
+    def get_genres(self, start=0, max_items=100, full_album_art_uri=False):
         """ Convinience method for :py:meth:`get_music_library_information`
         with `search_type='genres'`. For details on remaining arguments refer
         to the docstring for that method.
 
         """
-        out = self.get_music_library_information('genres', start, max_items)
+        out = self.get_music_library_information('genres', start, max_items,
+                                                 full_album_art_uri)
         return out
 
-    def get_composers(self, start=0, max_items=100):
+    def get_composers(self, start=0, max_items=100, full_album_art_uri=False):
         """ Convinience method for :py:meth:`get_music_library_information`
         with `search_type='composers'`. For details on remaining arguments
         refer to the docstring for that method.
 
         """
-        out = self.get_music_library_information('composers', start, max_items)
+        out = self.get_music_library_information('composers', start, max_items,
+                                                 full_album_art_uri)
         return out
 
-    def get_tracks(self, start=0, max_items=100):
+    def get_tracks(self, start=0, max_items=100, full_album_art_uri=False):
         """ Convinience method for :py:meth:`get_music_library_information`
         with `search_type='tracks'`. For details on remaining arguments refer
         to the docstring for that method.
 
         """
-        out = self.get_music_library_information('tracks', start, max_items)
+        out = self.get_music_library_information('tracks', start, max_items,
+                                                 full_album_art_uri)
         return out
 
-    def get_playlists(self, start=0, max_items=100):
+    def get_playlists(self, start=0, max_items=100, full_album_art_uri=False):
         """ Convinience method for :py:meth:`get_music_library_information`
         with `search_type='playlists'`. For details on remaining arguments
         refer to the docstring for that method.
@@ -1200,11 +1240,12 @@ class SoCo(_SocoSingletonBase):
         imported from the music library, they are not the Sonos playlists.
 
         """
-        out = self.get_music_library_information('playlists', start, max_items)
+        out = self.get_music_library_information('playlists', start, max_items,
+                                                 full_album_art_uri)
         return out
 
     def get_music_library_information(self, search_type, start=0,
-                                      max_items=100):
+                                      max_items=100, full_album_art_uri=False):
         """ Retrieve information about the music library
 
         :param search_type: The kind of information to retrieve. Can be one of:
@@ -1217,19 +1258,9 @@ class SoCo(_SocoSingletonBase):
             may be restricted by the unit, presumably due to transfer
             size consideration, so check the returned number against the
             requested.
-        :returns: A dictionary with metadata for the search, with the
-            keys 'number_returned', 'update_id', 'total_matches' and an
-            'item_list' list with the search results. The search results
-            are instances of one of
-            :py:class:`~.soco.data_structures.MLArtist`,
-            :py:class:`~.soco.data_structures.MLAlbum`,
-            :py:class:`~.soco.data_structures.MLGenre`,
-            :py:class:`~.soco.data_structures.MLComposer`,
-            :py:class:`~.soco.data_structures.MLTrack`,
-            :py:class:`~.soco.data_structures.MLShare`,
-            :py:class:`~.soco.data_structures.MLSonosPlaylist and
-            :py:class:`~.soco.data_structures.MLPlaylist` depending on the
-            type of the search.
+        :param full_album_art_uri: If the album art URI should include the
+            IP address
+        :returns: A :py:class:`~.soco.data_structures.SearchResult` object
         :raises: :py:class:`SoCoException` upon errors
 
         NOTE: The playlists that are returned with the 'playlists' search, are
@@ -1242,23 +1273,13 @@ class SoCo(_SocoSingletonBase):
         project.
 
         """
-        search_translation = {'artists': 'A:ARTIST',
-                              'album_artists': 'A:ALBUMARTIST',
-                              'albums': 'A:ALBUM',
-                              'genres': 'A:GENRE',
-                              'composers': 'A:COMPOSER',
-                              'tracks': 'A:TRACKS',
-                              'playlists': 'A:PLAYLISTS',
-                              'share': 'S:',
-                              'sonos_playlists': 'SQ:',
-                              'categories': 'A:'}
-        search = search_translation[search_type]
-        response, out = self._music_lib_search(search, start, max_items)
-        out['search_type'] = search_type
-        out['item_list'] = []
+        search = self.SEARCH_TRANSLATION[search_type]
+        response, metadata = self._music_lib_search(search, start, max_items)
+        metadata['search_type'] = search_type
 
         # Parse the results
         dom = XML.fromstring(really_utf8(response['Result']))
+        item_list = []
         for container in dom:
             if search_type == 'sonos_playlists':
                 item = MLSonosPlaylist.from_xml(container)
@@ -1266,12 +1287,17 @@ class SoCo(_SocoSingletonBase):
                 item = MLShare.from_xml(container)
             else:
                 item = get_ml_item(container)
+            # Check if the album art URI should be fully qualified
+            if full_album_art_uri:
+                self._update_album_art_to_full_uri(item)
             # Append the item to the list
-            out['item_list'].append(item)
+            item_list.append(item)
 
-        return out
+        # pylint: disable=star-args
+        return SearchResult(item_list, **metadata)
 
-    def browse(self, ml_item=None, start=0, max_items=100):
+    def browse(self, ml_item=None, start=0, max_items=100,
+               full_album_art_uri=False):
         """Browse (get sub-elements) a music library item
 
         Keyword arguments:
@@ -1280,11 +1306,11 @@ class SoCo(_SocoSingletonBase):
                 returned
             start (int): The starting index of the results
             max_items (int): The maximum number of items to return
+            full_album_art_uri(bool): If the album art URI should include the
+                IP address
 
         Returns:
-            dict: A dictionary with metadata for the search, with the
-                keys 'number_returned', 'update_id', 'total_matches' and an
-                'item_list' list with the search results.
+            dict: A :py:class:`~.soco.data_structures.SearchResult` object
 
         Raises:
             AttributeError: If ``ml_item`` has no ``item_id`` attribute
@@ -1296,17 +1322,57 @@ class SoCo(_SocoSingletonBase):
         else:
             search = ml_item.item_id
 
-        response, out = self._music_lib_search(search, start, max_items)
-        out['search_type'] = 'browse'
-        out['item_list'] = []
+        response, metadata = self._music_lib_search(search, start, max_items)
+        metadata['search_type'] = 'browse'
 
         # Parse the results
         dom = XML.fromstring(really_utf8(response['Result']))
+        item_list = []
         for container in dom:
             item = get_ml_item(container)
-            out['item_list'].append(item)
+            # Check if the album art URI should be fully qualified
+            if full_album_art_uri:
+                self._update_album_art_to_full_uri(item)
+            item_list.append(item)
 
-        return out
+        # pylint: disable=star-args
+        return SearchResult(item_list, **metadata)
+
+    # pylint: disable=too-many-arguments
+    def browse_by_idstring(self, search_type, idstring, start=0,
+                           max_items=100, full_album_art_uri=False):
+        """Browse (get sub-elements) a given type
+
+        :param search_type: The kind of information to retrieve. Can be one of:
+            'artists', 'album_artists', 'albums', 'genres', 'composers',
+            'tracks', 'share', 'sonos_playlists', and 'playlists', where
+            playlists are the imported file based playlists from the
+            music library
+        :param idstring: String ID to search for
+        :param start: Starting number of returned matches
+        :param max_items: Maximum number of returned matches. NOTE: The maximum
+            may be restricted by the unit, presumably due to transfer
+            size consideration, so check the returned number against the
+            requested.
+        :param full_album_art_uri: If the album art URI should include the
+                IP address
+        :returns: A dictionary with metadata for the search, with the
+            keys 'number_returned', 'update_id', 'total_matches' and an
+            'item_list' list with the search results.
+        """
+        search = self.SEARCH_TRANSLATION[search_type]
+
+        # Check if the string ID already has the type, if so we do not want to
+        # add one
+        if idstring.startswith(search):
+            search = ""
+
+        search_uri = "#{0}{1}".format(search, idstring)
+
+        search_item = MusicLibraryItem(uri=search_uri, title='', parent_id='')
+
+        # Call the base version
+        return self.browse(search_item, start, max_items, full_album_art_uri)
 
     def _music_lib_search(self, search, start, max_items):
         """Perform a music library search and extract search numbers
@@ -1498,6 +1564,77 @@ class SoCo(_SocoSingletonBase):
 
         return result
 
+    def _update_album_art_to_full_uri(self, item):
+        """Updated the Album Art URI to be fully qualified
+
+        :param item: The item to update the URI for
+        """
+        if not getattr(item, 'album_art_uri', False):
+            return
+
+        # Add on the full album art link, as the URI version
+        # does not include the ipaddress
+        if not item.album_art_uri.startswith(('http:', 'https:')):
+            item.album_art_uri = 'http://' + self.ip_address + ':1400' +\
+                item.album_art_uri
+
+    def create_sonos_playlist(self, title):
+        """ Create a new Sonos' playlist .
+
+        :params title: Name of the playlist
+
+        :returns: An instance of
+            :py:class:`~.soco.data_structures.MLSonosPlaylist`
+
+        """
+        response = self.avTransport.CreateSavedQueue([
+            ('InstanceID', 0),
+            ('Title', title),
+            ('EnqueuedURI', ''),
+            ('EnqueuedURIMetaData', ''),
+            ])
+
+        obj_id = response['AssignedObjectID'].split(':', 2)[1]
+        uri = "file:///jffs/settings/savedqueues.rsq#{0}".format(obj_id)
+
+        return MLSonosPlaylist(uri, title, 'SQ:')
+
+    def add_item_to_sonos_playlist(self, queueable_item, sonos_playlist):
+        """ Adds a queueable item to a Sonos' playlist
+        :param queueable_item: the item to add to the Sonos' playlist
+        :param sonos_playlist: the Sonos' playlist to which the item should
+                               be added
+
+        """
+        # Check if the required attributes are there
+        for attribute in ['didl_metadata', 'uri']:
+            if not hasattr(queueable_item, attribute):
+                message = 'queueable_item has no attribute {0}'.\
+                    format(attribute)
+                raise AttributeError(message)
+        # Get the metadata
+        try:
+            metadata = XML.tostring(queueable_item.didl_metadata)
+        except CannotCreateDIDLMetadata as exception:
+            message = ('The queueable item could not be enqueued, because it '
+                       'raised a CannotCreateDIDLMetadata exception with the '
+                       'following message:\n{0}').format(str(exception))
+            raise ValueError(message)
+        if isinstance(metadata, str):
+            metadata = metadata.encode('utf-8')
+
+        response, _ = self._music_lib_search(sonos_playlist.item_id, 0, 1)
+        update_id = response['UpdateID']
+        self.avTransport.AddURIToSavedQueue([
+            ('InstanceID', 0),
+            ('UpdateID', update_id),
+            ('ObjectID', sonos_playlist.item_id),
+            ('EnqueuedURI', queueable_item.uri),
+            ('EnqueuedURIMetaData', metadata),
+            ('AddAtIndex', 4294967295)  # this field has always this value, we
+                                        # do not known the meaning of this
+                                        # "magic" number.
+            ])
 
 # definition section
 
