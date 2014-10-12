@@ -316,9 +316,11 @@ class Sonos():
                     volume_item_name = '{}.volume'.format(item._name)
                     language_item_name = '{}.language'.format(item._name)
                     group_item_name = '{}.group_command'.format(item._name)
+                    force_item_name = '{}.force_stream_mode'.format(item._name)
                     volume = -1
                     language = 'de'
                     group_command = 0
+                    force_stream_mode = 0
                     for child in item.return_children():
                         if child._name.lower() == volume_item_name.lower():
                             volume = child()
@@ -326,7 +328,9 @@ class Sonos():
                             language = child()
                         if child._name.lower() == group_item_name.lower():
                             group_command = child()
-                    cmd = self._command.play_tts(uid, value, language, volume, group_command)
+                        if child._name.lower() == force_item_name.lower():
+                            force_stream_mode = child()
+                    cmd = self._command.play_tts(uid, value, language, volume, group_command, force_stream_mode)
 
                 if command == 'seek':
                     if not re.match(r'^[0-9][0-9]?:[0-9][0-9]:[0-9][0-9]$', value):
@@ -413,7 +417,7 @@ class Sonos():
         return self._send_cmd_response(SonosCommand.favradio(start_item, max_items))
 
     def version(self):
-        return "v1.1\t2014-09-15"
+        return "v1.2\t2014-10-15"
 
 
 class SonosSpeaker():
@@ -650,7 +654,7 @@ class SonosCommand():
 
 
     @staticmethod
-    def play_tts(uid, tts, language, volume, group_command):
+    def play_tts(uid, tts, language, volume, group_command, force_stream_mode):
         return {
             'command': 'play_tts',
             'parameter': {
@@ -658,6 +662,7 @@ class SonosCommand():
                 'language': '{language}'.format(language=language),
                 'volume': int(volume),
                 'group_command': int(group_command),
+                'force_stream_mode': int(force_stream_mode),
                 'uid': '{uid}'.format(uid=uid)
             }
         }

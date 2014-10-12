@@ -162,26 +162,26 @@ class SonosServerService():
         while True:
             try:
                 event = self.event_queue.get()
-                if event[2] is None:
+                if event is None:
                     return
 
-                uid = event[0].lower().rsplit('_sub', 1)
+                uid = event.sid.lower().rsplit('_sub', 1)
 
                 if not uid:
-                    print("No a valid event subscription id: {}".format(event[0].lower()))
+                    print("No a valid event subscription id: {}".format(event.sid.lower()))
                     return
 
                 uid = uid[0]
                 uid = uid.rsplit('uuid:', 1)
 
                 if not uid:
-                    print("No a valid event subscription id: {}".format(event[0].lower()))
+                    print("No a valid event subscription id: {}".format(event.sid.lower()))
                     return
 
                 uid = uid[1]
 
                 if uid not in sonos_speaker.sonos_speakers:
-                    print("No sonos speaker found for subscription {}".format(event[0].lower()))
+                    print("No sonos speaker found for subscription {}".format(event.sid.lower()))
                     continue
 
                 with sonos_speaker._sonos_lock:
@@ -192,19 +192,19 @@ class SonosServerService():
                     except KeyError:
                         pass  # speaker maybe removed from another thread
 
-                if event[2].service_type == 'ZoneGroupTopology':
+                if event.service.service_type == 'ZoneGroupTopology':
                     speaker.set_zone_coordinator()
                     speaker.set_group_members()
                     speaker.dirty_music_metadata()
 
-                if event[2].service_type == 'AVTransport':
-                    self.handle_AVTransport_event(speaker, event[3])
+                if event.service.service_type == 'AVTransport':
+                    self.handle_AVTransport_event(speaker, event.variables)
 
-                if event[2].service_type == 'RenderingControl':
-                    self.handle_RenderingControl_event(speaker, event[3])
+                if event.service.service_type == 'RenderingControl':
+                    self.handle_RenderingControl_event(speaker, event.variables)
 
-                if event[2].service_type == 'AlarmClock':
-                    self.handle_AlarmClock_event(speaker, event[3])
+                if event.service.service_type == 'AlarmClock':
+                    self.handle_AlarmClock_event(speaker, event.variables)
 
             except queue.Empty:
                 pass
@@ -230,68 +230,38 @@ class SonosServerService():
         return ""
 
     def handle_AVTransport_event(self, speaker, variables):
-        namespace = '{urn:schemas-upnp-org:metadata-1-0/AVT/}'
-        xml = variables['LastChange']
-        dom = XML.fromstring(xml)
 
-        # ############ CURRENT TRACK URI
+        if 'current_track_uri' in variables:
+            speaker.track_uri = variables['current_track_uri']
 
-        track_uri_element = dom.find(".//%sCurrentTrackURI" % namespace)
-        if track_uri_element is not None:
-            track_uri = track_uri_element.get('val')
-
-            if track_uri:
-                speaker.track_uri = track_uri
-
-        # ########### CURRENT TRACK DURATION
-
-        #check whether radio or mp3 is played ---> CurrentTrackDuration > 0 is mp3
-        track_duration_element = dom.find(".//%sCurrentTrackDuration" % namespace)
-        if track_duration_element is not None:
-            track_duration = track_duration_element.get('val')
-            if track_duration:
-                speaker.track_duration = track_duration
-                if track_duration == '0:00:00':
-                    speaker.track_position = "00:00:00"
-                    speaker.streamtype = "radio"
-                else:
-                    speaker.streamtype = "music"
+        if 'current_track_duration' in variables:
+            track_duration = variables['current_track_duration']
+            speaker.track_duration = track_duration
+            if track_duration == '0:00:00':
+                speaker.track_position = "00:00:00"
+                speaker.streamtype = "radio"
             else:
-                speaker.track_duration = "00:00:00"
+                speaker.streamtype = "music"
+        else:
+            speaker.track_duration = "00:00:00"
 
-        ############ CurrentPlayMode
+        if 'current_playmode' in variables:
+            speaker.playmode = variables['current_playmode'].lower()
 
-        current_play_mode_element = dom.find(".//%sCurrentPlayMode" % namespace)
-
-        if current_play_mode_element is not None:
-            current_play_mode = current_play_mode_element.get('val')
-            if current_play_mode:
-                speaker.playmode = current_play_mode.lower()
-
-        ############ TRANSPORTSTATE
-
-        transport_state_element = dom.find(".//%sTransportState" % namespace)
-
-        if transport_state_element is not None:
-
-            transport_state = transport_state_element.get('val')
-
+        if 'transport_state' in variables:
+            transport_state = variables['transport_state']
             if transport_state:
-
                 if transport_state.lower() == "transitioning":
                     #because where is no event for current track position, we call it active
                     speaker.get_trackposition(force_refresh=True)
-
                 if transport_state.lower() == "stopped":
                     speaker.stop = 1
                     speaker.play = 0
                     speaker.pause = 0
-
                 if transport_state.lower() == "paused_playback":
                     speaker.stop = 0
                     speaker.play = 0
                     speaker.pause = 1
-
                 if transport_state.lower() == "playing":
                     speaker.stop = 0
                     speaker.play = 1
@@ -302,7 +272,7 @@ class SonosServerService():
 
         if speaker.streamtype == 'radio':
             r_namespace = '{urn:schemas-rinconnetworks-com:metadata-1-0/}'
-            enqueued_data = dom.find(".//%sEnqueuedTransportURIMetaData" % r_namespace)
+            enqueued_data = variables['last_change_xml_tree'].find(".//%sEnqueuedTransportURIMetaData" % r_namespace)
 
             if enqueued_data is not None:
                 enqueued_data = enqueued_data.get('val')
@@ -327,17 +297,35 @@ class SonosServerService():
             speaker.radio_show = ''
             speaker.radio_station = ''
 
-        ############ CURRENT TRACK METADATA
+        if 'current_track_meta_data' in variables:
+            ml_track = variables['current_track_meta_data']
+            if ml_track:
+                if ml_track.album_art_uri:
+                    if not ml_track.album_art_uri.startswith(('http:', 'https:')):
+                        album_art_uri = 'http://' + speaker.ip + ':1400' + ml_track.album_art_uri
+                    speaker.track_album_art = album_art_uri
 
-        didl_element = dom.find(".//%sCurrentTrackMetaData" % namespace)
+                if ml_track.album:
+                    speaker.track_album = ml_track.album
 
-        if didl_element is not None:
-            didl = didl_element.get('val')
-            if didl:
-                didl_dom = XML.fromstring(didl)
-                speaker.metadata = didl
-                if didl_dom:
-                    self.parse_track_metadata(speaker, didl_dom)
+                if ml_track.title:
+                    speaker.track_title = ml_track.title
+
+                if ml_track.creator:
+                    speaker.track_artist = ml_track.creator
+
+            # just backward compatibility for radio (bug in SoCo)
+            else:
+                namespace = '{urn:schemas-upnp-org:metadata-1-0/AVT/}'
+                didl_element = variables['last_change_xml_tree'].find(".//%sCurrentTrackMetaData" % namespace)
+
+                if didl_element is not None:
+                    didl = didl_element.get('val')
+                    if didl:
+                        didl_dom = XML.fromstring(didl)
+                        speaker.metadata = didl
+                        if didl_dom:
+                            self.parse_track_metadata(speaker, didl_dom)
 
     def handle_AlarmClock_event(self, speaker, variables):
         """
@@ -347,41 +335,26 @@ class SonosServerService():
         speaker.get_alarms()
 
     def handle_RenderingControl_event(self, speaker, variables):
-        namespace = '{urn:schemas-upnp-org:metadata-1-0/RCS/}'
-        xml = variables['LastChange']
-        dom = XML.fromstring(xml)
 
-        volume_state_element = dom.find(".//%sVolume[@channel='Master']" % namespace)
-        if volume_state_element is not None:
-            volume = volume_state_element.get('val')
+        if 'volume' in variables:
+            volume = variables['volume']['Master']
             if volume:
                 if utils.check_max_volume_exceeded(volume, speaker.max_volume):
                     speaker.set_volume(speaker.max_volume, trigger_action=True)
                 else:
                     speaker.volume = int(volume)
 
-        mute_state_element = dom.find(".//%sMute[@channel='Master']" % namespace)
-        if mute_state_element is not None:
-            mute = mute_state_element.get('val')
-            if mute:
-                speaker.mute = int(mute)
+        if 'mute' in variables:
+            speaker.mute = int(variables['mute']['Master'])
 
-        bass_state_element = dom.find(".//%sBass" % namespace)
-        if bass_state_element is not None:
-            bass = bass_state_element.get('val')
-            if bass:
-                speaker.bass = int(bass)
-        treble_state_element = dom.find(".//%sTreble" % namespace)
-        if treble_state_element is not None:
-            treble = treble_state_element.get('val')
-            if treble:
-                speaker.treble = int(treble)
+        if 'bass' in variables:
+            speaker.bass = int(variables['bass'])
 
-        loudness_state_element = dom.find(".//%sLoudness[@channel='Master']" % namespace)
-        if loudness_state_element is not None:
-            loudness = loudness_state_element.get('val')
-            if loudness is not None:
-                speaker.loudness = int(loudness)
+        if 'treble' in variables:
+            speaker.treble = int(variables['treble'])
+
+        if 'loudness' in variables:
+            speaker.loudness = int(variables['loudness']['Master'])
 
     @staticmethod
     def parse_track_metadata(speaker, dom):

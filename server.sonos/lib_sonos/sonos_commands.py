@@ -1445,11 +1445,18 @@ class PlayTts(JsonCommandBase):
                 if volume not in range(-1, 101, 1):
                     raise Exception('Volume has to be set between -1 and 100!')
 
+            force_stream_mode = False
+            if hasattr(self, 'force_stream_mode'):
+                if self.force_stream_mode not in [0, 1, True, False, '0', '1']:
+                    raise Exception('The parameter \'force_stream_mode\' has to be 0|1 or True|False !')
+                force_stream_mode = int(self.force_stream_mode)
+
             language = 'en'
             if hasattr(self, 'language'):
                 language = self.language
 
-            sonos_speaker.sonos_speakers[self.uid].play_tts(self.tts, volume, language, group_command=group_command)
+            sonos_speaker.sonos_speakers[self.uid].play_tts(self.tts, volume, language, group_command=group_command,
+                                                            force_stream_mode=force_stream_mode)
             self._status = True
         except ConnectionError:
             self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
@@ -1460,9 +1467,6 @@ class PlayTts(JsonCommandBase):
             self._response = err
         finally:
             return self._status, self._response
-
-
-
 
 
 

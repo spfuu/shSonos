@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 import queue
+import urllib
 from lib_sonos.utils import NotifyList
 from soco.alarms import get_alarms
 from soco.exceptions import SoCoUPnPException
@@ -130,7 +131,7 @@ class SonosSpeaker():
             return
         self._metadata = value
 
-    ### zone_coordinator #######################################################################################
+    # ## zone_coordinator #######################################################################################
 
     @property
     def zone_coordinator(self):
@@ -142,7 +143,7 @@ class SonosSpeaker():
             return True
         return False
 
-    ### EVENTS #########################################################################################################    
+    # ## EVENTS #########################################################################################################
 
     @property
     def sub_av_transport(self):
@@ -160,7 +161,7 @@ class SonosSpeaker():
     def sub_alarm(self):
         return self._sub_alarm
 
-    ### SERIAL #########################################################################################################
+    # ## SERIAL #########################################################################################################
 
     @property
     def serial_number(self):
@@ -1083,7 +1084,7 @@ class SonosSpeaker():
             if seconds > 60:
                 seconds = 60
             if seconds < 2:
-                seconds = 2
+                seconds = 10
 
             logger.debug('Waiting {seconds} seconds until snippet has finished playing.'.format(seconds=seconds))
             time.sleep(seconds)
@@ -1099,17 +1100,20 @@ class SonosSpeaker():
             logger.error("Could not play snippet with uri '{uri}'. Exception: {err}".format(uri=uri, err=err))
             return
 
-    def play_tts(self, tts, volume, language='en', group_command=False):
-        if not SonosSpeaker.tts_enabled:
-            logger.warning('Google TTS disabed. The command was rejected!')
-            return
+    def play_tts(self, tts, volume, language='en', group_command=False, force_stream_mode=False):
+        if (not SonosSpeaker.tts_enabled) or force_stream_mode:
+            logger.warning('Google TTS local mode disabed, using radio stream mode!')
+            url = "x-rincon-mp3radio://translate.google.com/" \
+                  "translate_tts?ie=UTF-8&tl={lang}&q={message}".format(lang=language, message=urllib.request.quote(tts))
+        else:
+            # we do not need any code her to  get the zone coordinator.
+            # The play_snippet function does the necessary work.
+            filename = utils.save_google_tts(SonosSpeaker.local_folder, tts, language, SonosSpeaker.quota)
+            if SonosSpeaker.local_folder.endswith('/'):
+                SonosSpeaker.local_folder = SonosSpeaker.local_folder[:-1]
+            url = '{}/{}'.format(SonosSpeaker.remote_folder, filename)
 
-        # we do not need any code her to  get the zone coordinator. The play_snippet function does the necessary work.
-        filename = utils.save_google_tts(SonosSpeaker.local_folder, tts, language, SonosSpeaker.quota)
-        if SonosSpeaker.local_folder.endswith('/'):
-            SonosSpeaker.local_folder = SonosSpeaker.local_folder[:-1]
-        url = '{}/{}'.format(SonosSpeaker.remote_folder, filename)
-        self.play_snippet(url, volume)
+        self.play_snippet(url, volume, group_command)
 
     def set_add_to_queue(self, uri):
         self.soco.add_to_queue(uri)
