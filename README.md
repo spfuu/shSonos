@@ -1,5 +1,5 @@
 ## Release
-v0.4    (2014-10-xx)
+v0.4-beta   (2014-10-25)
 
     --  added new SoCo version
     --  changed event parser logic ( thanks to the great SoCo framework)
@@ -7,8 +7,13 @@ v0.4    (2014-10-xx)
         --  this has some disadvantages (no exact timestamp to resume the previous paused track,
             some time delay due to the radio stream buffering); the "local mode" should be the 
             preferred one
+    --  added 'fade_in' parameter to play_snippet and play_tts command
+        -- the volume for the resumed track fades in
+    --  better Google TTS handling (especially resuming previous tracks) by implementing the SoCo snapshot
+        functionality --> this needs some testing ;)
+    --  minor bug fixes in documentation
     
-v0.3    (2014-09-16)
+v0.3        (2014-09-16)
 
     --  !! ATTENTION !!: commands are changed to JSON commands. They are more flexible 
         than the old HTTP GET commands.
@@ -1680,6 +1685,7 @@ No special parameter needed.
 | uid | required | | The UID of the Sonos speaker. |
 | uri | required | | A valid url. This can be an internal sonos url (see get_track_uri or) an external url. |
 | volume | optional | -1 - 100 | The snippet volume. If -1 (default) the current volume is used.  After the snippet was played, the prevoius volume value is set. |
+| fade_in | optional | 0 or 1 | If True, the volume for the resumed track / radio fades in |
 | group_command | optional | 0 or 1 | If 'True', the command is executed for all zone members of the speaker. This affects only the parameter 'volume'.|
 
 ######Example
@@ -1722,13 +1728,14 @@ No special parameter needed.
 | tts | required | | The text to be auditioned, max. 100 chars. |
 | language | optional | en, de, es, fr, it| The tts language. Default: 'de'. |
 | force_stream_mode | optional | 0 or 1| If True, the tts snippet will not be saved locally. This has some disadvantages like time delay and inaccurate track resuming.|
+| fade_in | optional | 0 or 1 | If True, the volume for the resumed track / radio fades in |
 | volume | optional | -1 - 100 | The snippet volume. If -1 (default) the current volume is used.  After the snippet was played, the prevoius volume value is set. |
 | group_command | optional | 0 or 1 | If 'True', the command is executed for all zone members of the speaker. This affects only the parameter 'volume'.|
 
 ######Example
     JSON format:
     {
-        'command': 'play_snippet',
+        'command': 'play_tts',
         'parameter': {
             'uid': 'rincon_000e58c3892e01410',
             'tts': 'Die Temperatur im Wohnzimmer ist 2 Grad Celsius.'

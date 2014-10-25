@@ -23,5 +23,6 @@ soco/events.py
 soco/exceptions.py
 soco/groups.py
 soco/services.py
+soco/snapshot.py
 soco/utils.py
 soco/xml.py
