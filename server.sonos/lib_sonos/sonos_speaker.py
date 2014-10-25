@@ -10,6 +10,7 @@ import time
 import json
 from lib_sonos import udp_broker
 from lib_sonos import utils
+from soco.snapshot import Snapshot
 
 try:
     import xml.etree.cElementTree as XML
@@ -34,6 +35,7 @@ class SonosSpeaker():
         SonosSpeaker.quota = qouta
 
     def __init__(self, soco):
+        self._fade_in = False
         self._saved_music_item = None
         self._zone_members = NotifyList()
         self._zone_members.register_callback(self.zone_member_changed)
@@ -990,7 +992,7 @@ class SonosSpeaker():
         else:
             return self.soco.play_uri(uri)
 
-    def play_snippet(self, uri, volume=-1, group_command=False):
+    def play_snippet(self, uri, volume=-1, group_command=False, fade_in=False):
 
         """
         Plays a audio snippet. This will pause the current audio track , plays the snippet and after that, the previous
@@ -1002,6 +1004,8 @@ class SonosSpeaker():
         False
         :raise err:
         """
+
+        self._fade_in = fade_in
 
         if not self.is_coordinator:
             logger.debug("forwarding play_snippet command to coordinator with uid {uid}".
@@ -1016,11 +1020,13 @@ class SonosSpeaker():
                     '''
                     if self._snippet_queue.empty():
 
-                        # if there is now music item in the ccurent playlist, an exception is thrown
+                        # if there is now music item in the current playlist, an exception is thrown
                         # uncritical
                         try:
-                            self._saved_music_item = SavedMusicItem(self.soco, self.volume, self.streamtype, self.play,
-                                                                    self.pause, self.stop, self.metadata, group_command)
+
+                            self._saved_music_item = Snapshot(device=self.soco, snapshot_queue=False)
+                            self._saved_music_item.snapshot()
+
                             was_empty = True
                         except:
                             pass
@@ -1031,35 +1037,15 @@ class SonosSpeaker():
                         self._snippet_queue.put((2, self._saved_music_item))
 
                 except KeyError as err:  # The key have been deleted in another thread
-                    self._snippet_queue.queue.clear()
+                    del self._snippet_queue.queue[:]
                     raise err
                 except Exception as err:
-                    self._snippet_queue.queue.clear()
+                    del self._snippet_queue.queue[:]
                     raise err
 
-    def _play_saved_music_item(self, saved_music_item):
+    def _play_saved_music_item(self):
         try:
-
-            # saved_music_item should be equal to self._saved_music_item
-            if saved_music_item is not self._saved_music_item:
-                logger.warning('Music item to resume does not match stored music item.')
-
-            self.set_volume(self._saved_music_item.volume, trigger_action=True,
-                            group_command=self._saved_music_item.is_group_volume)
-
-            if saved_music_item.streamtype == 'music':
-                self.soco.play_from_queue(int(saved_music_item.track_info['playlist_position']) - 1)
-                self.soco.seek(saved_music_item.track_info['position'])
-            else:
-                self.play_uri(saved_music_item.track_info['uri'], saved_music_item.metadata)
-
-            if saved_music_item.play:
-                self.set_play(1, trigger_action=True)
-            if saved_music_item.pause:
-                self.set_pause(1, trigger_action=True)
-            if saved_music_item.stop:
-                self.set_stop(1, trigger_action=True)
-
+            self._saved_music_item.restore(fade=self._fade_in)
         except SoCoUPnPException as err:
             # maybe illegal seek target here, this is not critical
             logger.warning(err)
@@ -1094,13 +1080,13 @@ class SonosSpeaker():
             if uri != self.track_uri:
                 # clear the snippet_queue
                 logger.debug('User has chosen another music item during the snippet play. Clearing the queue now.')
-                self._snippet_queue.queue.clear()
+                del self._snippet_queue.queue[:]
 
         except Exception as err:
             logger.error("Could not play snippet with uri '{uri}'. Exception: {err}".format(uri=uri, err=err))
             return
 
-    def play_tts(self, tts, volume, language='en', group_command=False, force_stream_mode=False):
+    def play_tts(self, tts, volume, language='en', group_command=False, force_stream_mode=False, fade_in=False):
         if (not SonosSpeaker.tts_enabled) or force_stream_mode:
             logger.warning('Google TTS local mode disabed, using radio stream mode!')
             url = "x-rincon-mp3radio://translate.google.com/" \
@@ -1113,7 +1099,7 @@ class SonosSpeaker():
                 SonosSpeaker.local_folder = SonosSpeaker.local_folder[:-1]
             url = '{}/{}'.format(SonosSpeaker.remote_folder, filename)
 
-        self.play_snippet(url, volume, group_command)
+        self.play_snippet(url, volume, group_command, fade_in)
 
     def set_add_to_queue(self, uri):
         self.soco.add_to_queue(uri)
@@ -1249,8 +1235,8 @@ class SonosSpeaker():
             try:
                 event = self._snippet_queue.get()
 
-                if isinstance(event[1], SavedMusicItem):
-                    self._play_saved_music_item(event[1])
+                if isinstance(event[1], Snapshot):
+                    self._play_saved_music_item()
                 else:
                     self._play_snippet(event[1], event[2])
                 self._snippet_queue.task_done()
