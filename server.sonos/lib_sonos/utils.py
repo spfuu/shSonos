@@ -122,7 +122,7 @@ def save_google_tts(local_share, tts_string, tts_language, quota):
 
     url = "http://translate.google.com/translate_tts?ie=UTF-8&tl={tts_language}&q={tts_string}"
     url = url.format(tts_language=tts_language, tts_string=urllib.request.quote(tts_string))
-    base64_name = base64.b64encode('{}__{}'.format(tts_language, tts_string).encode('utf-8')).decode('ascii')
+    base64_name = base64.urlsafe_b64encode('{}__{}'.format(tts_language, tts_string).encode('utf-8')).decode('ascii', '')
 
     fname = '{}.mp3'.format(base64_name)
     abs_fname = os.path.join(local_share, fname)
