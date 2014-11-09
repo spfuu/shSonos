@@ -169,13 +169,13 @@ class SonosSpeaker():
     def serial_number(self):
         return self._serial_number
 
-    ### SOFTWARE VERSION ###############################################################################################
+    # ## SOFTWARE VERSION ###############################################################################################
 
     @property
     def software_version(self):
         return self._software_version
 
-    ### HARDWARE VERSION ###############################################################################################
+    # ## HARDWARE VERSION ###############################################################################################
 
     @property
     def hardware_version(self):
@@ -1046,6 +1046,17 @@ class SonosSpeaker():
     def _play_saved_music_item(self):
         try:
             self._saved_music_item.restore(fade=self._fade_in)
+
+            if self._fade_in:
+                for member in self.zone_members:
+                    vol_to_ramp = member.soco.volume
+                    member.soco.volume = 0
+                    member.soco.renderingControl.RampToVolume(
+                        [('InstanceID', 0), ('Channel', 'Master'),
+                         ('RampType', 'SLEEP_TIMER_RAMP_TYPE'),
+                         ('DesiredVolume', vol_to_ramp),
+                         ('ResetVolumeAfter', False), ('ProgramURI', '')])
+
         except SoCoUPnPException as err:
             # maybe illegal seek target here, this is not critical
             logger.warning(err)
@@ -1064,7 +1075,7 @@ class SonosSpeaker():
             time.sleep(1)
             h, m, s = self.track_duration.split(":")
             seconds = int(h) * 3600 + int(m) * 60 + int(s) + 1
-            logger.debug('Esimated snippet length: {seconds}'.format(seconds=seconds))
+            logger.debug('Estimated snippet length: {seconds}'.format(seconds=seconds))
 
             # maximum snippet length is 60 sec
             if seconds > 60:
@@ -1074,25 +1085,18 @@ class SonosSpeaker():
 
             logger.debug('Waiting {seconds} seconds until snippet has finished playing.'.format(seconds=seconds))
             time.sleep(seconds)
-
-            # check, if the user has played another music item within the sleep period
-
-            if uri != self.track_uri:
-                # clear the snippet_queue
-                logger.debug('User has chosen another music item during the snippet play. Clearing the queue now.')
-                del self._snippet_queue.queue[:]
-
         except Exception as err:
             logger.error("Could not play snippet with uri '{uri}'. Exception: {err}".format(uri=uri, err=err))
             return
 
     def play_tts(self, tts, volume, language='en', group_command=False, force_stream_mode=False, fade_in=False):
         if (not SonosSpeaker.tts_enabled) or force_stream_mode:
-            logger.warning('Google TTS local mode disabed, using radio stream mode!')
+            logger.warning('Google TTS local mode disabled, using radio stream mode!')
             url = "x-rincon-mp3radio://translate.google.com/" \
-                  "translate_tts?ie=UTF-8&tl={lang}&q={message}".format(lang=language, message=urllib.request.quote(tts))
+                  "translate_tts?ie=UTF-8&tl={lang}&q={message}".format(lang=language,
+                                                                        message=urllib.request.quote(tts))
         else:
-            # we do not need any code her to  get the zone coordinator.
+            # we do not need any code here to get the zone coordinator.
             # The play_snippet function does the necessary work.
             filename = utils.save_google_tts(SonosSpeaker.local_folder, tts, language, SonosSpeaker.quota)
             if SonosSpeaker.local_folder.endswith('/'):
@@ -1257,54 +1261,3 @@ class SonosSpeaker():
     pause = property(get_pause, set_pause)
     max_volume = property(get_maxvolume, set_maxvolume)
     track_position = property(get_trackposition, set_trackposition)
-
-
-class SavedMusicItem():
-    def __init__(self, soco, volume, streamtype, play, pause, stop, metadata=None, is_group_volume=False):
-        self._soco = soco
-        self._track_info = None
-        self._transport_info = None
-        self._is_group_volume = is_group_volume
-        self._volume = volume
-        self._streamtype = streamtype
-        self._metadata = metadata
-        self._play = play
-        self._pause = pause
-        self._stop = stop
-        self._track_info = self._soco.get_current_track_info()
-
-    @property
-    def play(self):
-        return self._play
-
-    @property
-    def pause(self):
-        return self._pause
-
-    @property
-    def stop(self):
-        return self._stop
-
-    @property
-    def streamtype(self):
-        return self._streamtype
-
-    @property
-    def track_info(self):
-        return self._track_info
-
-    @property
-    def transport_info(self):
-        return self._transport_info
-
-    @property
-    def is_group_volume(self):
-        return self._is_group_volume
-
-    @property
-    def volume(self):
-        return self._volume
-
-    @property
-    def metadata(self):
-        return self._metadata
