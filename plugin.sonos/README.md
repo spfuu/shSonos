@@ -3,7 +3,7 @@ Smarthome.py framework (https://github.com/mknx/smarthome).
 
 ##Release
   
-  v1.2  2014-10-25
+  v1.2  2014-11-09
   
     --  added force_stream_mode option to play_tts command (see broker documentation)
     --  added 'fade_in' parameter to play_snippet and play_tts command

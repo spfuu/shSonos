@@ -1,5 +1,5 @@
 ## Release
-v0.4-beta   (2014-10-25)
+v0.4       (2014-11-09)
 
     --  added new SoCo version
     --  changed event parser logic ( thanks to the great SoCo framework)
@@ -11,6 +11,8 @@ v0.4-beta   (2014-10-25)
         -- the volume for the resumed track fades in
     --  better Google TTS handling (especially resuming previous tracks) by implementing the SoCo snapshot
         functionality --> this needs some testing ;)
+    --  bug: changed base64 encode and decode algorithm for saving google tts files to urlsafe variant
+    --  sonos broker should no stop reliable
     --  minor bug fixes in documentation
     
 v0.3        (2014-09-16)
