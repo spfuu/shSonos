@@ -267,14 +267,14 @@ class SonosBroker():
         while self._server_active:
             self._http_server.serve_forever()
 
-    def stop(self, signal, frame):
+    def stop(self):
         logger.debug('unsubscribing from sonos speakers ...')
         if self._sonos_service is not None:
             self._sonos_service.unsubscribe_speaker_events()
         if self._http_server:
             self._server_active = False
             logger.debug('closing http server ...')
-            self._http_server.shutdown()
+            self._http_server.socket.close()
         for thread in threading.enumerate():
             try:
                 thread.join(1)

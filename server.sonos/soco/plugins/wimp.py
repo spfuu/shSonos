@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=R0913,W0142,fixme
-
+# pylint: disable=star-args
 """ Plugin for the Wimp music service (Service ID 20) """
 
 from __future__ import unicode_literals
@@ -11,7 +10,7 @@ import requests
 
 from ..services import MusicServices
 from ..xml import XML
-from ..data_structures import get_ms_item, MSTrack, MSAlbum, MSArtist, \
+from ..ms_data_structures import get_ms_item, MSTrack, MSAlbum, MSArtist, \
     MSAlbumList, MSFavorites, MSCollection, MSPlaylist, MSArtistTracklist
 from ..utils import really_utf8
 from ..exceptions import SoCoUPnPException, UnknownXMLStructure
@@ -239,6 +238,7 @@ class Wimp(SoCoPlugin):
                 .format(search_type)
             raise ValueError(message)
         # Transform search: tracks -> tracksearch
+        # pylint: disable=bad-format-string
         search_type = '{0}earch'.format(search_type)
         parent_id = SEARCH_PREFIX.format(search_type=search_type,
                                          search=search)

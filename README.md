@@ -1,5 +1,21 @@
 ## Release
-v0.3
+v0.4       (2014-11-09)
+
+    --  added new SoCo version
+    --  changed event parser logic ( thanks to the great SoCo framework)
+    --  play_tts can now executed like a radio stream without saving the tts file locally
+        --  this has some disadvantages (no exact timestamp to resume the previous paused track,
+            some time delay due to the radio stream buffering); the "local mode" should be the 
+            preferred one
+    --  added 'fade_in' parameter to play_snippet and play_tts command
+        -- the volume for the resumed track fades in
+    --  better Google TTS handling (especially resuming previous tracks) by implementing the SoCo snapshot
+        functionality --> this needs some testing ;)
+    --  bug: changed base64 encode and decode algorithm for saving google tts files to urlsafe variant
+    --  sonos broker should no stop reliable
+    --  minor bug fixes in documentation
+    
+v0.3        (2014-09-16)
 
     --  !! ATTENTION !!: commands are changed to JSON commands. They are more flexible 
         than the old HTTP GET commands.
@@ -133,8 +149,16 @@ Sonos broker features the Google Text-To-Speech API. You can play any text limit
 
 #### Internals
 
-If a text is given to the google tts function, sonos broker makes a http request to the Google API. The response is
-stored as a mp3-file to the local / remote folder. Before the request is made, the broker checks whether a file exists
+If a text is given to the google tts function, sonos broker makes a http request to the Google API. The response can be 
+    1. stored as a mp3-file to the local / remote folder. 
+    2. or handled like a radio stream without saving the file locally.
+    
+The first option should always be the preferred one. The "radio stream" option has some big disadvantages (time delay,
+no snippet length and therefor inaccurate track resuming). If Google TTS is disabled (either by disabling Google TTS in
+the sonos_broker.cfg or other failures), the stream mode is assumed. You can force this behaviour by setting the 
+command parameter 'force_stream_mode' to 1 (see [play_tts command](#p_tts)).
+
+Before the request is made ('local mode'), the broker checks whether a file exists
 with the same name. The file name of a tts-file is always:  BASE64(<tts_txt>_<tts_language>).mp3
 You can set a file quota in the config file. This limits the amount of disk space the broker can use to save tts files. 
 If the quota exceeds, you will receive a message. By default the quota is set to 100 mb.
@@ -1663,6 +1687,7 @@ No special parameter needed.
 | uid | required | | The UID of the Sonos speaker. |
 | uri | required | | A valid url. This can be an internal sonos url (see get_track_uri or) an external url. |
 | volume | optional | -1 - 100 | The snippet volume. If -1 (default) the current volume is used.  After the snippet was played, the prevoius volume value is set. |
+| fade_in | optional | 0 or 1 | If True, the volume for the resumed track / radio fades in |
 | group_command | optional | 0 or 1 | If 'True', the command is executed for all zone members of the speaker. This affects only the parameter 'volume'.|
 
 ######Example
@@ -1704,17 +1729,20 @@ No special parameter needed.
 | uid | required | | The UID of the Sonos speaker. |
 | tts | required | | The text to be auditioned, max. 100 chars. |
 | language | optional | en, de, es, fr, it| The tts language. Default: 'de'. |
+| force_stream_mode | optional | 0 or 1| If True, the tts snippet will not be saved locally. This has some disadvantages like time delay and inaccurate track resuming.|
+| fade_in | optional | 0 or 1 | If True, the volume for the resumed track / radio fades in |
 | volume | optional | -1 - 100 | The snippet volume. If -1 (default) the current volume is used.  After the snippet was played, the prevoius volume value is set. |
 | group_command | optional | 0 or 1 | If 'True', the command is executed for all zone members of the speaker. This affects only the parameter 'volume'.|
 
 ######Example
     JSON format:
     {
-        'command': 'play_snippet',
+        'command': 'play_tts',
         'parameter': {
             'uid': 'rincon_000e58c3892e01410',
             'tts': 'Die Temperatur im Wohnzimmer ist 2 Grad Celsius.'
             'language': 'de',
+            'force_stream_mode': '0'
             'volume': 30,
             'group_command': 1
         }   

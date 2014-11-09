@@ -2,8 +2,14 @@ This sub-project is a client implementation fpr the Sonos Broker. It is a plugin
 Smarthome.py framework (https://github.com/mknx/smarthome).
 
 ##Release
+  
+  v1.2  2014-11-09
+  
+    --  added force_stream_mode option to play_tts command (see broker documentation)
+    --  added 'fade_in' parameter to play_snippet and play_tts command
+        -- the volume for the resumed track fades in
 
-  v1.1  2014-09-15
+  v1.1  2014-09-23
 
     --  changed commands to JSON requests to implement the new command interface introduced in Broker v0.3 
     --  added group_command parameter to following items (update your sonos.conf !!!):
@@ -12,12 +18,7 @@ Smarthome.py framework (https://github.com/mknx/smarthome).
         -   play_tts, play_snippet: the group parameter only affects the 'volume'-sub-parameter
     --  broker_url parameter was not checked properly for invalid values 
     
-
-  v1.1  2014-08-15
-  
-    --  added alarms property
-
-
+    
   v1.0  2014-07-08
     
     --  parameter 'broker_url' in plugin configuration now optional
@@ -42,10 +43,12 @@ Smarthome.py framework (https://github.com/mknx/smarthome).
         -   playmode [read/write] sets the playmode for a sonos speaker 
             values: 'normal', 'shuffle_norepeat', 'shuffle', 'repeat_all'
     
+    
   v0.8.1  2014-06-07
     
     --  bugfixes in some command processing
-
+    
+    
   v0.8    2014-06-06
 
     --  changed some values in sonos plugin config to 'foo' (commands without parameter like play, 

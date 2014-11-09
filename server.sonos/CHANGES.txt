@@ -1,3 +1,19 @@
+v0.4       (2014-11-09)
+
+    --  added new SoCo version
+    --  changed event parser logic ( thanks to the great SoCo framework)
+    --  play_tts can now executed like a radio stream without saving the tts file locally
+        --  this has some disadvantages (no exact timestamp to resume the previous paused track,
+            some time delay due to the radio stream buffering); the "local mode" should be the
+            preferred one
+    --  added 'fade_in' parameter to play_snippet and play_tts command
+        -- the volume for the resumed track fades in
+    --  better Google TTS handling (especially resuming previous tracks) by implementing the SoCo snapshot
+        functionality --> this needs some testing ;)
+    --  bug: changed base64 encode and decode algorithm for saving google tts files to urlsafe variant
+    --  sonos broker should no stop reliable
+    --  minor bug fixes in documentation
+
 v0.3
 
     --  !! ATTENTION !!: commands are changed to JSON commands. They are more flexible

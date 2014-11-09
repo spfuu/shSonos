@@ -22,6 +22,8 @@ soco/data_structures.py
 soco/events.py
 soco/exceptions.py
 soco/groups.py
+soco/ms_data_structures.py
 soco/services.py
+soco/snapshot.py
 soco/utils.py
 soco/xml.py
