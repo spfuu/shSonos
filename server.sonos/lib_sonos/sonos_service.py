@@ -14,6 +14,7 @@ import logging
 from time import sleep
 from soco import discover
 from threading import Lock
+from soco.data_structures import DidlAudioBroadcast
 from soco.services import zone_group_state_shared_cache
 from lib_sonos import utils
 
@@ -126,7 +127,7 @@ class SonosServerService():
                     if uid in sonos_speaker.sonos_speakers:
                         sonos_speaker.sonos_speakers.pop(uid)
 
-                # remove all offline speakers from internal list #######################################################
+                # remove all offline speakers from internal list
                 try:
                     offline_uids = set(list(sonos_speaker.sonos_speakers.keys())) - set(active_uids)
                 except KeyError:
@@ -141,8 +142,8 @@ class SonosServerService():
                     except KeyError:
                         continue  # speaker maybe deleted by another thread
 
-                # register events for all speaker, this has to be the last step due to some logics in the event ########
-                # handling routine #####################################################################################
+                # register events for all speaker, this has to be the last step due to some logics in the event
+                # handling routine
 
                 for speaker in sonos_speaker.sonos_speakers.values():
                     try:
@@ -229,21 +230,92 @@ class SonosServerService():
 
         return ""
 
-    def handle_AVTransport_event(self, speaker, variables):
+    @staticmethod
+    def set_radio_data(speaker, variables):
 
-        if 'current_track_uri' in variables:
-            speaker.track_uri = variables['current_track_uri']
+        speaker.streamtype = "radio"
+        speaker.track_duration = "00:00:00"
+        speaker.radio_station = ''
+        speaker.radio_show = ''
+
+        radio_station_title = variables['enqueued_transport_uri_meta_data']
+        radio_data = variables['current_track_meta_data']
+
+        if hasattr(radio_station_title, 'title'):
+            speaker.radio_station = radio_station_title.title
+
+        if hasattr(radio_data, 'radio_show'):
+            # the format of a radio_show item seems to be this format:
+            # <radioshow><,p123456> --> rstrip ,p....
+            radio_show = radio_data.radio_show
+            if radio_show:
+                radio_show = radio_show.split(',p', 1)
+                if len(radio_show) > 1:
+                    speaker.radio_show = radio_show[0]
+
+        if hasattr(radio_data, 'album_art_uri'):
+            speaker.track_album_art = ''
+            album_art = radio_data.album_art_uri
+            if album_art:
+                if not album_art.startswith(('http:', 'https:')):
+                    album_art = 'http://' + speaker.ip + ':1400' + album_art
+                speaker.track_album_art = album_art
+
+        if hasattr(radio_data, 'stream_content'):
+            ignore_title_string = ('ZPSTR_BUFFERING', 'ZPSTR_BUFFERING', 'ZPSTR_CONNECTING', 'x-sonosapi-stream')
+            artist = ''
+            title = ''
+
+            stream_content = radio_data.stream_content
+
+            if stream_content:
+                if not stream_content.startswith(ignore_title_string):
+                    # if radio, in most cases the following format is used: artist - title
+                    #if stream_content is not null, radio is assumed
+
+                    artist, title = title_artist_parser(speaker.radio_station if speaker.radio_station else '',
+                                                        stream_content)
+            speaker.track_artist = artist
+            speaker.track_title = title
+
+    @staticmethod
+    def set_music_data(speaker, variables):
+        speaker.streamtype = "music"
+        speaker.radio_show = ''
+        speaker.radio_station = ''
 
         if 'current_track_duration' in variables:
-            track_duration = variables['current_track_duration']
-            speaker.track_duration = track_duration
-            if track_duration == '0:00:00':
-                speaker.track_position = "00:00:00"
-                speaker.streamtype = "radio"
+            speaker.track_duration = variables['current_track_duration']
+
+        ml_track = variables['current_track_meta_data']
+        if ml_track:
+            if hasattr(ml_track, 'album_art_uri'):
+                if not ml_track.album_art_uri.startswith(('http:', 'https:')):
+                    album_art_uri = 'http://' + speaker.ip + ':1400' + ml_track.album_art_uri
+                speaker.track_album_art = album_art_uri
             else:
-                speaker.streamtype = "music"
-        else:
-            speaker.track_duration = "00:00:00"
+                speaker.track_album_art = ''
+
+            if hasattr(ml_track, 'album'):
+                speaker.track_album = ml_track.album
+            else:
+                speaker.track_album = ''
+
+            if hasattr(ml_track, 'title'):
+                speaker.track_title = ml_track.title
+            else:
+                speaker.title = ''
+
+            if hasattr(ml_track, 'creator'):
+                speaker.track_artist = ml_track.creator
+            else:
+                speaker.track_artist = ''
+
+    def handle_AVTransport_event(self, speaker, variables):
+
+        # meta data for both types (radio, music)
+        if 'current_track_uri' in variables:
+            speaker.track_uri = variables['current_track_uri']
 
         if 'current_playmode' in variables:
             speaker.playmode = variables['current_playmode'].lower()
@@ -270,62 +342,11 @@ class SonosServerService():
                     #get current track info, if new track is played or resumed to get track_uri, track_album_art
                     speaker.get_trackposition(force_refresh=True)
 
-        if speaker.streamtype == 'radio':
-            r_namespace = '{urn:schemas-rinconnetworks-com:metadata-1-0/}'
-            enqueued_data = variables['last_change_xml_tree'].find(".//%sEnqueuedTransportURIMetaData" % r_namespace)
-
-            if enqueued_data is not None:
-                enqueued_data = enqueued_data.get('val')
-                speaker._metadata = enqueued_data
-
-                try:
-                    radio_dom = XML.fromstring(enqueued_data)
-
-                    if radio_dom:
-                        radio_station = ''
-                        radio_station_element = radio_dom.find('.//dc:title', NS)
-
-                        if radio_station_element is not None:
-                            radio_station = radio_station_element.text
-
-                        speaker.radio_station = radio_station
-
-                except Exception:  #raised, if enqued_data is empty
-                    speaker.radio_show = ''
-                    speaker.radio_station = ''
-        else:
-            speaker.radio_show = ''
-            speaker.radio_station = ''
-
-        if 'current_track_meta_data' in variables:
-            ml_track = variables['current_track_meta_data']
-            if ml_track:
-                if ml_track.album_art_uri:
-                    if not ml_track.album_art_uri.startswith(('http:', 'https:')):
-                        album_art_uri = 'http://' + speaker.ip + ':1400' + ml_track.album_art_uri
-                    speaker.track_album_art = album_art_uri
-
-                if ml_track.album:
-                    speaker.track_album = ml_track.album
-
-                if ml_track.title:
-                    speaker.track_title = ml_track.title
-
-                if ml_track.creator:
-                    speaker.track_artist = ml_track.creator
-
-            # just backward compatibility for radio (bug in SoCo)
+        if 'enqueued_transport_uri_meta_data' in variables:
+            if isinstance(variables['enqueued_transport_uri_meta_data'], DidlAudioBroadcast):
+                SonosServerService.set_radio_data(speaker, variables)
             else:
-                namespace = '{urn:schemas-upnp-org:metadata-1-0/AVT/}'
-                didl_element = variables['last_change_xml_tree'].find(".//%sCurrentTrackMetaData" % namespace)
-
-                if didl_element is not None:
-                    didl = didl_element.get('val')
-                    if didl:
-                        didl_dom = XML.fromstring(didl)
-                        speaker.metadata = didl
-                        if didl_dom:
-                            self.parse_track_metadata(speaker, didl_dom)
+                SonosServerService.set_music_data(speaker, variables)
 
     def handle_AlarmClock_event(self, speaker, variables):
         """
@@ -355,65 +376,3 @@ class SonosServerService():
 
         if 'loudness' in variables:
             speaker.loudness = int(variables['loudness']['Master'])
-
-    @staticmethod
-    def parse_track_metadata(speaker, dom):
-        ignore_title_string = ('ZPSTR_BUFFERING', 'ZPSTR_BUFFERING', 'ZPSTR_CONNECTING', 'x-sonosapi-stream')
-        title = ''
-        artist = ''
-
-        try:
-            # title listening radio
-            stream_content_element = dom.find('.//r:streamContent', NS)
-            if stream_content_element is not None:
-                stream_content = stream_content_element.text
-                if stream_content:
-                    if not stream_content.startswith(ignore_title_string):
-                        # if radio, in most cases the following format is used: artist - title
-                        #if stream_content is not null, radio is assumed
-
-                        if speaker.radio_station:
-                            artist, title = title_artist_parser(speaker.radio_station, stream_content)
-
-            radio_show_element = dom.find('.//r:radioShowMd', NS)
-            if radio_show_element is not None:
-                radio_show = radio_show_element.text
-                if radio_show:
-                    # the foramt of a radio_show item seems to be this format:
-                    # <radioshow><,p123456> --> rstrip ,p....
-                    radio_show = radio_show.split(',p', 1)
-
-                    if len(radio_show) > 1:
-                        radio_show = radio_show[0]
-                else:
-                    radio_show = ''
-                speaker.radio_show = radio_show
-
-            album_art = dom.findtext('.//{urn:schemas-upnp-org:metadata-1-0/upnp/}albumArtURI')
-            if album_art:
-                if not album_art.startswith(('http:', 'https:')):
-                    album_art = 'http://' + speaker.ip + ':1400' + album_art
-                speaker.track_album_art = album_art
-
-            # mp3, etc -> overrides stream content
-            title_element = dom.find('.//dc:title', NS)
-            if title_element is not None:
-                assumed_title = title_element.text
-                if assumed_title:
-                    if not assumed_title.startswith(ignore_title_string):
-                        title = assumed_title
-
-            artist_element = dom.find('.//dc:creator', NS)
-            if artist_element is not None:
-                assumed_artist = artist_element.text
-                if assumed_artist:
-                    artist = assumed_artist
-            if not artist:
-                artist = ''
-            if not title:
-                title = ''
-            speaker.track_artist = artist
-            speaker.track_title = title
-
-        except Exception as err:
-            print(err)
