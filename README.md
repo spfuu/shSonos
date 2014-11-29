@@ -2,7 +2,8 @@
 v0.5b1     (2014-11-29)
 
     -- new start option "-l"
-        -- this options lists all available Sonos speaker in the network. This is helpful to get the speakers UIDs.
+        --  this options lists all available Sonos speaker in the network. 
+            This is helpful to get the speakers UIDs.
     
          
 v0.4       (2014-11-09)
@@ -109,13 +110,13 @@ Readme.
 
 If you start the sonos broker with
 ```
-./sonos_broker
+sonos_broker
 ```
 the server will be automatically daemonized.
 
 You can add the -d (--debug) parameter to hold the process in the foreground.
 ```
-./sonos_broker -d
+sonos_broker -d
 ```
 
 You can stop the server with
