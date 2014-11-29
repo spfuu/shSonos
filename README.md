@@ -1,5 +1,5 @@
 ## Release
-v0.5       (2014-11-29)
+v0.5b1     (2014-11-29)
 
     -- new start option "-l"
         -- this options lists all available Sonos speaker in the network. This is helpful to get the speakers UIDs.
