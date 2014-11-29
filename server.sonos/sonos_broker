@@ -17,6 +17,7 @@ import threading
 import configparser
 import signal
 import time
+from soco import discover
 from lib_sonos import utils
 from lib_sonos import definitions
 from lib_sonos.sonos_service import SonosServerService
@@ -85,6 +86,14 @@ class SonosBroker():
     def loghandler(self):
         return self._loghandler
 
+    @property
+    def list_only(self):
+        return self._list_only
+
+    @list_only.setter
+    def list_only(self, value):
+        self._list_only = value
+
     def __init__(self, debug=False):
         global command_service
         global homedir
@@ -104,6 +113,7 @@ class SonosBroker():
         self._host = definitions.DEFAULT_HOST
         self._sonos_service = None
         self._server_active = True
+        self._list_only = False
 
         # ############################################################
         # Signal Handling
@@ -305,18 +315,43 @@ def kill(pid, wait=10):
             os._exit(0)
 
 
+def scan():
+    print('Scanning for Sonos speaker in the network ...\n')
+    soco_speakers = SonosServerService._discover()
+    suffix = ''
+
+    if len(soco_speakers) > 1:
+        suffix = "s"
+
+    print("Found {} speaker{} in the network.\n".format(len(soco_speakers), suffix))
+
+    for speaker in soco_speakers:
+        model = SonosServerService.get_model_name(speaker.ip_address)
+        print("\n{}".format(speaker.uid))
+        print("-" * len(speaker.uid))
+        print("\tip   :\t{}".format(speaker.ip_address))
+        print("\tname :\t{}".format(speaker.player_name))
+        print("\tmodel:\t{}".format(model))
+
+
 if __name__ == '__main__':
     argparser = argparse.ArgumentParser()
-    argparser.add_argument('-d', '--debug', help='Debug Mode: Broker stays in foreground with verbose output',
+    group = argparser.add_mutually_exclusive_group()
+
+    group.add_argument('-d', '--debug', help='Debug Mode: Broker stays in foreground with verbose output',
                            action='store_true')
-    argparser.add_argument('-s', '--stop', help='Stops the Sonos Broker', action='store_true')
+    group.add_argument('-s', '--stop', help='Stops the Sonos Broker', action='store_true')
+    group.add_argument('-l', '--list', help='Lists all Sonos speaker in the network.', action='store_true')
     args = argparser.parse_args()
 
     if args.stop:
         print('Shutting down Sonos Broker ...')
         kill(daemon.get_pid(__file__))
+    elif args.list:
+        scan()
     else:
         broker = SonosBroker(args.debug)
+
         if locale.getdefaultlocale() == (None, None):
             locale.setlocale(locale.LC_ALL, 'C')
         else:

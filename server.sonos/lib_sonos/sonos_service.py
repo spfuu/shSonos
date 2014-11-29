@@ -82,12 +82,16 @@ class SonosServerService():
             finally:
                 sleep(sleep_scan)
 
+    @staticmethod
+    def _discover():
+        return discover(timeout=5, include_invisible=False)
+
     def discover(self):
         try:
             with sonos_speaker._sonos_lock:
                 zone_group_state_shared_cache.clear()
                 active_uids = []
-                soco_speakers = discover(timeout=5, include_invisible=False)
+                soco_speakers = SonosServerService._discover()
 
                 if soco_speakers is None:
                     return
@@ -109,7 +113,7 @@ class SonosServerService():
                         try:
                             _sp = SonosSpeaker(soco_speaker)
                             sonos_speaker.sonos_speakers[uid] = _sp
-                            sonos_speaker.sonos_speakers[uid].model = self.get_model_name(
+                            sonos_speaker.sonos_speakers[uid].model = SonosServerService.get_model_name(
                                 sonos_speaker.sonos_speakers[uid].ip)
                         except Exception:
                             speaker_to_remove.append(soco_speaker.uid)
@@ -221,7 +225,8 @@ class SonosServerService():
                 self.event_lock.release()
 
     # missing model name, not implemented in soco framework
-    def get_model_name(self, ip):
+    @staticmethod
+    def get_model_name(ip):
         response = requests.get('http://' + ip + ':1400/xml/device_description.xml')
         dom = XML.fromstring(response.content)
 
