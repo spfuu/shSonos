@@ -1,4 +1,10 @@
 ## Release
+v0.5       (2014-11-29)
+
+    -- new start option "-l"
+        -- this options lists all available Sonos speaker in the network. This is helpful to get the speakers UIDs.
+    
+         
 v0.4       (2014-11-09)
 
     --  added new SoCo version
@@ -115,6 +121,11 @@ You can add the -d (--debug) parameter to hold the process in the foreground.
 You can stop the server with
 ```
 sonos_broker -s
+```
+
+To get a short overview of your speakers in the network start the server with
+```
+sonos_broker -l
 ```
 
 To get an overview of all parameters type
@@ -280,13 +291,14 @@ In almost any cases, you'll get the appropriate response in the following JSON f
 
 #### Get the UID
 
- Most of the commands need a speaker uid. Send the [client_list](#client_list) command to get a short overview of your 
- sonos speakers in the network and to retrieve the uid.
+ Most of the commands need a speaker uid. Start the Sonos Broker with the argument '-l to get a short overview of your 
+ sonos speakers in the network and to retrieve the uid. Youn can also perform a sonos [client_list](#client_list) 
+ command. 
 
 #### Client Implementation Example
 
- [Here you can find](plugin.sonos/README.md) a client implementation for the Broker. It is a sonos plugin for the [Smarthome.py](https://github.com/mknx/smarthome) 
- home automation framework.
+ [Here you can find](plugin.sonos/README.md) a client implementation for the Broker. It is a sonos plugin for the 
+ [Smarthome.py](https://github.com/mknx/smarthome) home automation framework.
 
 ## Available commands
 
