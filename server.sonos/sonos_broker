@@ -31,7 +31,6 @@ command_service = None
 homedir = os.path.dirname(os.path.realpath(__file__))
 logger = logging.getLogger('')
 
-
 class SonosHttpHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
