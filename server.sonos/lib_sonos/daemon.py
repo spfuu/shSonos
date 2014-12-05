@@ -11,6 +11,7 @@ import logging
 import atexit
 from logging import handlers
 
+logger = logging.getLogger('')
 
 class Daemonize(object):
     """ Daemonize object
@@ -32,18 +33,14 @@ class Daemonize(object):
         self.privileged_action = privileged_action or (lambda: ())
         self.user = user
         self.group = group
-        # Initialize logging.
-        self.logger = logging.getLogger(self.app)
-        self.logger.setLevel(logging.DEBUG)
         # Display log messages only on defined handlers.
-        self.logger.propagate = False
         self.verbose = verbose
 
     def sigterm(self, signum, frame):
         """ sigterm method
         These actions will be done after SIGTERM.
         """
-        self.logger.warn("Caught signal %s. Stopping daemon." % signum)
+        logger.warn("Caught signal %s. Stopping daemon." % signum)
         os.remove(self.pid)
         sys.exit(0)
 
@@ -51,7 +48,7 @@ class Daemonize(object):
         """ exit method
         Cleanup pid file at exit.
         """
-        self.logger.warn("Stopping daemon.")
+        logger.warn("Stopping daemon.")
         os.remove(self.pid)
         sys.exit(0)
 
@@ -96,25 +93,6 @@ class Daemonize(object):
         os.dup(0)
         os.dup(0)
 
-        # Initialize syslog.
-        # It will work on OS X and Linux. No FreeBSD support, guys, I don't want to import re here
-        # to parse your peculiar platform string.
-        if sys.platform == "darwin":
-            syslog_address = "/var/run/syslog"
-        else:
-            syslog_address = "/dev/log"
-        syslog = handlers.SysLogHandler(syslog_address)
-        if self.verbose:
-            syslog.setLevel(logging.DEBUG)
-        else:
-            syslog.setLevel(logging.INFO)
-        # Try to mimic to normal syslog messages.
-        formatter = logging.Formatter("%(asctime)s %(name)s: %(message)s",
-                                      "%b %e %H:%M:%S")
-        syslog.setFormatter(formatter)
-
-        self.logger.addHandler(syslog)
-
         # Set umask to default to safe file permissions when running as a root daemon. 027 is an
         # octal number which we are typing as 0o27 for Python3 compatibility.
         os.umask(0o27)
@@ -131,12 +109,12 @@ class Daemonize(object):
             try:
                 gid = grp.getgrnam(self.group).gr_gid
             except KeyError:
-                self.logger.error("Group {0} not found".format(self.group))
+                logger.error("Group {0} not found".format(self.group))
                 sys.exit(1)
             try:
                 os.setgid(gid)
             except OSError:
-                self.logger.error("Unable to change gid.")
+                logger.error("Unable to change gid.")
                 sys.exit(1)
 
         # Change uid
@@ -144,19 +122,19 @@ class Daemonize(object):
             try:
                 uid = pwd.getpwnam(self.user).pw_uid
             except KeyError:
-                self.logger.error("User {0} not found.".format(self.user))
+                logger.error("User {0} not found.".format(self.user))
                 sys.exit(1)
             try:
                 os.setuid(uid)
             except OSError:
-                self.logger.error("Unable to change uid.")
+                logger.error("Unable to change uid.")
                 sys.exit(1)
 
         try:
             # Create a lockfile so that only one instance of this daemon is running at any time.
             lockfile = open(self.pid, "w")
         except IOError:
-            self.logger.error("Unable to create a pidfile.")
+            logger.error("Unable to create a pidfile.")
             sys.exit(1)
         try:
             # Try to get an exclusive lock on the file. This will fail if another process has the file
@@ -166,7 +144,7 @@ class Daemonize(object):
             lockfile.write("%s" % (os.getpid()))
             lockfile.flush()
         except IOError:
-            self.logger.error("Unable to lock on the pidfile.")
+            logger.error("Unable to lock on the pidfile.")
             os.remove(self.pid)
             sys.exit(1)
 
@@ -174,7 +152,7 @@ class Daemonize(object):
         signal.signal(signal.SIGTERM, self.sigterm)
         atexit.register(self.exit)
 
-        self.logger.warn("Starting daemon.")
+        logger.warn("Starting daemon.")
         self.action(*priviled_action_result)
 
 
