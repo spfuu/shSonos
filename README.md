@@ -1,7 +1,14 @@
 ## Release
+v0.5b2     (2014-12-05)
+
+    --  interactive command shell (prototype) added to interact with the speakers directly, more functions
+        coming soon
+    --  changed logging handler in daemon.py to global logging handler specified in the config file
+    --  new SoCo version     
+
 v0.5b1     (2014-11-29)
 
-    -- new start option "-l"
+    --  new start option "-l"
         --  this options lists all available Sonos speaker in the network. 
             This is helpful to get the speakers UIDs.
     
