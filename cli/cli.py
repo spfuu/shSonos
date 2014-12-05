@@ -20,13 +20,13 @@ class SonosSpeakerCmd(cmd.Cmd):
         raise Exception("Unknown format")
 
     def __repr__(self):
-        return "({session})\t\t{uid}\t[{ip}|{name}|{model}]".format(session=self.session_id, uid=self.uid,
+        return "({session})\t\t{uid}\t[{ip}|{name}|{model}]".format(session=self.speaker_id, uid=self.uid,
                                                                       ip=self.ip, name=self.zone_name,
                                                                       model=self.model)
 
     def __init__(self):
         SonosSpeakerCmd.counter += 1
-        self.session_id = SonosSpeakerCmd.counter
+        self.speaker_id = SonosSpeakerCmd.counter
         self.uid = None
         self.ip = None
         self.model = None
@@ -250,6 +250,9 @@ class SonosBrokerCmd(cmd.Cmd):
 
     def do_update(self, argument):
         speakers = SonosServerService._discover()
+        if not speakers:
+            print("No speakers found. All speakers offline?")
+            return
         for speaker in speakers:
             self.commands.current_state(speaker.uid, 0)
 
@@ -261,11 +264,32 @@ class SonosBrokerCmd(cmd.Cmd):
         print('Lists all Sonos speaker in the network')
 
     def do_list(self, argument):
-        self._sonos_speakers.sort(key=lambda x: x.session_id, reverse=False)
-        print("\nsession(s):")
+        self._sonos_speakers.sort(key=lambda x: x.speaker_id, reverse=False)
+        print("\nspeaker(s):")
         print("-----------")
         for speaker in self.sonos_speakers:
             print(speaker)
+        print("\n")
+
+    def do_speaker(self, speaker_id):
+
+        if not speaker_id:
+            self.do_list('')
+            return
+
+        try:
+            speaker_id = int(speaker_id)
+        except ValueError:
+            print("Invalid speaker id.")
+            return
+
+        speaker = next((x for x in self._sonos_speakers if x.speaker_id == speaker_id), None)
+
+        if not speaker:
+            print("No speaker found with id '{id}'.".format(id=speaker_id))
+            return
+        print("done")
+
 
     def do_EOF(self, line):
         """
