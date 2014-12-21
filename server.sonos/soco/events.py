@@ -138,7 +138,10 @@ def parse_event_xml(xml_event):
                             "{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}"
                             "item"
                             )
-                        value = get_didl_object(item_xml)
+                        try:
+                            value = get_didl_object(item_xml)
+                        except:
+                            pass
                     channel = last_change_var.get('channel')
                     if channel is not None:
                         if result.get(tag) is None:
