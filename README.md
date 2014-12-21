@@ -1,4 +1,12 @@
 ## Release
+v0.5b3     (2014-12-21)
+    
+    --  some more functionality for the interactive command shell
+    --  bugfix: error during processing a Spotify track
+    --  bugfix: an error occurred, if the Broker was started with the '-l' parameter and a 
+        previous online speaker went offline
+     
+    
 v0.5b2     (2014-12-05)
 
     --  interactive command shell (prototype) added to interact with the speakers directly, 

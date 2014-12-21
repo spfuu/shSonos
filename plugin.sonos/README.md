@@ -3,6 +3,10 @@ Smarthome.py framework (https://github.com/mknx/smarthome).
 
 ##Release
   
+  v1.3  2014-20-12
+
+    --  added "is_coordinator" property
+  
   v1.2  2014-11-09
   
     --  added force_stream_mode option to play_tts command (see broker documentation)
@@ -48,22 +52,6 @@ Smarthome.py framework (https://github.com/mknx/smarthome).
     
     --  bugfixes in some command processing
     
-    
-  v0.8    2014-06-06
-
-    --  changed some values in sonos plugin config to 'foo' (commands without parameter like play, 
-        pause, next etc), updated usage of 'enforce_updates = True' for some values,
-        !! please update / replace  your sonos config file !!
-    --  new command:
-        -   join [write]: joins a speaker to another speaker (uid as parameter)
-        -   unjoin [write]: removes the speaker from current group
-        -   partymode [write]: group all speaker to one zone (partymode)
-        -   volume_up [write]: increases the volume (+2)
-        -   volume_down [write]: decreases the volume (-2)
-    --  new value:
-        -   additional_zone_members [read]: additional zone members if speaker is in a group
-    --  changed commands: pause, play, stop, led, mute now toggle commands
-    --  documentation: 'Group behaviour' added
 
 ## Requirements:
 
@@ -403,6 +391,11 @@ Edit file with this sample of mine:
             visu_acl = rw
             sonos_recv = alarms
             sonos_send = alarms
+        
+        [[is_coordinator]]
+            type = bool
+            sonos_recv = playmode
+
         
  This sonos.conf file implements most of the commands to interact with the Sonos Broker. Please follow the detailed
  description under the [command section in the Broker manual](../README.md#available-commands).
