@@ -436,6 +436,7 @@ class SonosSpeaker():
         self.model = []
         self.zone_name = []
         self.zone_icon = []
+        self.is_coordinator = []
         self.serial_number = []
         self.software_version = []
         self.hardware_version = []
