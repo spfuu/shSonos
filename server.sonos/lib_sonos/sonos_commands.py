@@ -194,10 +194,12 @@ class SetVolume(JsonCommandBase):
 
             group_command = 0
             if hasattr(self, 'group_command'):
-                if self.group_command not in [0, 1, True, False, '0', '1']:
+                if self.group_command in [1, True, '1', 'True', 'yes']:
+                    group_command = 1
+                elif self.group_command in [0, False, '0', 'False', 'no']:
+                    group_command = 0
+                else:
                     raise Exception('The parameter \'group_command\' has to be 0|1 or True|False !')
-                group_command = int(self.group_command)
-
             sonos_speaker.sonos_speakers[self.uid].set_volume(volume, trigger_action=True,
                                                               group_command=group_command)
             self._status = True
@@ -448,16 +450,19 @@ class SetBass(JsonCommandBase):
             if self.uid not in sonos_speaker.sonos_speakers:
                 raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
 
-            if self.bass not in range(-10, 11, 1):
+            bass = int(self.bass)
+            if bass not in range(-10, 11, 1):
                 raise Exception('Bass has to be set between -10 and 10!')
 
             group_command = 0
             if hasattr(self, 'group_command'):
-                if self.group_command not in [0, 1, True, False, '0', '1']:
+                if self.group_command in [1, True, '1', 'True', 'yes']:
+                    group_command = 1
+                elif self.group_command in [0, False, '0', 'False', 'no']:
+                    group_command = 0
+                else:
                     raise Exception('The parameter \'group_command\' has to be 0|1 or True|False !')
-                group_command = int(self.group_command)
-
-            sonos_speaker.sonos_speakers[self.uid].set_bass(self.bass, trigger_action=True, group_command=group_command)
+            sonos_speaker.sonos_speakers[self.uid].set_bass(bass, trigger_action=True, group_command=group_command)
             self._status = True
         except ConnectionError:
             self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
@@ -510,16 +515,20 @@ class SetTreble(JsonCommandBase):
             if self.uid not in sonos_speaker.sonos_speakers:
                 raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
 
-            if self.treble not in range(-10, 11, 1):
+            treble = int(self.treble)
+            if treble not in range(-10, 11, 1):
                 raise Exception('Treble has to be set between -10 and 10!')
 
             group_command = 0
             if hasattr(self, 'group_command'):
-                if self.group_command not in [0, 1, True, False, '0', '1']:
+                if self.group_command in [1, True, '1', 'True', 'yes']:
+                    group_command = 1
+                elif self.group_command in [0, False, '0', 'False', 'no']:
+                    group_command = 0
+                else:
                     raise Exception('The parameter \'group_command\' has to be 0|1 or True|False !')
-                group_command = int(self.group_command)
 
-            sonos_speaker.sonos_speakers[self.uid].set_treble(self.treble, trigger_action=True,
+            sonos_speaker.sonos_speakers[self.uid].set_treble(treble, trigger_action=True,
                                                               group_command=group_command)
             self._status = True
         except ConnectionError:
@@ -573,15 +582,21 @@ class SetLoudness(JsonCommandBase):
             if self.uid not in sonos_speaker.sonos_speakers:
                 raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
 
-            if self.loudness not in [0, 1, True, False, '0', '1']:
+            if self.loudness in [1, True, '1', 'True', 'yes']:
+                loudness = 1
+            elif self.loudness in [0, False, '0', 'False', 'no']:
+                loudness = 0
+            else:
                 raise Exception('Loudness has to be 0|1 or True|False !')
-            loudness = int(self.loudness)
 
             group_command = 0
             if hasattr(self, 'group_command'):
-                if self.group_command not in [0, 1, True, False, '0', '1']:
+                if self.group_command in [1, True, '1', 'True', 'yes']:
+                    group_command = 1
+                elif self.group_command in [0, False, '0', 'False', 'no']:
+                    group_command = 0
+                else:
                     raise Exception('The parameter \'group_command\' has to be 0|1 or True|False !')
-                group_command = int(self.group_command)
 
             sonos_speaker.sonos_speakers[self.uid].set_loudness(loudness, trigger_action=True,
                                                                 group_command=group_command)
