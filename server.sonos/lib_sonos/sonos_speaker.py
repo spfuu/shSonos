@@ -28,11 +28,11 @@ class SonosSpeaker():
     remote_folder = ''
 
     @classmethod
-    def set_tts(self, local_folder, remote_folder, qouta, tts_enabled=False):
+    def set_tts(self, local_folder, remote_folder, quota, tts_enabled=False):
         SonosSpeaker.tts_enabled = tts_enabled
         SonosSpeaker.local_folder = local_folder
         SonosSpeaker.remote_folder = remote_folder
-        SonosSpeaker.quota = qouta
+        SonosSpeaker.quota = quota
 
     def __init__(self, soco):
         self._fade_in = False
@@ -927,6 +927,7 @@ class SonosSpeaker():
             'treble',
             'loudness',
             'alarms',
+            'is_coordinator'
         )
 
     @property
@@ -1226,6 +1227,7 @@ class SonosSpeaker():
             self._snippet_event_thread = None
 
         self._zone_coordinator = sonos_speakers[soco.uid.lower()]
+        self.dirty_property('is_coordinator')
 
     def set_group_members(self):
         del self.zone_members[:]
