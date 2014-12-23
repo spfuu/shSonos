@@ -1,8 +1,10 @@
 ## Release
 v0.5b4     (2014-12-23)
     
-    --  commands added: 'get_is_coordinator', 'get_tts_local_mode': please read the documentation
-    --  changed some strings to clarify, that a non-existing or broken GoogleTTS configuration disables
+    --  commands added: 'get_is_coordinator', 'get_tts_local_mode': please 
+        read the documentation
+    --  changed some strings to clarify, that a non-existing or broken GoogleTTS 
+        configuration disables
         only the 'local mode'; the 'streaming mode' is always available
     --  changed the 'client_list'command: only the uids will be shown
     --  added more functionality for the interactive command shell
