@@ -1,4 +1,12 @@
 ## Release
+v0.5b4     (2014-12-23)
+    
+    --  commands added: 'get_is_coordinator', 'get_tts_local_mode': please read the documentation
+    --  changed some strings to clarify, that a non-existing or broken GoogleTTS configuration disables
+        only the 'local mode'; the 'streaming mode' is always available
+    --  changed the 'client_list'command: only the uids will be shown
+    --  added more functionality for the interactive command shell
+
 v0.5b3     (2014-12-21)
     
     --  some more functionality for the interactive command shell
@@ -309,7 +317,7 @@ In almost any cases, you'll get the appropriate response in the following JSON f
 #### Get the UID
 
  Most of the commands need a speaker uid. Start the Sonos Broker with the argument '-l to get a short overview of your 
- sonos speakers in the network and to retrieve the uid. Youn can also perform a sonos [client_list](#client_list) 
+ sonos speakers in the network and to retrieve the uid. You can also perform a sonos [client_list](#client_list) 
  command. 
 
 #### Client Implementation Example
@@ -369,6 +377,8 @@ Click on the links below to get a detailed command descriptions and their usage.
 ###### [get_alarms](#g_alarms)
 ###### [current_state](#cur_state)
 ###### [get_favorite_radio_stations](#g_fav_radio)
+###### [get_is_coordinator](#is_coor)
+###### [get_tts_local_mode](#tts_local)
 
 ----
 #### <a name="cl_subs"></a>client_subscribe
@@ -442,16 +452,7 @@ No special parameter needed.
     HTTP Response:
         <html><head><title>Sonos Broker</title></head>
             <body>
-                <p>uid: rincon_000e58c3892e01410</p>
-                <p>ip: 192.168.0.4</p>
-                <p>model: Sonos PLAY:1</p>
-                <p>current zone: Kitchen</p>
-                <p>----------------------</p>
-                <p>uid: rincon_b8e93730d19801410</p>
-                <p>ip: 192.168.0.10</p>
-                <p>model: Sonos PLAY:3</p>
-                <p>current zone: Kueche</p>
-                <p>----------------------</p>
+                rincon_000e58c3892e01410\nrincon_b8e93730d19801410\n ... [uids]
             </body>
         </html>
     
@@ -1748,8 +1749,8 @@ No special parameter needed.
 
 ----
 #### <a name="p_tts">play_tts
- Plays a text-to-speech snippet using the Google TTS API. After the snippet was played (maximum 60 seconds, longer 
- snippets will be truncated) the previous played song will be resumed. You can queue up to 10 snippets. 
+ Plays a text-to-speech snippet using the Google TTS API. After the snippet was played (maximum 10 seconds in streaming 
+ mode, longer snippets will be truncated) the previous played song will be resumed. You can queue up to 10 snippets. 
  They're played in the order they are called. To setup the Broker for TTS support, please take a deeper look at the 
  dedicated Google TTS section in this document.
 
@@ -1950,3 +1951,61 @@ No special parameter needed.
     
 ###### UDP Response sent to subscribed clients:
     No UDP response
+
+----
+#### <a name="is_coor">get_is_coordinator
+Returns the status whether the specified speaker is a zone coordinator or not.
+  
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_is_coordinator',
+        'parameter': {
+            'uid': 'rincon_000e58c3892e01410',
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+
+###### UDP Response sent to subscribed clients:
+
+    JSON format: 
+    {
+        "is_coordinator": true,
+        "uid": "rincon_b8e93730d19801400"
+    }
+
+----
+#### <a name="tts_local">get_tts_local_mode
+Returns the status whether Google TTS 'local mode' is available or not. To get the 'local mode' running, 
+you have to configure the Google TTS options correctly. If False, only the 'streaming mode' is available. 
+This has some disadvantages. Please read the Google TTS section in this documentation. 
+  
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. | This can be any uid, the return value is the same for all speakers.
+
+######Example
+    JSON format:
+    {
+        'command': 'get_tts_local_mode',
+        'parameter': {
+            'uid': 'rincon_000e58c3892e01410',
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+
+###### UDP Response sent to subscribed clients:
+
+    JSON format: 
+    {
+        "is_coordinator": true,
+        "uid": "rincon_b8e93730d19801400"
+    }
