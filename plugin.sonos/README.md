@@ -3,9 +3,10 @@ Smarthome.py framework (https://github.com/mknx/smarthome).
 
 ##Release
   
-  v1.3  2014-20-12
+  v1.3  2014-12-23
 
     --  added "is_coordinator" property
+    --  added "tts_local_mode" property
   
   v1.2  2014-11-09
   
@@ -394,8 +395,12 @@ Edit file with this sample of mine:
         
         [[is_coordinator]]
             type = bool
-            sonos_recv = playmode
+            sonos_recv = is_coordinator
 
+        [[tts_local_mode]]
+            type = bool
+            sonos_recv = tts_local_mode
+        
         
  This sonos.conf file implements most of the commands to interact with the Sonos Broker. Please follow the detailed
  description under the [command section in the Broker manual](../README.md#available-commands).
