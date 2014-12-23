@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import cmd
 import json
 import socket
@@ -756,7 +759,7 @@ class SonosSpeakerCmd(cmd.Cmd):
         if not line:
             pass
         elif line == "get":
-            self.commands.get_is_coordinator(self.uid)
+            self.commands.is_coordinator(self.uid)
         else:
             print("unknown argument")
             return
@@ -771,7 +774,7 @@ class SonosSpeakerCmd(cmd.Cmd):
         if not line:
             pass
         elif line == "get":
-            self.commands.get_tts_local_mode(self.uid)
+            self.commands.tts_local_mode(self.uid)
         else:
             print("unknown argument")
             return
@@ -1255,20 +1258,20 @@ class Commands():
             }
         )
 
-    def get_is_coordinator(self, uid):
+    def is_coordinator(self, uid):
         return self.send(
             {
-                'command': 'get_is_coordinator',
+                'command': 'is_coordinator',
                 'parameter': {
                     'uid': uid.lower(),
                 }
             }
         )
 
-    def get_tts_local_mode(self, uid):
+    def tts_local_mode(self, uid):
         return self.send(
             {
-                'command': 'get_tts_local_mode',
+                'command': 'tts_local_mode',
                 'parameter': {
                     'uid': uid.lower(),
                 }

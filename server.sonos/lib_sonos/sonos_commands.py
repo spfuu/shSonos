@@ -1578,7 +1578,7 @@ class GetFavoriteRadioStations(JsonCommandBase):
 
 ### IsCoordiantor ######################################################################################################
 
-class GetIsCoordinator(JsonCommandBase):
+class IsCoordinator(JsonCommandBase):
     def __init__(self, parameter):
         super().__init__(parameter)
 
@@ -1606,7 +1606,7 @@ class GetIsCoordinator(JsonCommandBase):
 
 ### TTSLocalMode ######################################################################################################
 
-class GetTtsLocalMode(JsonCommandBase):
+class TtsLocalMode(JsonCommandBase):
     def __init__(self, parameter):
         super().__init__(parameter)
 

@@ -1,11 +1,11 @@
 ## Release
 v0.5b4     (2014-12-23)
     
-    --  commands added: 'get_is_coordinator', 'get_tts_local_mode': please 
+    --  commands added: 'is_coordinator'[readonly], 'tts_local_mode'[readonly]: please 
         read the documentation
     --  changed some strings to clarify, that a non-existing or broken GoogleTTS 
-        configuration disables
-        only the 'local mode'; the 'streaming mode' is always available
+        configuration disables only the 'local mode'; the 'streaming mode' is always 
+        available
     --  changed the 'client_list'command: only the uids will be shown
     --  added more functionality for the interactive command shell
 
@@ -379,8 +379,8 @@ Click on the links below to get a detailed command descriptions and their usage.
 ###### [get_alarms](#g_alarms)
 ###### [current_state](#cur_state)
 ###### [get_favorite_radio_stations](#g_fav_radio)
-###### [get_is_coordinator](#is_coor)
-###### [get_tts_local_mode](#tts_local)
+###### [is_coordinator](#is_coor)
+###### [tts_local_mode](#tts_local)
 
 ----
 #### <a name="cl_subs"></a>client_subscribe
@@ -1955,7 +1955,8 @@ No special parameter needed.
     No UDP response
 
 ----
-#### <a name="is_coor">get_is_coordinator
+#### <a name="is_coor">is_coordinator
+[readonly]
 Returns the status whether the specified speaker is a zone coordinator or not.
   
 | parameter | required / optional | valid values | description |     
@@ -1965,7 +1966,7 @@ Returns the status whether the specified speaker is a zone coordinator or not.
 ######Example
     JSON format:
     {
-        'command': 'get_is_coordinator',
+        'command': 'is_coordinator',
         'parameter': {
             'uid': 'rincon_000e58c3892e01410',
         }
@@ -1983,7 +1984,8 @@ Returns the status whether the specified speaker is a zone coordinator or not.
     }
 
 ----
-#### <a name="tts_local">get_tts_local_mode
+#### <a name="tts_local">tts_local_mode
+[readonly]
 Returns the status whether Google TTS 'local mode' is available or not. To get the 'local mode' running, 
 you have to configure the Google TTS options correctly. If False, only the 'streaming mode' is available. 
 This has some disadvantages. Please read the Google TTS section in this documentation. 
@@ -1995,7 +1997,7 @@ This has some disadvantages. Please read the Google TTS section in this document
 ######Example
     JSON format:
     {
-        'command': 'get_tts_local_mode',
+        'command': 'tts_local_mode',
         'parameter': {
             'uid': 'rincon_000e58c3892e01410',
         }
