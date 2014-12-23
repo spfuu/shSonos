@@ -23,18 +23,19 @@ _sonos_lock = threading.Lock()
 
 
 class SonosSpeaker():
-    tts_enabled = False
+    tts_local_mode = False
     local_folder = ''
     remote_folder = ''
 
     @classmethod
-    def set_tts(self, local_folder, remote_folder, quota, tts_enabled=False):
-        SonosSpeaker.tts_enabled = tts_enabled
+    def set_tts(self, local_folder, remote_folder, quota, tts_local_mode=False):
+        SonosSpeaker.tts_local_mode = tts_local_mode
         SonosSpeaker.local_folder = local_folder
         SonosSpeaker.remote_folder = remote_folder
         SonosSpeaker.quota = quota
 
     def __init__(self, soco):
+        self._tts_local_mode = SonosSpeaker.tts_local_mode
         self._fade_in = False
         self._saved_music_item = None
         self._zone_members = NotifyList()
@@ -101,6 +102,18 @@ class SonosSpeaker():
         :return: SoCo instance
         """
         return self._soco
+
+    ### TTS Local Mode #################################################################################################
+
+    @property
+    def tts_local_mode(self):
+
+        """
+        Is tts local mode available? If False, streaming mode is assumed (some disadvantages, see Broker docu.
+        :return: tts_local_mode
+        :rtype : bool
+        """
+        return self._tts_local_mode
 
     # ## MODEL ##########################################################################################################
 
@@ -911,6 +924,7 @@ class SonosSpeaker():
         self.dirty_music_metadata()
 
         self.dirty_property(
+            'tts_local_mode',
             'ip',
             'mac_address',
             'software_version',
@@ -950,6 +964,7 @@ class SonosSpeaker():
         self._status = value
 
         if self._status == 0:
+            self._tts_local_mode = False
             self._streamtype = ''
             self._volume = 0
             self._bass = 0
@@ -1091,7 +1106,7 @@ class SonosSpeaker():
             return
 
     def play_tts(self, tts, volume, language='en', group_command=False, force_stream_mode=False, fade_in=False):
-        if (not SonosSpeaker.tts_enabled) or force_stream_mode:
+        if (not self._tts_local_mode) or force_stream_mode:
             logger.warning('Google TTS local mode disabled, using radio stream mode!')
             url = "x-rincon-mp3radio://translate.google.com/" \
                   "translate_tts?ie=UTF-8&tl={lang}&q={message}".format(lang=language,
