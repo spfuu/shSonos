@@ -46,14 +46,14 @@ class SonosServerService():
     _sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     _sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
 
-    def __init__(self, host, port, remote_folder, local_folder, quota, tts_enabled):
+    def __init__(self, host, port, remote_folder, local_folder, quota, tts_local_mode):
         self.event_lock = Lock()
         self.lock = Lock()
         self.host = host
         self.port = port
         self.event_queue = queue.Queue()
 
-        SonosSpeaker.set_tts(local_folder, remote_folder, quota, tts_enabled)
+        SonosSpeaker.set_tts(local_folder, remote_folder, quota, tts_local_mode)
 
         p_t = threading.Thread(target=self.process_events)
         p_t.daemon = True
@@ -295,9 +295,10 @@ class SonosServerService():
         ml_track = variables['current_track_meta_data']
         if ml_track:
             if hasattr(ml_track, 'album_art_uri'):
-                if not ml_track.album_art_uri.startswith(('http:', 'https:')):
-                    album_art_uri = 'http://' + speaker.ip + ':1400' + ml_track.album_art_uri
-                speaker.track_album_art = album_art_uri
+                if ml_track.album_art_uri:
+                    if not ml_track.album_art_uri.startswith(('http:', 'https:')):
+                        album_art_uri = 'http://' + speaker.ip + ':1400' + ml_track.album_art_uri
+                    speaker.track_album_art = album_art_uri
             else:
                 speaker.track_album_art = ''
 
