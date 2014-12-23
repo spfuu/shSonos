@@ -465,7 +465,7 @@ class SonosSpeaker():
         self.loudness = []
         self.playmode = []
         self.alarms = []
-
+        self.tts_local_mode = []
 
 class SonosCommand():
 
@@ -662,7 +662,6 @@ class SonosCommand():
                 'group_command': group_command
             }
         }
-
 
     @staticmethod
     def play_tts(uid, tts, language, volume, group_command, force_stream_mode, fade_in):
