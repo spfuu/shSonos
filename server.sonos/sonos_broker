@@ -102,7 +102,7 @@ class SonosBroker():
         self._http_server = None
         self._host = ''
         self._port = ''
-        self._tts_enabled = False
+        self._tts_local_mode = False
         self._save_path = None
         self._server_url = None
         self._quota = None
@@ -217,9 +217,9 @@ class SonosBroker():
 
         if config.has_section('google_tts'):
             if config.has_option('google_tts', 'enabled'):
-                self._tts_enabled = config.getboolean('google_tts', 'enabled')
+                self._tts_local_mode = config.getboolean('google_tts', 'enabled')
 
-            if self._tts_enabled:
+            if self._tts_local_mode:
                 if config.has_option('google_tts', 'save_path'):
                     self._save_path = config.get('google_tts', 'save_path')
 
@@ -229,21 +229,21 @@ class SonosBroker():
                 if config.has_option('google_tts', 'quota'):
                     self._quota = config.getint('google_tts', 'quota')
 
-        if self._tts_enabled and not self._save_path:
+        if self._tts_local_mode and not self._save_path:
             logger.warning('No local save path given!')
-            self._tts_enabled = False
+            self._tts_local_mode = False
 
-        if self._tts_enabled and not self._server_url:
+        if self._tts_local_mode and not self._server_url:
             logger.warning('No local server url given!')
-            self._tts_enabled = False
+            self._tts_local_mode = False
 
-        if self._tts_enabled and not self._quota:
+        if self._tts_local_mode and not self._quota:
             self._quota = definitions.DEFAULT_QUOTA
 
-        if self._tts_enabled:
+        if self._tts_local_mode:
             if not utils.check_directory_permissions(self._save_path):
                 logger.warning('No sufficient folder permissions in \'{}\'!'.format(self._save_path))
-                self._tts_enabled = False
+                self._tts_local_mode = False
             else:
                 free_diskspace = utils.get_free_space_mb(self._save_path)
                 logger.info('Free diskspace: {} mb'.format(free_diskspace))
@@ -253,12 +253,12 @@ class SonosBroker():
                         'Not enough disk space left on \'{}\'. At least {} mb of free diskspace required!'.format(
                             self._save_path,
                             self._quota))
-                    self._tts_enabled = False
+                    self._tts_local_mode = False
 
-        if not self._tts_enabled:
-            logger.debug('Google-TTS disabled!')
+        if not self._tts_local_mode:
+            logger.debug("Google-TTS 'local mode' disabled! Only streaming mode available.")
         else:
-            logger.debug('Google-TTS enabled!')
+            logger.debug("Google-TTS 'local mode' enabled!")
             logger.debug('server_url: {}'.format(self._server_url))
             logger.debug('save_path: {}'.format(self._save_path))
 
@@ -269,7 +269,7 @@ class SonosBroker():
             "Starting server with ip address {ip} ... be sure this is correct.".format(ip=self._server_ip))
         time.sleep(1)
         self._sonos_service = SonosServerService(self._server_ip, self._port, self._server_url, self._save_path,
-                                                 self._quota, self._tts_enabled)
+                                                 self._quota, self._tts_local_mode)
         self._http_server = ThreadedHTTPServer((self._host, self._port), SonosHttpHandler)
         logger.info('Starting http server, use <Ctrl-C> to stop')
 
