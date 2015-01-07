@@ -1,4 +1,10 @@
 ## Release
+
+v0.5b5     (2015-01-08)
+
+    --  commands added: get_playlist, set_playlist (see documentation). Its now possible to save and set
+        the playlist for a speaker / zone.
+
 v0.5b4     (2014-12-23)
     
     --  commands added: 'is_coordinator'[readonly], 'tts_local_mode'[readonly]: please 
@@ -82,8 +88,11 @@ v0.3        (2014-09-16)
 
 	
 The shSonos project is Sonos control server, mainly based on the brilliant SoCo project (https://github.com/SoCo/SoCo). 
-It implements a lightweight http server, which is controlled by simple HTTP json commands. 
-It sends all available Sonos speaker data to all subscribed clients and notifies them of all changes.   
+It implements a lightweight http server, which is controlled by simple HTTP json commands.
+It sends all available Sonos speaker data to all subscribed clients and notifies them of all changes.
+
+The Sonos Broker implements some nice additional features like GoogleTTS, saving/restoring the playlist, maximum
+volume settings for each Sonos speaker and much more.
 
 In addition , i decided to write a plugin for the fantastic "Smarthome.py Project" to control Sonos speakers in a 
 smart home environment (https://github.com/mknx/smarthome/).
@@ -381,6 +390,8 @@ Click on the links below to get a detailed command descriptions and their usage.
 ###### [get_favorite_radio_stations](#g_fav_radio)
 ###### [is_coordinator](#is_coor)
 ###### [tts_local_mode](#tts_local)
+###### [get_playlist](#get_playlist)
+###### [set_playlist](#set_playlist)
 
 ----
 #### <a name="cl_subs"></a>client_subscribe
@@ -1794,6 +1805,7 @@ No special parameter needed.
 
 ----
 #### <a name="g_alarms"></a>get_alarms
+ [readonly]
  Gets all registered alarms for a Sonos speaker.
  In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
  about 'alarms'-status changes.
@@ -1907,6 +1919,7 @@ No special parameter needed.
 
 ----
 #### <a name="g_fav_radio"></a>get_favorite_radio_stations
+ [readonly]
  Returns the favorite radio stations.
  
 | parameter | required / optional | valid values | description |     
@@ -1956,8 +1969,8 @@ No special parameter needed.
 
 ----
 #### <a name="is_coor">is_coordinator
-[readonly]
-Returns the status whether the specified speaker is a zone coordinator or not.
+ [readonly]
+ Returns the status whether the specified speaker is a zone coordinator or not.
   
 | parameter | required / optional | valid values | description |     
 | :-------- | :------------------ | :----------- | :---------- |
@@ -2013,3 +2026,58 @@ This has some disadvantages. Please read the Google TTS section in this document
         "is_coordinator": true,
         "uid": "rincon_b8e93730d19801400"
     }
+
+----
+#### <a name="get_playlist">get_playlist
+ [readonly]
+ Returns the the current playlist as a base64 string. You can save this string to use it with the set_playlist command.
+
+| parameter | required / optional | valid values | description |
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_playlist',
+        'parameter': {
+            'uid': 'rincon_000e58c3892e01410',
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK and a base64 string representing the playlist
+        or
+    Exception with HTTP status 400 and the specific error message.
+
+###### UDP Response sent to subscribed clients:
+    No UDP response
+
+
+----
+#### <a name="set_playlist">set_playlist
+ Sets the playlist for a speaker ( and for the entire zone). You should read a file containing
+ the base64-coded playlist (gathered by the get_playlist command) and assign the json variable
+  'playlist' with this value.
+
+| parameter | required / optional | valid values | description |
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_playlist',
+        'parameter': {
+            'uid': 'rincon_000e58c3892e01410',
+            'playlist': '#so_pl#gASVwhsAAAAAAABdlIwUc29jby5kYXRhX3N0cnVjdHVyZX....
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK
+        or
+    Exception with HTTP status 400 and the specific error message.
+
+###### UDP Response sent to subscribed clients:
+    No UDP response
