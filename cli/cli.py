@@ -3,6 +3,7 @@
 
 import cmd
 import json
+import os
 import socket
 from time import sleep
 import requests
@@ -780,6 +781,51 @@ class SonosSpeakerCmd(cmd.Cmd):
             return
         print("tts_local_mode: {}".format(self.tts_local_mode))
 
+    def help_playlist(self):
+        print("playlist: Gets the current playlist.")
+        print("playlist [get]: Gets the current playlist.")
+        print("playlist [set]: Sets the current playlist.")
+
+    def do_playlist(self, line):
+        line = line.lower()
+        if not line or line == "get":
+            default_path = ""
+            path = input(normalize_output("Playlist", "save path", default_path))
+
+            try:
+                if not os.path.exists(os.path.dirname(path)):
+                    os.makedirs(os.path.dirname(path))
+            except Exception:
+                print("Couldn't create '{path}'.'!".format(path=os.path.dirname(path)))
+                return
+
+            status, response = self.commands.get_playlist(self.uid)
+
+            if not status:
+                print("Couldn't get playlist from speaker. Error: {response}".format(response=response))
+                return
+
+            with open(path, 'w') as f:
+                f.write(response)
+                print("Playlist saved to '{path}'.".format(path=path))
+
+        elif line == "set":
+            default_path = ""
+            path = input(normalize_output("Playlist", "path to file", default_path))
+
+            if not os.path.isfile(path):
+                return
+
+            with open(path, 'r') as f:
+                playlist = f.read()
+                status, response = self.commands.set_playlist(self.uid, playlist)
+
+                if not status:
+                    print(response)
+        else:
+            print("unknown argument")
+            return
+
 
 class Commands():
     @property
@@ -1278,12 +1324,33 @@ class Commands():
             }
         )
 
+    def get_playlist(self, uid):
+        return self.send(
+            {
+                'command': 'get_playlist',
+                'parameter': {
+                    'uid': uid.lower(),
+                }
+            }
+        )
+
+    def set_playlist(self, uid, playlist):
+        return self.send(
+            {
+                'command': 'set_playlist',
+                'parameter': {
+                    'uid': uid.lower(),
+                    'playlist': playlist
+                }
+            }
+        )
+
 
 if __name__ == '__main__':
     # client_ip = "192.168.178.53"
-    #client_port = 5005
-    #server_ip = "192.168.178.53"
-    #server_port = "12900"
-    #cmd = SonosBrokerCmd(client_ip, client_port, server_ip, server_port)
+    # client_port = 5005
+    # server_ip = "192.168.178.53"
+    # server_port = "12900"
+    # cmd = SonosBrokerCmd(client_ip, client_port, server_ip, server_port)
     broker_cmd = SonosBrokerCmd()
     broker_cmd.cmdloop()
