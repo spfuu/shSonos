@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
+import base64
+import pickle
 import logging
 import queue
+import tempfile
 import urllib
 from lib_sonos.utils import NotifyList
 from soco.alarms import get_alarms
@@ -11,6 +14,7 @@ import json
 from lib_sonos import udp_broker
 from lib_sonos import utils
 from soco.snapshot import Snapshot
+from lib_sonos import definitions
 
 try:
     import xml.etree.cElementTree as XML
@@ -1265,6 +1269,39 @@ class SonosSpeaker():
                 pass
             except KeyboardInterrupt:
                 break
+
+    def get_playlist(self):
+        try:
+            snapshot = Snapshot(device=self.soco, snapshot_queue=True)
+            snapshot.snapshot()
+            with tempfile.TemporaryFile() as f:
+                pickle.dump(snapshot.queue, f, pickle.HIGHEST_PROTOCOL)
+                f.seek(0)
+                return definitions.MB_PLAYLIST + base64.b64encode(f.read()).decode('ascii')
+        except Exception as err:
+            raise Exception("Unable to get playlist! Error: {err}".format(err=err))
+
+    def set_playlist(self, playlist):
+        try:
+            snapshot = Snapshot(device=self.soco, snapshot_queue=False)
+            snapshot.snapshot()
+
+            # check magic bytes
+            if not playlist.startswith("#so_pl#"):
+                raise Exception("This is not a valid playlist file.")
+
+            # remove magic bytes
+            playlist = playlist.lstrip(definitions.MB_PLAYLIST)
+
+            with tempfile.TemporaryFile() as f:
+                f.write(base64.b64decode(playlist))
+                f.seek(0)
+                snapshot.queue = pickle.load(f)
+                snapshot.restore()
+
+        except Exception as err:
+            print(err)
+            pass
 
     led = property(get_led, set_led)
     bass = property(get_bass, set_bass)
