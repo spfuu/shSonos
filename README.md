@@ -2,8 +2,8 @@
 
 v0.5b5     (2015-01-08)
 
-    --  commands added: get_playlist, set_playlist (see documentation). Its now possible to save and set
-        the playlist for a speaker / zone.
+    --  commands added: get_playlist, set_playlist (see documentation). Its now possible to
+        save and set the playlist for a speaker / zone.
 
 v0.5b4     (2014-12-23)
     
