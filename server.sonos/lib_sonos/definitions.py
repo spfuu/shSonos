@@ -20,11 +20,10 @@ NS = {'dc': '{http://purl.org/dc/elements/1.1/}',
       'upnp': '{urn:schemas-upnp-org:metadata-1-0/upnp/}',
       '': '{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}'}
 
-#regular expressions to find sonos meta info through udp stream
-
+# regular expressions to find sonos meta info through udp stream
 ip_pattern = '^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$'
 
-VERSION = "0.5b4 (2014-12-23)"
+VERSION = "0.5b5 (2015-01-08)"
 
 DEFAULT_HOST = '0.0.0.0'
 DEFAULT_PORT = 12900
@@ -36,3 +35,4 @@ HTTP_SUCCESS = 200
 HTTP_ERROR = 400
 SCAN_TIMEOUT = 60
 TIMESTAMP_PATTERN = "([0-5]?[0-9]):([0-5]?[0-9]):([0-5][0-9])"
+MB_PLAYLIST = "#so_pl#"
