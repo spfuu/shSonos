@@ -1638,7 +1638,6 @@ class GetPlaylist(JsonCommandBase):
             logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
                                                                                   attributes=utils.dump_attributes(
                                                                                       self)))
-
             self._response = sonos_speaker.sonos_speakers[self.uid].get_playlist()
             self._status = True
 
@@ -1662,8 +1661,15 @@ class SetPlaylist(JsonCommandBase):
             logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
                                                                                   attributes=utils.dump_attributes(
                                                                                       self)))
-
-            self._response = sonos_speaker.sonos_speakers[self.uid].set_playlist(self.playlist)
+            play_after_insert = 0
+            if hasattr(self, 'play_after_insert'):
+                if self.play_after_insert in [1, True, '1', 'True', 'yes']:
+                    play_after_insert = 1
+                elif self.play_after_insert in [0, False, '0', 'False', 'no']:
+                    play_after_insert = 0
+                else:
+                    raise Exception('The parameter \'play_after_insert\' has to be 0|1 or True|False !')
+            self._response = sonos_speaker.sonos_speakers[self.uid].set_playlist(self.playlist, play_after_insert)
             self._status = True
 
         except ConnectionError:
