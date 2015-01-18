@@ -1,42 +1,25 @@
 ## Release
 
-v0.5b5     (2015-01-08)
+v0.5       (2015-01-18)
 
+    --  interactive command shell added to interact with the speakers directly (see docu)
     --  commands added: get_playlist, set_playlist (see documentation). Its now possible to
         save and set the playlist for a speaker / zone.
-
-v0.5b4     (2014-12-23)
-    
     --  commands added: 'is_coordinator'[readonly], 'tts_local_mode'[readonly]: please 
         read the documentation
     --  changed some strings to clarify, that a non-existing or broken GoogleTTS 
         configuration disables only the 'local mode'; the 'streaming mode' is always 
         available
     --  changed the 'client_list'command: only the uids will be shown
-    --  added more functionality for the interactive command shell
-
-v0.5b3     (2014-12-21)
-    
-    --  some more functionality for the interactive command shell
     --  bugfix: error during processing a Spotify track
     --  bugfix: an error occurred, if the Broker was started with the '-l' parameter and a 
         previous online speaker went offline
-     
-    
-v0.5b2     (2014-12-05)
-
-    --  interactive command shell (prototype) added to interact with the speakers directly, 
-        more functions coming soon
     --  changed logging handler in daemon.py to global logging handler specified in the 
         config file
     --  new SoCo version     
-
-v0.5b1     (2014-11-29)
-
     --  new start option "-l"
         --  this options lists all available Sonos speaker in the network. 
             This is helpful to get the speakers UIDs.
-    
          
 v0.4       (2014-11-09)
 
@@ -54,35 +37,6 @@ v0.4       (2014-11-09)
     --  sonos broker should no stop reliable
     --  minor bug fixes in documentation
     
-v0.3        (2014-09-16)
-
-    --  !! ATTENTION !!: commands are changed to JSON commands. They are more flexible 
-        than the old HTTP GET commands.
-        Please adapt your clients to this new feature. Older clients won't work. 
-        Please read the manual to set it up and get some example implementations.
-        If you're running the Broker together with the Smarthome.py framework, 
-        make sure you use the newest Sonos plugin. 
-
-    --  !! ATTENTION !! Read previous point !!
-    --  !! ATTENTION !! Read previous point !!
-     
-    --  commands 'Volume', 'Mute', 'Led', 'Treble', 'Bass', 'Loudness' can now be group 
-        commands by adding 'group_command: 1' to the json command structure 
-    --  !! seek command is now named SetTrackPosition (see documentation)
-    --  !! to get the current track position, poll GetTrackInfo with 'force_refresh' option
-        (see documentation)
-    --  removed command track_info() (this was only useful to get the current track 
-        position; use GetTrackInfo instead
-    --  the Broker now sends only the current changed speaker values instead of the whole 
-        sonos data structure. This results in much less network traffic / overhead.
-    --  Bug: fixed a problem with join command: join could fail, if the group to join have
-        had more than ne speaker
-    --  Bug: fixed permission problem when saving a google tts sound file
-    --  Bug: sometimes the search for the group coordinator doesn't found a valid object
-    --  Bug: Loglevel for the SoCo framework differed from the Broker settings
-    --  added some debug outputs, especially the commands are now logged more detailed
-    --  much cleaner code and improvements 
-
 
 ## Overview
 
@@ -182,6 +136,55 @@ Additionally, you can specify a file to pipe the debug log to this file.
 
     logfile = log.txt
 
+
+## Interactive Command Line
+
+You can control the Broker and your speakers without implementing your own client. To start the interactive
+command line (the Broker must be running) type
+```
+./sonos_cmd
+```
+in the root folder of the Sonos Broker.
+
+With the
+```
+help
+```
+command you can show up all options.
+
+Within the shell type  
+```
+update
+```
+to get all the speakers in the network.
+
+Type
+```
+list
+```
+or
+```
+speaker
+```
+to show all available speakers.
+
+To interact with one of these speakers type
+```
+speaker [number of the speaker]
+```
+
+Now you should see the uid of the speaker as the command line prompt. Type
+```
+help
+```
+for all available commands. All of them are interactive and self-explaining.
+
+An
+```
+exit
+```
+redirects you to the first command line level.
+ 
 
 ## Google TTS Support
 
@@ -2063,14 +2066,17 @@ This has some disadvantages. Please read the Google TTS section in this document
 | parameter | required / optional | valid values | description |
 | :-------- | :------------------ | :----------- | :---------- |
 | uid | required | | The UID of the Sonos speaker. |
+| playlist | required | base64 encoded string| The playlist as a base64 encoded string. |
+| play_after_insert | optional | 0 or 1 | Starts playing the after inserting the playlist. Default: 0  |
 
 ######Example
     JSON format:
     {
-        'command': 'get_playlist',
+        'command': 'set_playlist',
         'parameter': {
             'uid': 'rincon_000e58c3892e01410',
             'playlist': '#so_pl#gASVwhsAAAAAAABdlIwUc29jby5kYXRhX3N0cnVjdHVyZX....
+            'play_after_insert'
         }
     }
 
