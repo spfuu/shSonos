@@ -2075,8 +2075,8 @@ This has some disadvantages. Please read the Google TTS section in this document
         'command': 'set_playlist',
         'parameter': {
             'uid': 'rincon_000e58c3892e01410',
-            'playlist': '#so_pl#gASVwhsAAAAAAABdlIwUc29jby5kYXRhX3N0cnVjdHVyZX....
-            'play_after_insert'
+            'playlist': '#so_pl#gASVwhsAAAAAAABdlIwUc29jby5kYXRhX3N0cnVjdHVyZX.... ,
+            'play_after_insert': 1
         }
     }
 
