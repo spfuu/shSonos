@@ -14,17 +14,18 @@ import re
 import itertools
 import requests
 import time
+import struct
 
 from .services import DeviceProperties, ContentDirectory
 from .services import RenderingControl, AVTransport, ZoneGroupTopology
 from .services import AlarmClock
 from .groups import ZoneGroup
-from .exceptions import CannotCreateDIDLMetadata, SoCoUPnPException
-from .data_structures import get_didl_object, DidlPlaylistContainer,\
-    DidlContainer, SearchResult, Queue, DidlObject, DidlMusicTrack,\
-    DidlMusicAlbum
-from .utils import really_utf8, camel_to_underscore, url_escape_path,\
-    really_unicode
+from .exceptions import DIDLMetadataError, SoCoUPnPException
+from .data_structures import DidlPlaylistContainer,\
+    SearchResult, Queue, DidlObject, DidlMusicAlbum,\
+    from_didl_string, to_didl_string, DidlResource
+from .utils import really_utf8, camel_to_underscore, really_unicode,\
+    url_escape_path
 from .xml import XML
 from soco import config
 
@@ -55,7 +56,8 @@ def discover(timeout=1, include_invisible=False):
     _sock = socket.socket(
         socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     # UPnP v1.0 requires a TTL of 4
-    _sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 4)
+    _sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL,
+                     struct.pack("B", 4))
     # Send a few times. UDP is unreliable
     _sock.sendto(really_utf8(PLAYER_SEARCH), (MCAST_GRP, MCAST_PORT))
     _sock.sendto(really_utf8(PLAYER_SEARCH), (MCAST_GRP, MCAST_PORT))
@@ -99,7 +101,7 @@ def discover(timeout=1, include_invisible=False):
 
         if response:
             data, addr = _sock.recvfrom(1024)
-            if "Sonos" not in str(data):
+            if b"Sonos" not in data:
                 continue
 
             # Now we have an IP, we can build a SoCo instance and query that
@@ -1249,10 +1251,8 @@ class SoCo(_SocoSingletonBase):
             # pylint: disable=star-args
             return Queue(queue, **metadata)
 
-        result_dom = XML.fromstring(really_utf8(result))
-        for element in result_dom.findall(
-                '{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}item'):
-            item = DidlMusicTrack.from_xml(element)
+        items = from_didl_string(result)
+        for item in items:
             # Check if the album art URI should be fully qualified
             if full_album_art_uri:
                 self._update_album_art_to_full_uri(item)
@@ -1475,14 +1475,8 @@ class SoCo(_SocoSingletonBase):
                     raise exception
 
             # Parse the results
-            dom = XML.fromstring(really_utf8(response['Result']))
-            for container in dom:
-                if search_type == 'sonos_playlists':
-                    item = DidlPlaylistContainer.from_xml(container)
-                elif search_type == 'share':
-                    item = DidlContainer.from_xml(container)
-                else:
-                    item = get_didl_object(container)
+            items = from_didl_string(response['Result'])
+            for item in items:
                 # Check if the album art URI should be fully qualified
                 if full_album_art_uri:
                     self._update_album_art_to_full_uri(item)
@@ -1555,14 +1549,13 @@ class SoCo(_SocoSingletonBase):
         metadata['search_type'] = 'browse'
 
         # Parse the results
-        dom = XML.fromstring(really_utf8(response['Result']))
+        containers = from_didl_string(response['Result'])
         item_list = []
-        for container in dom:
-            item = get_didl_object(container)
+        for container in containers:
             # Check if the album art URI should be fully qualified
             if full_album_art_uri:
-                self._update_album_art_to_full_uri(item)
-            item_list.append(item)
+                self._update_album_art_to_full_uri(container)
+            item_list.append(container)
 
         # pylint: disable=star-args
         return SearchResult(item_list, **metadata)
@@ -1599,9 +1592,11 @@ class SoCo(_SocoSingletonBase):
 
         search_item_id = search + idstring
         search_uri = "#" + search_item_id
-
+        # Not sure about the res protocol. But this seems to work
+        res = [DidlResource(
+            uri=search_uri, protocol_info="x-rincon-playlist:*:*:*")]
         search_item = DidlObject(
-            uri=search_uri, title='', parent_id='',
+            resources=res, title='', parent_id='',
             item_id=search_item_id)
 
         # Call the base version
@@ -1655,31 +1650,20 @@ class SoCo(_SocoSingletonBase):
         :param uri: The URI to be added to the queue
         :type uri: str
         """
-        item = DidlObject(uri=uri, title='', parent_id='', item_id='')
+        # FIXME: The res.protocol_info should probably represent the mime type
+        # etc of the uri. But this seems OK.
+        res = [DidlResource(uri=uri, protocol_info="x-rincon-playlist:*:*:*")]
+        item = DidlObject(resources=res, title='', parent_id='', item_id='')
         return self.add_to_queue(item)
 
     def add_to_queue(self, queueable_item):
         """ Adds a queueable item to the queue """
-        # Check if teh required attributes are there
-        for attribute in ['didl_metadata', 'uri']:
-            if not hasattr(queueable_item, attribute):
-                message = 'queueable_item has no attribute {0}'.\
-                    format(attribute)
-                raise AttributeError(message)
-        # Get the metadata
-        try:
-            metadata = XML.tostring(queueable_item.didl_metadata)
-        except CannotCreateDIDLMetadata as exception:
-            message = ('The queueable item could not be enqueued, because it '
-                       'raised a CannotCreateDIDLMetadata exception with the '
-                       'following message:\n{0}').format(str(exception))
-            raise ValueError(message)
+        metadata = to_didl_string(queueable_item)
         if isinstance(metadata, str):
-            metadata = metadata.encode('utf-8')
-
+            metadata.encode('utf-8')
         response = self.avTransport.AddURIToQueue([
             ('InstanceID', 0),
-            ('EnqueuedURI', queueable_item.uri),
+            ('EnqueuedURI', queueable_item.resources[0].uri),
             ('EnqueuedURIMetaData', metadata),
             ('DesiredFirstTrackNumberEnqueued', 0),
             ('EnqueueAsNext', 1)
@@ -1826,7 +1810,9 @@ class SoCo(_SocoSingletonBase):
         obj_id = item_id.split(':', 2)[1]
         uri = "file:///jffs/settings/savedqueues.rsq#{0}".format(obj_id)
 
-        return DidlPlaylistContainer(uri, title, 'SQ:', item_id)
+        res = [DidlResource(uri=uri, protocol_info="x-rincon-playlist:*:*:*")]
+        return DidlPlaylistContainer(
+            resources=res, title=title, parent_id='SQ:', item_id=item_id)
 
     # pylint: disable=invalid-name
     def create_sonos_playlist_from_queue(self, title):
@@ -1849,8 +1835,9 @@ class SoCo(_SocoSingletonBase):
         item_id = response['AssignedObjectID']
         obj_id = item_id.split(':', 2)[1]
         uri = "file:///jffs/settings/savedqueues.rsq#{0}".format(obj_id)
-
-        return DidlPlaylistContainer(uri, title, 'SQ:', item_id)
+        res = [DidlResource(uri=uri, protocol_info="x-rincon-playlist:*:*:*")]
+        return DidlPlaylistContainer(
+            resources=res, title=title, parent_id='SQ:', item_id=item_id)
 
     def add_item_to_sonos_playlist(self, queueable_item, sonos_playlist):
         """ Adds a queueable item to a Sonos' playlist
@@ -1869,9 +1856,9 @@ class SoCo(_SocoSingletonBase):
         # Get the metadata
         try:
             metadata = XML.tostring(queueable_item.didl_metadata)
-        except CannotCreateDIDLMetadata as exception:
+        except DIDLMetadataError as exception:
             message = ('The queueable item could not be enqueued, because it '
-                       'raised a CannotCreateDIDLMetadata exception with the '
+                       'raised a DIDLMetadataError exception with the '
                        'following message:\n{0}').format(str(exception))
             raise ValueError(message)
         if isinstance(metadata, str):
