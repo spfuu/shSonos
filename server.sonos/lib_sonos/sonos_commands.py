@@ -2,6 +2,7 @@ import json
 from abc import ABCMeta, abstractmethod
 import logging
 import re
+import soco
 from lib_sonos.sonos_library import SonosLibrary
 from lib_sonos.definitions import TIMESTAMP_PATTERN, SCAN_TIMEOUT
 from lib_sonos.udp_broker import UdpBroker
@@ -163,7 +164,7 @@ class GetVolume(JsonCommandBase):
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -194,15 +195,17 @@ class SetVolume(JsonCommandBase):
 
             group_command = 0
             if hasattr(self, 'group_command'):
-                if self.group_command not in [0, 1, True, False, '0', '1']:
+                if self.group_command in [1, True, '1', 'True', 'yes']:
+                    group_command = 1
+                elif self.group_command in [0, False, '0', 'False', 'no']:
+                    group_command = 0
+                else:
                     raise Exception('The parameter \'group_command\' has to be 0|1 or True|False !')
-                group_command = int(self.group_command)
-
             sonos_speaker.sonos_speakers[self.uid].set_volume(volume, trigger_action=True,
                                                               group_command=group_command)
             self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -228,14 +231,17 @@ class VolumeUp(JsonCommandBase):
 
             group_command = 0
             if hasattr(self, 'group_command'):
-                if self.group_command not in [0, 1, True, False, '0', '1']:
+                if self.group_command in [1, True, '1', 'True', 'yes']:
+                    group_command = 1
+                elif self.group_command in [0, False, '0', 'False', 'no']:
+                    group_command = 0
+                else:
                     raise Exception('The parameter \'group_command\' has to be 0|1 or True|False !')
-                group_command = int(self.group_command)
 
             sonos_speaker.sonos_speakers[self.uid].volume_up(group_command=group_command)
             self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -261,14 +267,17 @@ class VolumeDown(JsonCommandBase):
 
             group_command = 0
             if hasattr(self, 'group_command'):
-                if self.group_command not in [0, 1, True, False, '0', '1']:
+                if self.group_command in [1, True, '1', 'True', 'yes']:
+                    group_command = 1
+                elif self.group_command in [0, False, '0', 'False', 'no']:
+                    group_command = 0
+                else:
                     raise Exception('The parameter \'group_command\' has to be 0|1 or True|False !')
-                group_command = int(self.group_command)
 
             sonos_speaker.sonos_speakers[self.uid].volume_down(group_command=group_command)
             self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -296,7 +305,7 @@ class GetMaxVolume(JsonCommandBase):
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -327,9 +336,12 @@ class SetMaxVolume(JsonCommandBase):
 
             group_command = 0
             if hasattr(self, 'group_command'):
-                if self.group_command not in [0, 1, True, False, '0', '1']:
+                if self.group_command in [1, True, '1', 'True', 'yes']:
+                    group_command = 1
+                elif self.group_command in [0, False, '0', 'False', 'no']:
+                    group_command = 0
+                else:
                     raise Exception('The parameter \'group_command\' has to be 0|1 or True|False !')
-                group_command = int(self.group_command)
 
             sonos_speaker.sonos_speakers[self.uid].set_maxvolume(max_volume, group_command=group_command)
 
@@ -339,7 +351,7 @@ class SetMaxVolume(JsonCommandBase):
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -367,7 +379,7 @@ class GetMute(JsonCommandBase):
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -391,14 +403,17 @@ class SetMute(JsonCommandBase):
 
             group_command = 0
             if hasattr(self, 'group_command'):
-                if self.group_command not in [0, 1, True, False, '0', '1']:
+                if self.group_command in [1, True, '1', 'True', 'yes']:
+                    group_command = 1
+                elif self.group_command in [0, False, '0', 'False', 'no']:
+                    group_command = 0
+                else:
                     raise Exception('The parameter \'group_command\' has to be 0|1 or True|False !')
-                group_command = int(self.group_command)
 
             sonos_speaker.sonos_speakers[self.uid].set_mute(self.mute, trigger_action=True, group_command=group_command)
             self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -426,7 +441,7 @@ class GetBass(JsonCommandBase):
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -448,19 +463,22 @@ class SetBass(JsonCommandBase):
             if self.uid not in sonos_speaker.sonos_speakers:
                 raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
 
-            if self.bass not in range(-10, 11, 1):
+            bass = int(self.bass)
+            if bass not in range(-10, 11, 1):
                 raise Exception('Bass has to be set between -10 and 10!')
 
             group_command = 0
             if hasattr(self, 'group_command'):
-                if self.group_command not in [0, 1, True, False, '0', '1']:
+                if self.group_command in [1, True, '1', 'True', 'yes']:
+                    group_command = 1
+                elif self.group_command in [0, False, '0', 'False', 'no']:
+                    group_command = 0
+                else:
                     raise Exception('The parameter \'group_command\' has to be 0|1 or True|False !')
-                group_command = int(self.group_command)
-
-            sonos_speaker.sonos_speakers[self.uid].set_bass(self.bass, trigger_action=True, group_command=group_command)
+            sonos_speaker.sonos_speakers[self.uid].set_bass(bass, trigger_action=True, group_command=group_command)
             self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -488,7 +506,7 @@ class GetTreble(JsonCommandBase):
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -510,20 +528,24 @@ class SetTreble(JsonCommandBase):
             if self.uid not in sonos_speaker.sonos_speakers:
                 raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
 
-            if self.treble not in range(-10, 11, 1):
+            treble = int(self.treble)
+            if treble not in range(-10, 11, 1):
                 raise Exception('Treble has to be set between -10 and 10!')
 
             group_command = 0
             if hasattr(self, 'group_command'):
-                if self.group_command not in [0, 1, True, False, '0', '1']:
+                if self.group_command in [1, True, '1', 'True', 'yes']:
+                    group_command = 1
+                elif self.group_command in [0, False, '0', 'False', 'no']:
+                    group_command = 0
+                else:
                     raise Exception('The parameter \'group_command\' has to be 0|1 or True|False !')
-                group_command = int(self.group_command)
 
-            sonos_speaker.sonos_speakers[self.uid].set_treble(self.treble, trigger_action=True,
+            sonos_speaker.sonos_speakers[self.uid].set_treble(treble, trigger_action=True,
                                                               group_command=group_command)
             self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -551,7 +573,7 @@ class GetLoudness(JsonCommandBase):
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -573,21 +595,27 @@ class SetLoudness(JsonCommandBase):
             if self.uid not in sonos_speaker.sonos_speakers:
                 raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
 
-            if self.loudness not in [0, 1, True, False, '0', '1']:
+            if self.loudness in [1, True, '1', 'True', 'yes']:
+                loudness = 1
+            elif self.loudness in [0, False, '0', 'False', 'no']:
+                loudness = 0
+            else:
                 raise Exception('Loudness has to be 0|1 or True|False !')
-            loudness = int(self.loudness)
 
             group_command = 0
             if hasattr(self, 'group_command'):
-                if self.group_command not in [0, 1, True, False, '0', '1']:
+                if self.group_command in [1, True, '1', 'True', 'yes']:
+                    group_command = 1
+                elif self.group_command in [0, False, '0', 'False', 'no']:
+                    group_command = 0
+                else:
                     raise Exception('The parameter \'group_command\' has to be 0|1 or True|False !')
-                group_command = int(self.group_command)
 
             sonos_speaker.sonos_speakers[self.uid].set_loudness(loudness, trigger_action=True,
                                                                 group_command=group_command)
             self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -615,7 +643,7 @@ class GetStop(JsonCommandBase):
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -640,8 +668,13 @@ class SetStop(JsonCommandBase):
             sonos_speaker.sonos_speakers[self.uid].set_stop(self.stop, trigger_action=True)
             self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
+        except soco.exceptions.SoCoUPnPException as err:
+            if err.error_code == "701":
+                self._response = "No track in queue."
+            else:
+                self._response = err
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
         except Exception as err:
@@ -668,7 +701,7 @@ class GetPlay(JsonCommandBase):
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -693,10 +726,15 @@ class SetPlay(JsonCommandBase):
             sonos_speaker.sonos_speakers[self.uid].set_play(self.play, trigger_action=True)
             self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
+        except soco.exceptions.SoCoUPnPException as err:
+            if err.error_code == "701":
+                self._response = "No track in queue."
+            else:
+                self._response = err
         except Exception as err:
             self._response = err
         finally:
@@ -721,7 +759,7 @@ class GetPause(JsonCommandBase):
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -746,10 +784,15 @@ class SetPause(JsonCommandBase):
             sonos_speaker.sonos_speakers[self.uid].set_pause(self.pause, trigger_action=True)
             self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
+        except soco.exceptions.SoCoUPnPException as err:
+            if err.error_code == "701":
+                self._response = "No track in queue."
+            else:
+                self._response = err
         except Exception as err:
             self._response = err
         finally:
@@ -774,7 +817,7 @@ class GetRadioStation(JsonCommandBase):
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -802,7 +845,7 @@ class GetRadioShow(JsonCommandBase):
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -830,7 +873,7 @@ class GetPlaymode(JsonCommandBase):
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -866,7 +909,7 @@ class SetPlaymode(JsonCommandBase):
             sonos_speaker.sonos_speakers[self.uid].set_playmode(self.playmode, trigger_action=True)
             self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -894,7 +937,7 @@ class GetAlarms(JsonCommandBase):
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -922,7 +965,7 @@ class GetTrackArtist(JsonCommandBase):
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -950,7 +993,7 @@ class GetTrackTitle(JsonCommandBase):
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -978,7 +1021,7 @@ class GetTrackAlbumArt(JsonCommandBase):
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -1006,7 +1049,7 @@ class GetTrackUri(JsonCommandBase):
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -1037,10 +1080,12 @@ class SetLed(JsonCommandBase):
 
             group_command = 0
             if hasattr(self, 'group_command'):
-                if self.group_command not in [0, 1, True, False, '0', '1']:
+                if self.group_command in [1, True, '1', 'True', 'yes']:
+                    group_command = 1
+                elif self.group_command in [0, False, '0', 'False', 'no']:
+                    group_command = 0
+                else:
                     raise Exception('The parameter \'group_command\' has to be 0|1 or True|False !')
-                group_command = int(self.group_command)
-
 
             sonos_speaker.sonos_speakers[self.uid].set_led(led, trigger_action=True,
                                                            group_command=group_command)
@@ -1049,7 +1094,7 @@ class SetLed(JsonCommandBase):
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -1075,7 +1120,7 @@ class GetLed(JsonCommandBase):
             sonos_speaker.sonos_speakers[self.uid].send()
             self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -1110,7 +1155,7 @@ class Next(JsonCommandBase):
                     raise err
                 self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -1146,7 +1191,7 @@ class Previous(JsonCommandBase):
                 self._status = True
 
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -1184,12 +1229,12 @@ class GetTrackPosition(JsonCommandBase):
             self._status = True
 
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except Exception as err:
             self._response = err
@@ -1217,7 +1262,7 @@ class SetTrackPosition(JsonCommandBase):
             self._status = True
 
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -1245,7 +1290,7 @@ class Partymode(JsonCommandBase):
             self._status = True
 
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -1273,7 +1318,7 @@ class Join(JsonCommandBase):
             self._status = True
 
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -1301,7 +1346,7 @@ class Unjoin(JsonCommandBase):
             self._status = True
 
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -1324,20 +1369,16 @@ class ClientList(JsonCommandBase):
                                                                                       self)))
             data = ''
             for uid, speaker in sonos_speaker.sonos_speakers.items():
-                data += "<p>uid: {}</p>".format(speaker.uid)
-                data += "<p>ip: {}</p>".format(speaker.ip)
-                data += "<p>model: {}</p>".format(speaker.model)
-                data += "<p>current zone: {}</p>".format(speaker.zone_name)
-                data += "<p>----------------------</p>"
-
+                data += "{uid}\n".format(uid=speaker.uid)
                 logger.debug("active speakers: {uid} | {ip} | {model} | {zone}".
                              format(uid=speaker.uid, ip=speaker.ip, model=speaker.model, zone=speaker.zone_name))
             if not data:
                 logger.debug('no speakers online')
                 data = "No speakers online! Discover scan is performed every {} seconds.".format(SCAN_TIMEOUT)
-
+                self._status = False
+            else:
+                self._status = True
             self._response = data
-            self._status = True
 
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -1364,7 +1405,7 @@ class PlayUri(JsonCommandBase):
             sonos_speaker.sonos_speakers[self.uid].play_uri(self.uri)
             self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -1372,6 +1413,7 @@ class PlayUri(JsonCommandBase):
             self._response = err
         finally:
             return self._status, self._response
+
 
 ### PLAY SNIPPET #######################################################################################################
 
@@ -1389,9 +1431,12 @@ class PlaySnippet(JsonCommandBase):
 
             group_command = 0
             if hasattr(self, 'group_command'):
-                if self.group_command not in [0, 1, True, False, '0', '1']:
+                if self.group_command in [1, True, '1', 'True', 'yes']:
+                    group_command = 1
+                elif self.group_command in [0, False, '0', 'False', 'no']:
+                    group_command = 0
+                else:
                     raise Exception('The parameter \'group_command\' has to be 0|1 or True|False !')
-                group_command = int(self.group_command)
 
             volume = -1
             if hasattr(self, 'volume'):
@@ -1403,15 +1448,18 @@ class PlaySnippet(JsonCommandBase):
 
             fade_in = 0
             if hasattr(self, 'fade_in'):
-                if self.fade_in not in [0, 1, True, False, '0', '1']:
+                if self.fade_in in [1, True, '1', 'True', 'yes']:
+                    fade_in = 1
+                elif self.fade_in in [0, False, '0', 'False', 'no']:
+                    fade_in = 0
+                else:
                     raise Exception('The parameter \'fade_in\' has to be 0|1 or True|False !')
-                fade_in = int(self.fade_in)
 
             sonos_speaker.sonos_speakers[self.uid].play_snippet(self.uri, volume, group_command=group_command, fade_in=
-                fade_in)
+            fade_in)
             self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -1440,15 +1488,21 @@ class PlayTts(JsonCommandBase):
 
             group_command = 0
             if hasattr(self, 'group_command'):
-                if self.group_command not in [0, 1, True, False, '0', '1']:
+                if self.group_command in [1, True, '1', 'True', 'yes']:
+                    group_command = 1
+                elif self.group_command in [0, False, '0', 'False', 'no']:
+                    group_command = 0
+                else:
                     raise Exception('The parameter \'group_command\' has to be 0|1 or True|False !')
-                group_command = int(self.group_command)
 
             fade_in = 0
             if hasattr(self, 'fade_in'):
-                if self.fade_in not in [0, 1, True, False, '0', '1']:
+                if self.fade_in in [1, True, '1', 'True', 'yes']:
+                    fade_in = 1
+                elif self.fade_in in [0, False, '0', 'False', 'no']:
+                    fade_in = 0
+                else:
                     raise Exception('The parameter \'fade_in\' has to be 0|1 or True|False !')
-                fade_in = int(self.fade_in)
 
             volume = -1
             if hasattr(self, 'volume'):
@@ -1460,9 +1514,12 @@ class PlayTts(JsonCommandBase):
 
             force_stream_mode = 0
             if hasattr(self, 'force_stream_mode'):
-                if self.force_stream_mode not in [0, 1, True, False, '0', '1']:
+                if self.force_stream_mode in [1, True, '1', 'True', 'yes']:
+                    force_stream_mode = 1
+                elif self.force_stream_mode in [0, False, '0', 'False', 'no']:
+                    force_stream_mode = 0
+                else:
                     raise Exception('The parameter \'force_stream_mode\' has to be 0|1 or True|False !')
-                force_stream_mode = int(self.force_stream_mode)
 
             language = 'en'
             if hasattr(self, 'language'):
@@ -1472,7 +1529,7 @@ class PlayTts(JsonCommandBase):
                                                             force_stream_mode=force_stream_mode, fade_in=fade_in)
             self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
@@ -1480,8 +1537,6 @@ class PlayTts(JsonCommandBase):
             self._response = err
         finally:
             return self._status, self._response
-
-
 
 
 ### GET FAVORITE RADIO STATIONS ########################################################################################
@@ -1510,7 +1565,115 @@ class GetFavoriteRadioStations(JsonCommandBase):
             self._response = SonosLibrary.get_fav_radiostations(start_item, max_items)
             self._status = True
         except ConnectionError:
-            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'.\
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
+                format(uid=self.uid)
+        except AttributeError as err:
+            self._response = JsonCommandBase.missing_param_error(err)
+        except Exception as err:
+            self._response = err
+        finally:
+            return self._status, self._response
+
+
+### IsCoordiantor ######################################################################################################
+
+class IsCoordinator(JsonCommandBase):
+    def __init__(self, parameter):
+        super().__init__(parameter)
+
+    def run(self):
+        try:
+            logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
+                                                                                  attributes=utils.dump_attributes(
+                                                                                      self)))
+            sonos_speaker.sonos_speakers[self.uid].dirty_property('is_coordinator')
+            sonos_speaker.sonos_speakers[self.uid].send()
+            self._status = True
+
+        except ConnectionError:
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
+                format(uid=self.uid)
+        except AttributeError as err:
+            self._response = JsonCommandBase.missing_param_error(err)
+        except Exception as err:
+            self._response = err
+        finally:
+            return self._status, self._response
+
+
+# TTSLocalMode #########################################################################################################
+
+class TtsLocalMode(JsonCommandBase):
+    def __init__(self, parameter):
+        super().__init__(parameter)
+
+    def run(self):
+        try:
+            logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
+                                                                                  attributes=utils.dump_attributes(
+                                                                                      self)))
+            sonos_speaker.sonos_speakers[self.uid].dirty_property('tts_local_mode')
+            sonos_speaker.sonos_speakers[self.uid].send()
+            self._status = True
+
+        except ConnectionError:
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
+                format(uid=self.uid)
+        except AttributeError as err:
+            self._response = JsonCommandBase.missing_param_error(err)
+        except Exception as err:
+            self._response = err
+        finally:
+            return self._status, self._response
+
+
+# PLAYLIST #############################################################################################################
+
+class GetPlaylist(JsonCommandBase):
+    def __init__(self, parameter):
+        super().__init__(parameter)
+
+    def run(self):
+        try:
+            logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
+                                                                                  attributes=utils.dump_attributes(
+                                                                                      self)))
+            self._response = sonos_speaker.sonos_speakers[self.uid].get_playlist()
+            self._status = True
+
+        except ConnectionError:
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
+                format(uid=self.uid)
+        except AttributeError as err:
+            self._response = JsonCommandBase.missing_param_error(err)
+        except Exception as err:
+            self._response = err
+        finally:
+            return self._status, self._response
+
+
+class SetPlaylist(JsonCommandBase):
+    def __init__(self, parameter):
+        super().__init__(parameter)
+
+    def run(self):
+        try:
+            logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
+                                                                                  attributes=utils.dump_attributes(
+                                                                                      self)))
+            play_after_insert = 0
+            if hasattr(self, 'play_after_insert'):
+                if self.play_after_insert in [1, True, '1', 'True', 'yes']:
+                    play_after_insert = 1
+                elif self.play_after_insert in [0, False, '0', 'False', 'no']:
+                    play_after_insert = 0
+                else:
+                    raise Exception('The parameter \'play_after_insert\' has to be 0|1 or True|False !')
+            self._response = sonos_speaker.sonos_speakers[self.uid].set_playlist(self.playlist, play_after_insert)
+            self._status = True
+
+        except ConnectionError:
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)

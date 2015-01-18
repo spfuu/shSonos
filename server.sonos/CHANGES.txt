@@ -1,3 +1,24 @@
+v0.5       (2015-01-19)
+
+    --  commands added: get_playlist, set_playlist (see documentation). Its now possible to
+        save and set the playlist for a speaker / zone.
+    --  commands added: 'is_coordinator'[readonly], 'tts_local_mode'[readonly]: please
+        read the documentation
+    --  changed some strings to clarify, that a non-existing or broken GoogleTTS
+        configuration disables only the 'local mode'; the 'streaming mode' is always
+        available
+    --  changed the 'client_list'command: only the uids will be shown
+    --  bugfix: error during processing a Spotify track
+    --  bugfix: an error occurred, if the Broker was started with the '-l' parameter and a
+        previous online speaker went offline
+    --  interactive command shell added to interact with the speakers directly,
+    --  changed logging handler in daemon.py to global logging handler specified in the
+        config file
+    --  new SoCo version
+    --  new start option "-l"
+        --  this options lists all available Sonos speaker in the network.
+            This is helpful to get the speakers UIDs.
+
 v0.4       (2014-11-09)
 
     --  added new SoCo version

@@ -46,14 +46,14 @@ class SonosServerService():
     _sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     _sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
 
-    def __init__(self, host, port, remote_folder, local_folder, quota, tts_enabled):
+    def __init__(self, host, port, remote_folder, local_folder, quota, tts_local_mode):
         self.event_lock = Lock()
         self.lock = Lock()
         self.host = host
         self.port = port
         self.event_queue = queue.Queue()
 
-        SonosSpeaker.set_tts(local_folder, remote_folder, quota, tts_enabled)
+        SonosSpeaker.set_tts(local_folder, remote_folder, quota, tts_local_mode)
 
         p_t = threading.Thread(target=self.process_events)
         p_t.daemon = True
@@ -82,12 +82,16 @@ class SonosServerService():
             finally:
                 sleep(sleep_scan)
 
+    @staticmethod
+    def _discover():
+        return discover(timeout=5, include_invisible=False)
+
     def discover(self):
         try:
             with sonos_speaker._sonos_lock:
                 zone_group_state_shared_cache.clear()
                 active_uids = []
-                soco_speakers = discover(timeout=5, include_invisible=False)
+                soco_speakers = SonosServerService._discover()
 
                 if soco_speakers is None:
                     return
@@ -109,7 +113,7 @@ class SonosServerService():
                         try:
                             _sp = SonosSpeaker(soco_speaker)
                             sonos_speaker.sonos_speakers[uid] = _sp
-                            sonos_speaker.sonos_speakers[uid].model = self.get_model_name(
+                            sonos_speaker.sonos_speakers[uid].model = SonosServerService.get_model_name(
                                 sonos_speaker.sonos_speakers[uid].ip)
                         except Exception:
                             speaker_to_remove.append(soco_speaker.uid)
@@ -221,7 +225,8 @@ class SonosServerService():
                 self.event_lock.release()
 
     # missing model name, not implemented in soco framework
-    def get_model_name(self, ip):
+    @staticmethod
+    def get_model_name(ip):
         response = requests.get('http://' + ip + ':1400/xml/device_description.xml')
         dom = XML.fromstring(response.content)
 
@@ -290,9 +295,10 @@ class SonosServerService():
         ml_track = variables['current_track_meta_data']
         if ml_track:
             if hasattr(ml_track, 'album_art_uri'):
-                if not ml_track.album_art_uri.startswith(('http:', 'https:')):
-                    album_art_uri = 'http://' + speaker.ip + ':1400' + ml_track.album_art_uri
-                speaker.track_album_art = album_art_uri
+                if ml_track.album_art_uri:
+                    if not ml_track.album_art_uri.startswith(('http:', 'https:')):
+                        album_art_uri = 'http://' + speaker.ip + ':1400' + ml_track.album_art_uri
+                    speaker.track_album_art = album_art_uri
             else:
                 speaker.track_album_art = ''
 
@@ -324,7 +330,7 @@ class SonosServerService():
             transport_state = variables['transport_state']
             if transport_state:
                 if transport_state.lower() == "transitioning":
-                    #because where is no event for current track position, we call it active
+                    # because where is no event for current track position, we call it active
                     speaker.get_trackposition(force_refresh=True)
                 if transport_state.lower() == "stopped":
                     speaker.stop = 1
@@ -339,7 +345,7 @@ class SonosServerService():
                     speaker.play = 1
                     speaker.pause = 0
 
-                    #get current track info, if new track is played or resumed to get track_uri, track_album_art
+                    # get current track info, if new track is played or resumed to get track_uri, track_album_art
                     speaker.get_trackposition(force_refresh=True)
 
         if 'enqueued_transport_uri_meta_data' in variables:

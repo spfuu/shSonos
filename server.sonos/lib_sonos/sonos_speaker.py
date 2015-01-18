@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
+import base64
+import io
+import pickle
 import logging
 import queue
+import tempfile
 import urllib
 from lib_sonos.utils import NotifyList
 from soco.alarms import get_alarms
@@ -11,6 +15,7 @@ import json
 from lib_sonos import udp_broker
 from lib_sonos import utils
 from soco.snapshot import Snapshot
+from lib_sonos import definitions
 
 try:
     import xml.etree.cElementTree as XML
@@ -23,18 +28,19 @@ _sonos_lock = threading.Lock()
 
 
 class SonosSpeaker():
-    tts_enabled = False
+    tts_local_mode = False
     local_folder = ''
     remote_folder = ''
 
     @classmethod
-    def set_tts(self, local_folder, remote_folder, qouta, tts_enabled=False):
-        SonosSpeaker.tts_enabled = tts_enabled
+    def set_tts(self, local_folder, remote_folder, quota, tts_local_mode=False):
+        SonosSpeaker.tts_local_mode = tts_local_mode
         SonosSpeaker.local_folder = local_folder
         SonosSpeaker.remote_folder = remote_folder
-        SonosSpeaker.quota = qouta
+        SonosSpeaker.quota = quota
 
     def __init__(self, soco):
+        self._tts_local_mode = SonosSpeaker.tts_local_mode
         self._fade_in = False
         self._saved_music_item = None
         self._zone_members = NotifyList()
@@ -101,6 +107,18 @@ class SonosSpeaker():
         :return: SoCo instance
         """
         return self._soco
+
+    ### TTS Local Mode #################################################################################################
+
+    @property
+    def tts_local_mode(self):
+
+        """
+        Is tts local mode available? If False, streaming mode is assumed (some disadvantages, see Broker docu.
+        :return: tts_local_mode
+        :rtype : bool
+        """
+        return self._tts_local_mode
 
     # ## MODEL ##########################################################################################################
 
@@ -911,6 +929,7 @@ class SonosSpeaker():
         self.dirty_music_metadata()
 
         self.dirty_property(
+            'tts_local_mode',
             'ip',
             'mac_address',
             'software_version',
@@ -927,6 +946,7 @@ class SonosSpeaker():
             'treble',
             'loudness',
             'alarms',
+            'is_coordinator'
         )
 
     @property
@@ -949,6 +969,7 @@ class SonosSpeaker():
         self._status = value
 
         if self._status == 0:
+            self._tts_local_mode = False
             self._streamtype = ''
             self._volume = 0
             self._bass = 0
@@ -1024,7 +1045,7 @@ class SonosSpeaker():
                         # uncritical
                         try:
 
-                            self._saved_music_item = Snapshot(device=self.soco, snapshot_queue=False)
+                            self._saved_music_item = Snapshot(device=self.soco, snapshot_queue=True)
                             self._saved_music_item.snapshot()
 
                             was_empty = True
@@ -1090,7 +1111,7 @@ class SonosSpeaker():
             return
 
     def play_tts(self, tts, volume, language='en', group_command=False, force_stream_mode=False, fade_in=False):
-        if (not SonosSpeaker.tts_enabled) or force_stream_mode:
+        if (not self._tts_local_mode) or force_stream_mode:
             logger.warning('Google TTS local mode disabled, using radio stream mode!')
             url = "x-rincon-mp3radio://translate.google.com/" \
                   "translate_tts?ie=UTF-8&tl={lang}&q={message}".format(lang=language,
@@ -1226,6 +1247,7 @@ class SonosSpeaker():
             self._snippet_event_thread = None
 
         self._zone_coordinator = sonos_speakers[soco.uid.lower()]
+        self.dirty_property('is_coordinator')
 
     def set_group_members(self):
         del self.zone_members[:]
@@ -1238,7 +1260,6 @@ class SonosSpeaker():
         while True:
             try:
                 event = self._snippet_queue.get()
-
                 if isinstance(event[1], Snapshot):
                     self._play_saved_music_item()
                 else:
@@ -1248,6 +1269,44 @@ class SonosSpeaker():
                 pass
             except KeyboardInterrupt:
                 break
+
+    def get_playlist(self):
+        try:
+            snapshot = Snapshot(device=self.soco, snapshot_queue=True)
+            snapshot.snapshot()
+            f = io.BytesIO()
+            pickle.dump(snapshot.queue, f, pickle.HIGHEST_PROTOCOL)
+            f.seek(0)
+            return definitions.MB_PLAYLIST + base64.b64encode(f.read()).decode('ascii')
+
+        except Exception as err:
+            raise Exception("Unable to get playlist! Error: {err}".format(err=err))
+        finally:
+            f.close()
+
+    def set_playlist(self, playlist, play_on_insert):
+        try:
+            snapshot = Snapshot(device=self.soco, snapshot_queue=False)
+            snapshot.device.stop()
+            snapshot.snapshot()
+
+            # check magic bytes
+            if not playlist.startswith("#so_pl#"):
+                raise Exception("This is not a valid playlist file.")
+
+            # remove magic bytes
+            playlist = playlist.lstrip(definitions.MB_PLAYLIST)
+
+            with tempfile.TemporaryFile() as f:
+                f.write(base64.b64decode(playlist))
+                f.seek(0)
+                snapshot.queue = pickle.load(f)
+                snapshot.restore()
+            if play_on_insert:
+                self.set_play(1, True)
+        except Exception as err:
+            print(err)
+            pass
 
     led = property(get_led, set_led)
     bass = property(get_bass, set_bass)

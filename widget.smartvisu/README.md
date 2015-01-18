@@ -1,8 +1,11 @@
 ##Release
+v0.2    2014-12-05
+    
+    --  fixed issue, that a cover was not shown correctly
 
 v0.1.1  2014-07-09
    
-   --   if no album cover is given, a transparent png is shown
+    --   if no album cover is given, a transparent png is shown
 
 v0.1    2014-07-08
 

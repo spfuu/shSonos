@@ -1,4 +1,26 @@
 ## Release
+
+v0.5       (2015-01-18)
+
+    --  interactive command shell added to interact with the speakers directly (see docu)
+    --  commands added: get_playlist, set_playlist (see documentation). Its now possible to
+        save and set the playlist for a speaker / zone.
+    --  commands added: 'is_coordinator'[readonly], 'tts_local_mode'[readonly]: please 
+        read the documentation
+    --  changed some strings to clarify, that a non-existing or broken GoogleTTS 
+        configuration disables only the 'local mode'; the 'streaming mode' is always 
+        available
+    --  changed the 'client_list'command: only the uids will be shown
+    --  bugfix: error during processing a Spotify track
+    --  bugfix: an error occurred, if the Broker was started with the '-l' parameter and a 
+        previous online speaker went offline
+    --  changed logging handler in daemon.py to global logging handler specified in the 
+        config file
+    --  new SoCo version     
+    --  new start option "-l"
+        --  this options lists all available Sonos speaker in the network. 
+            This is helpful to get the speakers UIDs.
+         
 v0.4       (2014-11-09)
 
     --  added new SoCo version
@@ -15,42 +37,16 @@ v0.4       (2014-11-09)
     --  sonos broker should no stop reliable
     --  minor bug fixes in documentation
     
-v0.3        (2014-09-16)
-
-    --  !! ATTENTION !!: commands are changed to JSON commands. They are more flexible 
-        than the old HTTP GET commands.
-        Please adapt your clients to this new feature. Older clients won't work. 
-        Please read the manual to set it up and get some example implementations.
-        If you're running the Broker together with the Smarthome.py framework, 
-        make sure you use the newest Sonos plugin. 
-
-    --  !! ATTENTION !! Read previous point !!
-    --  !! ATTENTION !! Read previous point !!
-     
-    --  commands 'Volume', 'Mute', 'Led', 'Treble', 'Bass', 'Loudness' can now be group 
-        commands by adding 'group_command: 1' to the json command structure 
-    --  !! seek command is now named SetTrackPosition (see documentation)
-    --  !! to get the current track position, poll GetTrackInfo with 'force_refresh' option
-        (see documentation)
-    --  removed command track_info() (this was only useful to get the current track 
-        position; use GetTrackInfo instead
-    --  the Broker now sends only the current changed speaker values instead of the whole 
-        sonos data structure. This results in much less network traffic / overhead.
-    --  Bug: fixed a problem with join command: join could fail, if the group to join have
-        had more than ne speaker
-    --  Bug: fixed permission problem when saving a google tts sound file
-    --  Bug: sometimes the search for the group coordinator doesn't found a valid object
-    --  Bug: Loglevel for the SoCo framework differed from the Broker settings
-    --  added some debug outputs, especially the commands are now logged more detailed
-    --  much cleaner code and improvements 
-
 
 ## Overview
 
 	
 The shSonos project is Sonos control server, mainly based on the brilliant SoCo project (https://github.com/SoCo/SoCo). 
-It implements a lightweight http server, which is controlled by simple HTTP json commands. 
-It sends all available Sonos speaker data to all subscribed clients and notifies them of all changes.   
+It implements a lightweight http server, which is controlled by simple HTTP json commands.
+It sends all available Sonos speaker data to all subscribed clients and notifies them of all changes.
+
+The Sonos Broker implements some nice additional features like GoogleTTS, saving/restoring the playlist, maximum
+volume settings for each Sonos speaker and much more.
 
 In addition , i decided to write a plugin for the fantastic "Smarthome.py Project" to control Sonos speakers in a 
 smart home environment (https://github.com/mknx/smarthome/).
@@ -103,18 +99,23 @@ Readme.
 
 If you start the sonos broker with
 ```
-./sonos_broker
+sonos_broker
 ```
 the server will be automatically daemonized.
 
 You can add the -d (--debug) parameter to hold the process in the foreground.
 ```
-./sonos_broker -d
+sonos_broker -d
 ```
 
 You can stop the server with
 ```
 sonos_broker -s
+```
+
+To get a short overview of your speakers in the network start the server with
+```
+sonos_broker -l
 ```
 
 To get an overview of all parameters type
@@ -135,6 +136,55 @@ Additionally, you can specify a file to pipe the debug log to this file.
 
     logfile = log.txt
 
+
+## Interactive Command Line
+
+You can control the Broker and your speakers without implementing your own client. To start the interactive
+command line (the Broker must be running) type
+```
+./sonos_cmd
+```
+in the root folder of the Sonos Broker.
+
+With the
+```
+help
+```
+command you can show up all options.
+
+Within the shell type  
+```
+update
+```
+to get all the speakers in the network.
+
+Type
+```
+list
+```
+or
+```
+speaker
+```
+to show all available speakers.
+
+To interact with one of these speakers type
+```
+speaker [number of the speaker]
+```
+
+Now you should see the uid of the speaker as the command line prompt. Type
+```
+help
+```
+for all available commands. All of them are interactive and self-explaining.
+
+An
+```
+exit
+```
+redirects you to the first command line level.
+ 
 
 ## Google TTS Support
 
@@ -280,13 +330,14 @@ In almost any cases, you'll get the appropriate response in the following JSON f
 
 #### Get the UID
 
- Most of the commands need a speaker uid. Send the [client_list](#client_list) command to get a short overview of your 
- sonos speakers in the network and to retrieve the uid.
+ Most of the commands need a speaker uid. Start the Sonos Broker with the argument '-l to get a short overview of your 
+ sonos speakers in the network and to retrieve the uid. You can also perform a sonos [client_list](#client_list) 
+ command. 
 
 #### Client Implementation Example
 
- [Here you can find](plugin.sonos/README.md) a client implementation for the Broker. It is a sonos plugin for the [Smarthome.py](https://github.com/mknx/smarthome) 
- home automation framework.
+ [Here you can find](plugin.sonos/README.md) a client implementation for the Broker. It is a sonos plugin for the 
+ [Smarthome.py](https://github.com/mknx/smarthome) home automation framework.
 
 ## Available commands
 
@@ -340,6 +391,10 @@ Click on the links below to get a detailed command descriptions and their usage.
 ###### [get_alarms](#g_alarms)
 ###### [current_state](#cur_state)
 ###### [get_favorite_radio_stations](#g_fav_radio)
+###### [is_coordinator](#is_coor)
+###### [tts_local_mode](#tts_local)
+###### [get_playlist](#get_playlist)
+###### [set_playlist](#set_playlist)
 
 ----
 #### <a name="cl_subs"></a>client_subscribe
@@ -413,16 +468,7 @@ No special parameter needed.
     HTTP Response:
         <html><head><title>Sonos Broker</title></head>
             <body>
-                <p>uid: rincon_000e58c3892e01410</p>
-                <p>ip: 192.168.0.4</p>
-                <p>model: Sonos PLAY:1</p>
-                <p>current zone: Kitchen</p>
-                <p>----------------------</p>
-                <p>uid: rincon_b8e93730d19801410</p>
-                <p>ip: 192.168.0.10</p>
-                <p>model: Sonos PLAY:3</p>
-                <p>current zone: Kueche</p>
-                <p>----------------------</p>
+                rincon_000e58c3892e01410\nrincon_b8e93730d19801410\n ... [uids]
             </body>
         </html>
     
@@ -1719,8 +1765,8 @@ No special parameter needed.
 
 ----
 #### <a name="p_tts">play_tts
- Plays a text-to-speech snippet using the Google TTS API. After the snippet was played (maximum 60 seconds, longer 
- snippets will be truncated) the previous played song will be resumed. You can queue up to 10 snippets. 
+ Plays a text-to-speech snippet using the Google TTS API. After the snippet was played (maximum 10 seconds in streaming 
+ mode, longer snippets will be truncated) the previous played song will be resumed. You can queue up to 10 snippets. 
  They're played in the order they are called. To setup the Broker for TTS support, please take a deeper look at the 
  dedicated Google TTS section in this document.
 
@@ -1762,6 +1808,7 @@ No special parameter needed.
 
 ----
 #### <a name="g_alarms"></a>get_alarms
+ [readonly]
  Gets all registered alarms for a Sonos speaker.
  In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
  about 'alarms'-status changes.
@@ -1875,6 +1922,7 @@ No special parameter needed.
 
 ----
 #### <a name="g_fav_radio"></a>get_favorite_radio_stations
+ [readonly]
  Returns the favorite radio stations.
  
 | parameter | required / optional | valid values | description |     
@@ -1919,5 +1967,123 @@ No special parameter needed.
     to page through and get the entire list of favorites.
 
     
+###### UDP Response sent to subscribed clients:
+    No UDP response
+
+----
+#### <a name="is_coor">is_coordinator
+ [readonly]
+ Returns the status whether the specified speaker is a zone coordinator or not.
+  
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'is_coordinator',
+        'parameter': {
+            'uid': 'rincon_000e58c3892e01410',
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+
+###### UDP Response sent to subscribed clients:
+
+    JSON format: 
+    {
+        "is_coordinator": true,
+        "uid": "rincon_b8e93730d19801400"
+    }
+
+----
+#### <a name="tts_local">tts_local_mode
+[readonly]
+Returns the status whether Google TTS 'local mode' is available or not. To get the 'local mode' running, 
+you have to configure the Google TTS options correctly. If False, only the 'streaming mode' is available. 
+This has some disadvantages. Please read the Google TTS section in this documentation. 
+  
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. | This can be any uid, the return value is the same for all speakers.
+
+######Example
+    JSON format:
+    {
+        'command': 'tts_local_mode',
+        'parameter': {
+            'uid': 'rincon_000e58c3892e01410',
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+
+###### UDP Response sent to subscribed clients:
+
+    JSON format: 
+    {
+        "is_coordinator": true,
+        "uid": "rincon_b8e93730d19801400"
+    }
+
+----
+#### <a name="get_playlist">get_playlist
+ [readonly]
+ Returns the the current playlist as a base64 string. You can save this string to use it with the set_playlist command.
+
+| parameter | required / optional | valid values | description |
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_playlist',
+        'parameter': {
+            'uid': 'rincon_000e58c3892e01410',
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK and a base64 string representing the playlist
+        or
+    Exception with HTTP status 400 and the specific error message.
+
+###### UDP Response sent to subscribed clients:
+    No UDP response
+
+
+----
+#### <a name="set_playlist">set_playlist
+ Sets the playlist for a speaker ( and for the entire zone). You should read a file containing
+ the base64-coded playlist (gathered by the get_playlist command) and assign the json variable
+  'playlist' with this value.
+
+| parameter | required / optional | valid values | description |
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| playlist | required | base64 encoded string| The playlist as a base64 encoded string. |
+| play_after_insert | optional | 0 or 1 | Starts playing the after inserting the playlist. Default: 0  |
+
+######Example
+    JSON format:
+    {
+        'command': 'set_playlist',
+        'parameter': {
+            'uid': 'rincon_000e58c3892e01410',
+            'playlist': '#so_pl#gASVwhsAAAAAAABdlIwUc29jby5kYXRhX3N0cnVjdHVyZX.... ,
+            'play_after_insert': 1
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK
+        or
+    Exception with HTTP status 400 and the specific error message.
+
 ###### UDP Response sent to subscribed clients:
     No UDP response
