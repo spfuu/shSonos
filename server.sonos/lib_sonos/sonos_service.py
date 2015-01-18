@@ -330,7 +330,7 @@ class SonosServerService():
             transport_state = variables['transport_state']
             if transport_state:
                 if transport_state.lower() == "transitioning":
-                    #because where is no event for current track position, we call it active
+                    # because where is no event for current track position, we call it active
                     speaker.get_trackposition(force_refresh=True)
                 if transport_state.lower() == "stopped":
                     speaker.stop = 1
@@ -345,7 +345,7 @@ class SonosServerService():
                     speaker.play = 1
                     speaker.pause = 0
 
-                    #get current track info, if new track is played or resumed to get track_uri, track_album_art
+                    # get current track info, if new track is played or resumed to get track_uri, track_album_art
                     speaker.get_trackposition(force_refresh=True)
 
         if 'enqueued_transport_uri_meta_data' in variables:
