@@ -812,13 +812,18 @@ class SonosSpeakerCmd(cmd.Cmd):
         elif line == "set":
             default_path = ""
             path = input(normalize_output("Playlist", "path to file", default_path))
+            play_after_insert = input(normalize_output("Play after insert", "0|1", 0))
 
             if not os.path.isfile(path):
+                print("File does not exists!")
                 return
+
+            if not play_after_insert:
+                play_after_insert = 0
 
             with open(path, 'r') as f:
                 playlist = f.read()
-                status, response = self.commands.set_playlist(self.uid, playlist)
+                status, response = self.commands.set_playlist(self.uid, playlist, play_after_insert)
 
                 if not status:
                     print(response)
@@ -1334,13 +1339,14 @@ class Commands():
             }
         )
 
-    def set_playlist(self, uid, playlist):
+    def set_playlist(self, uid, playlist, play_ater_insert):
         return self.send(
             {
                 'command': 'set_playlist',
                 'parameter': {
                     'uid': uid.lower(),
-                    'playlist': playlist
+                    'playlist': playlist,
+                    'play_after_insert': play_ater_insert
                 }
             }
         )
