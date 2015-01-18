@@ -203,6 +203,16 @@ def get_interface_ip(ifname):
     return socket.inet_ntoa(fcntl.ioctl(s.fileno(), 0x8915, struct.pack('256s', ifname[:15].encode('utf-8')))[20:24])
 
 
+def get_lan_ip_fallback():
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        s.connect(('<broadcast>', 0))
+        return s.getsockname()[0]
+    except Exception as err:
+        logger.critical(err)
+        return None
+
 def dump_attributes(obj):
     attrs = vars(obj)
     attributes = ', '.join("%s: %s" % item for item in attrs.items() if not item[0].startswith('_'))
@@ -233,15 +243,18 @@ def check_int(s):
 
 
 def get_lan_ip():
-    ip = socket.gethostbyname(socket.gethostname())
-    if ip.startswith("127.") and os.name != "nt":
-        interfaces = ["eth0", "eth1", "eth2", "wlan0", "wlan1", "wifi0", "ath0", "ath1", "ppp0"]
-        for ifname in interfaces:
-            try:
-                ip = get_interface_ip(ifname)
-                break
-            except IOError:
-                pass
+    try:
+        ip = socket.gethostbyname(socket.gethostname())
+        if ip.startswith("127.") and os.name != "nt":
+            interfaces = ["eth0", "eth1", "eth2", "wlan0", "wlan1", "wifi0", "ath0", "ath1", "ppp0"]
+            for ifname in interfaces:
+                try:
+                    ip = get_interface_ip(ifname)
+                    break
+                except IOError:
+                    pass
+    except socket.gaierror:
+        return get_lan_ip_fallback()
     return ip
 
 # #######################################################################################################################
@@ -271,7 +284,7 @@ class NotifyList(list):
     __iadd__ = callback_method(list.__iadd__)
     #__imul__ = callback_method(list.__imul__)
 
-    #Take care to return a new NotifyList if we slice it.
+    # Take care to return a new NotifyList if we slice it.
     if _pyversion < 3:
         __setslice__ = callback_method(list.__setslice__)
         __delslice__ = callback_method(list.__delslice__)
