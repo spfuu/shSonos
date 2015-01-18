@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import base64
+import io
 import pickle
 import logging
 import queue
@@ -1044,7 +1045,7 @@ class SonosSpeaker():
                         # uncritical
                         try:
 
-                            self._saved_music_item = Snapshot(device=self.soco, snapshot_queue=False)
+                            self._saved_music_item = Snapshot(device=self.soco, snapshot_queue=True)
                             self._saved_music_item.snapshot()
 
                             was_empty = True
@@ -1259,7 +1260,6 @@ class SonosSpeaker():
         while True:
             try:
                 event = self._snippet_queue.get()
-
                 if isinstance(event[1], Snapshot):
                     self._play_saved_music_item()
                 else:
@@ -1274,16 +1274,20 @@ class SonosSpeaker():
         try:
             snapshot = Snapshot(device=self.soco, snapshot_queue=True)
             snapshot.snapshot()
-            with tempfile.TemporaryFile() as f:
-                pickle.dump(snapshot.queue, f, pickle.HIGHEST_PROTOCOL)
-                f.seek(0)
-                return definitions.MB_PLAYLIST + base64.b64encode(f.read()).decode('ascii')
+            f = io.BytesIO()
+            pickle.dump(snapshot.queue, f, pickle.HIGHEST_PROTOCOL)
+            f.seek(0)
+            return definitions.MB_PLAYLIST + base64.b64encode(f.read()).decode('ascii')
+
         except Exception as err:
             raise Exception("Unable to get playlist! Error: {err}".format(err=err))
+        finally:
+            f.close()
 
-    def set_playlist(self, playlist):
+    def set_playlist(self, playlist, play_on_insert):
         try:
             snapshot = Snapshot(device=self.soco, snapshot_queue=False)
+            snapshot.device.stop()
             snapshot.snapshot()
 
             # check magic bytes
@@ -1298,7 +1302,8 @@ class SonosSpeaker():
                 f.seek(0)
                 snapshot.queue = pickle.load(f)
                 snapshot.restore()
-
+            if play_on_insert:
+                self.set_play(1, True)
         except Exception as err:
             print(err)
             pass
