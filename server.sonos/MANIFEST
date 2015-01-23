@@ -20,6 +20,7 @@ soco/compat.py
 soco/config.py
 soco/core.py
 soco/data_structures.py
+soco/discovery.py
 soco/events.py
 soco/exceptions.py
 soco/groups.py

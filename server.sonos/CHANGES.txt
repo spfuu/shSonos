@@ -1,3 +1,7 @@
+v0.5.1     (2015-01-23)
+
+    --  Hotfix: error while handling a DIDL item (in SoCo framework)
+
 v0.5       (2015-01-19)
 
     --  commands added: get_playlist, set_playlist (see documentation). Its now possible to
