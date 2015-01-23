@@ -1,5 +1,9 @@
 ## Release
 
+v0.5.1     (2015-01-23)
+
+    --  Hotfix: error while handling a DIDL item (in SoCo framework)
+
 v0.5       (2015-01-18)
 
     --  interactive command shell added to interact with the speakers directly (see docu)
