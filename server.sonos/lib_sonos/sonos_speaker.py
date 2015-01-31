@@ -1185,16 +1185,23 @@ class SonosSpeaker():
 
         try:
             if self.sub_zone_group is None or self.sub_zone_group.time_left == 0:
-                self._sub_zone_group = self.soco.zoneGroupTopology.subscribe(None, True, event_queue)
+                logger.debug('renewing topology event for {uid}'.format(uid=self.uid))
+                self._sub_zone_group = self.soco.zoneGroupTopology.subscribe(definitions.SUBSCRIPTION_TIMEOUT,
+                                                                             True, event_queue)
 
             if self.sub_av_transport is None or self.sub_av_transport.time_left == 0:
-                self._sub_av_transport = self.soco.avTransport.subscribe(None, True, event_queue)
+                logger.debug('renewing av-transport event for {uid}'.format(uid=self.uid))
+                self._sub_av_transport = self.soco.avTransport.subscribe(definitions.SUBSCRIPTION_TIMEOUT,
+                                                                         True, event_queue)
 
             if self.sub_rendering_control is None or self.sub_rendering_control.time_left == 0:
-                self._sub_rendering_control = self.soco.renderingControl.subscribe(None, True, event_queue)
+                logger.debug('renewing rendering event for {uid}'.format(uid=self.uid))
+                self._sub_rendering_control = self.soco.renderingControl.subscribe(definitions.SUBSCRIPTION_TIMEOUT,
+                                                                                   True, event_queue)
 
             if self.sub_alarm is None or self.sub_alarm.time_left == 0:
-                self._sub_alarm = self.soco.alarmClock.subscribe(None, True, event_queue)
+                logger.debug('renewing alarm event for {uid}'.format(uid=self.uid))
+                self._sub_alarm = self.soco.alarmClock.subscribe(definitions.SUBSCRIPTION_TIMEOUT, True, event_queue)
 
         except Exception as err:
             logger.exception(err)
