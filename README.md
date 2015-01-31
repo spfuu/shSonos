@@ -1,4 +1,8 @@
 ## Release
+v0.5.2     (2015-02-01)
+    
+    --  set new auto-renew timer for event subscription, more debug logs 
+    --  set scan interval to 180 sec as default value
 
 v0.5.1     (2015-01-23)
 
