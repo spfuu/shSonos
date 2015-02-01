@@ -23,7 +23,7 @@ NS = {'dc': '{http://purl.org/dc/elements/1.1/}',
 # regular expressions to find sonos meta info through udp stream
 ip_pattern = '^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$'
 
-VERSION = "0.5.1 (2015-01-23)"
+VERSION = "0.5.2 (2015-02-01)"
 
 DEFAULT_HOST = '0.0.0.0'
 DEFAULT_PORT = 12900
@@ -33,6 +33,7 @@ DEFAULT_LOG = os.path.join(tempfile.gettempdir(), 'sonos_broker.log')
 DEFAULT_PID = os.path.join(tempfile.gettempdir(), 'sonos_broker.pid')
 HTTP_SUCCESS = 200
 HTTP_ERROR = 400
-SCAN_TIMEOUT = 60
+SCAN_TIMEOUT = 180
 TIMESTAMP_PATTERN = "([0-5]?[0-9]):([0-5]?[0-9]):([0-5][0-9])"
 MB_PLAYLIST = "#so_pl#"
+SUBSCRIPTION_TIMEOUT = 120
