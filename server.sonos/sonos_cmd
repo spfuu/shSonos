@@ -63,14 +63,17 @@ class SonosBrokerCmd(cmd.Cmd):
         sys.stdout.write("Connecting to Sonos broker ...")
         sys.stdout.flush()
 
-        # subscribe client to Sonos Broker
-        if not self.commands.subscribe(self.client_hostname, self.client_port):
-            exit()
-        else:
-            sys.stdout.write(" done!\n\n")
-            sys.stdout.flush()
-            self.prompt = "=>> "
-            self.intro = "Welcome to Sonos Broker console!"
+        try:
+            # subscribe client to Sonos Broker
+            self.commands.subscribe(self.client_hostname, self.client_port)
+        except Exception as err:
+            print("\n" + str(err))
+            exit("Is the Sonos Broker running?")
+
+        sys.stdout.write(" done!\n\n")
+        sys.stdout.flush()
+        self.prompt = "=>> "
+        self.intro = "Welcome to Sonos Broker console!"
 
 
     def start_listener(self):
@@ -865,12 +868,12 @@ class Commands():
             html_start = "<html><head><title>Sonos Broker</title></head><body>"
             html_end = "</body></html>"
 
-            response_text = response.text.replace(html_start,"",1).replace(html_end,"",1)
+            response_text = response.text.replace(html_start, "", 1).replace(html_end, "", 1)
 
             if response.status_code != 200:
                 raise Exception("Invalid status response '{code}'!\nServer message: {message}"
                                 .format(code=response.status_code, message=response_text))
-        except ConnectionError:
+        except requests.ConnectionError:
             raise Exception("Could not connect to Sonos broker {hostname}:{port}.".format(hostname=self.server_hostname,
                                                                                           port=self.server_port))
         except Exception as err:
