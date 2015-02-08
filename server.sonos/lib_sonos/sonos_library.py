@@ -7,7 +7,8 @@ class SonosLibrary:
     @classmethod
     def get_fav_radiostations(cls, start_item, max_items):
 
-        #get any speaker in our list
+        # get any speaker in our list
+
         stations = {}
         found = False
 
