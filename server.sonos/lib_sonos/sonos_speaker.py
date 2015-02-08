@@ -1292,28 +1292,26 @@ class SonosSpeaker():
             f.close()
 
     def set_playlist(self, playlist, play_on_insert):
-        try:
-            snapshot = Snapshot(device=self.soco, snapshot_queue=False)
-            snapshot.device.stop()
-            snapshot.snapshot()
 
-            # check magic bytes
-            if not playlist.startswith("#so_pl#"):
-                raise Exception("This is not a valid playlist file.")
+        snapshot = Snapshot(device=self.soco, snapshot_queue=False)
+        snapshot.device.stop()
+        snapshot.snapshot()
 
-            # remove magic bytes
-            playlist = playlist.lstrip(definitions.MB_PLAYLIST)
+        # check magic bytes
+        if not playlist.startswith("#so_pl#"):
+            raise Exception("This is not a valid playlist file.")
 
-            with tempfile.TemporaryFile() as f:
-                f.write(base64.b64decode(playlist))
-                f.seek(0)
-                snapshot.queue = pickle.load(f)
-                snapshot.restore()
-            if play_on_insert:
-                self.set_play(1, True)
-        except Exception as err:
-            print(err)
-            pass
+        # remove magic bytes
+        playlist = playlist.lstrip(definitions.MB_PLAYLIST)
+
+        with tempfile.TemporaryFile() as f:
+            f.write(base64.b64decode(playlist))
+            f.seek(0)
+            snapshot.queue = pickle.load(f)
+            snapshot.restore()
+        if play_on_insert:
+            self.set_play(1, True)
+
 
     led = property(get_led, set_led)
     bass = property(get_bass, set_bass)
