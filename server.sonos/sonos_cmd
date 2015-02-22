@@ -86,8 +86,6 @@ class SonosBrokerCmd(cmd.Cmd):
 
             try:
                 data, address = self.udp_socket.recvfrom(10000)
-                address = "{}:{}".format(address[0], address[1])
-                #print("{}: incoming connection from {}".format('sonos', address))
             except Exception as err:
                 print("{}".format(err))
                 continue
@@ -97,7 +95,7 @@ class SonosBrokerCmd(cmd.Cmd):
                 uid = sonos['uid']
 
                 if not uid:
-                    raise ("No uid found in sonos udp response!\nResponse: {}")
+                    raise Exception("No uid found in sonos udp response!\nResponse: {}")
 
                 speaker = SonosSpeakerCmd(self.commands)
                 if not uid in self._sonos_speakers:
@@ -180,6 +178,16 @@ class SonosBrokerCmd(cmd.Cmd):
             return
 
         speaker.cmdloop()
+
+    def help_refresh_library(self):
+        print("refresh_library: Updates the media library.")
+
+    def do_refresh_library(self, arguments):
+        default_display_option = 'NONE'
+        display_option = input(normalize_output("Display options:", "WMP|ITUNES|NONE", default_display_option))
+        if not display_option:
+            display_option = default_display_option
+        self.commands.refresh_media_library(display_option)
 
     def do_EOF(self, line):
         """
@@ -1350,6 +1358,16 @@ class Commands():
                     'uid': uid.lower(),
                     'playlist': playlist,
                     'play_after_insert': play_ater_insert
+                }
+            }
+        )
+
+    def refresh_media_library(self, display_option):
+        return self.send(
+            {
+                'command': 'refresh_media_library',
+                'parameter': {
+                    'display_option': display_option
                 }
             }
         )
