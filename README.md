@@ -1,6 +1,13 @@
 ## Release
 
-v0.6b0 (2015-02-08)
+v0.6b1     (2015-02-22)
+
+    --  new command: RefreshMediaLibrary (updates / refreshs the media library)
+    --  RefreshMediaLibrary added to sonos command line client
+    --  Bug: parsing error while playing some radio stations
+    
+
+v0.6b0     (2015-02-08)
 
     --  some minor bugfixes in Sonos Broker
     --  some minor bugfixes in Cmd client
@@ -410,6 +417,7 @@ Click on the links below to get a detailed command descriptions and their usage.
 ###### [tts_local_mode](#tts_local)
 ###### [get_playlist](#get_playlist)
 ###### [set_playlist](#set_playlist)
+###### [refresh_media_library](#ref_lib)
 
 ----
 #### <a name="cl_subs"></a>client_subscribe
@@ -2092,6 +2100,32 @@ This has some disadvantages. Please read the Google TTS section in this document
             'uid': 'rincon_000e58c3892e01410',
             'playlist': '#so_pl#gASVwhsAAAAAAABdlIwUc29jby5kYXRhX3N0cnVjdHVyZX.... ,
             'play_after_insert': 1
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK
+        or
+    Exception with HTTP status 400 and the specific error message.
+
+###### UDP Response sent to subscribed clients:
+    No UDP response
+    
+
+----
+#### <a name="ref_lib">refresh_media_library
+ Updates the local media library. This is useful when adding a new music file to your local media library.
+ 
+| parameter | required / optional | valid values | description |
+| :-------- | :------------------ | :----------- | :---------- |
+| display_option | optional | NONE, ITUNES, WMP| Default 'NONE'. For further information see <a href="http://www.sonos.com/support/help/3.4/en/sonos_user_guide/Chap07_new/Compilation_albums.htm">Sonos Help Page</<a>|
+
+######Example
+    JSON format:
+    {
+        'command': 'refresh_media_library',
+        'parameter': {
+            'display_option': display_option
         }
     }
 
