@@ -18,6 +18,8 @@ def really_unicode(in_string):
     a series of progressively relaxed decodings
 
     """
+    if not in_string:
+        return
     if type(in_string) is StringType:
         for args in (('utf-8',), ('latin-1',), ('ascii', 'replace')):
             try:
@@ -80,6 +82,7 @@ def show_xml(xml):
 
 
 class deprecated(object):
+
     """ A decorator to mark deprecated objects.
 
     Causes a warning to be issued when the object is used, and marks the object
@@ -102,6 +105,7 @@ class deprecated(object):
     # pylint really doesn't like decorators!
     # pylint: disable=invalid-name, too-few-public-methods
     # pylint: disable=no-member, missing-docstring
+
     def __init__(self, since, alternative=None, will_be_removed_in=None):
         self.since_version = since
         self.alternative = alternative
