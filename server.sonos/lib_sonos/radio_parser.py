@@ -11,13 +11,22 @@ radio_list = {
     re.compile(r"swr3*.?", re.IGNORECASE):  [re.compile(r"(?P<track>.*?)/(?P<artist>.*?)", re.IGNORECASE)],
     ## 104.6 RTL ##
     re.compile(r"104\.6 rtl*.?", re.IGNORECASE):  [re.compile(r"(?P<artist>.*)::(?P<track>.*)", re.IGNORECASE)],
+    ## Alsterradio 106.8
+    re.compile(r"Alsterradio", re.IGNORECASE): [re.compile(r"(?P<track>.*) Von (?P<artist>.*)", re.IGNORECASE)]
 }
 
 
 def title_artist_parser(radio_station, track_artist):
 
+    # there seems to be some nasty chars in some radio metadata, remove them
+
+    nasty_chars = ['\"']
+
+    for nasty_char in nasty_chars:
+        track_artist = track_artist.replace(nasty_char, '')
+
     artist = ''
-    track = track_artist
+
     found = False
 
     try:
@@ -35,7 +44,6 @@ def title_artist_parser(radio_station, track_artist):
                         track = track_match.group('track')
                         found = True
                         break
-
                 break
 
         #no special parser, just try to split the radio string with '-'
@@ -57,4 +65,4 @@ def title_artist_parser(radio_station, track_artist):
     except Exception as err:
         logger.exception(err)
     finally:
-        return artist.strip().title(), track.strip().title()
+        return artist.strip().title(), track_artist.strip().title()
