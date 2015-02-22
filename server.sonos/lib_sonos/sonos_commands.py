@@ -1679,3 +1679,31 @@ class SetPlaylist(JsonCommandBase):
             self._response = err
         finally:
             return self._status, self._response
+
+
+class RefreshMediaLibrary(JsonCommandBase):
+    def __init__(self, parameter):
+        super().__init__(parameter)
+
+    def run(self):
+        try:
+            logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
+                                                                                  attributes=utils.dump_attributes(
+                                                                                      self)))
+
+            if hasattr(self, 'display_option'):
+                if self.display_option not in ['WMP', 'ITUNES', 'NONE']:
+                    raise Exception("The parameter 'display_option' has to be 'WMP', 'ITUNES' or #NONE'!")
+            else:
+                self.display_option = ''
+
+            self._response = SonosLibrary.refresh_media_library(self.display_option)
+            self._status = True
+        except requests.ConnectionError:
+            self._response = 'Unable to process command. All speakers offline?'
+        except AttributeError as err:
+            self._response = JsonCommandBase.missing_param_error(err)
+        except Exception as err:
+            self._response = err
+        finally:
+            return self._status, self._response
