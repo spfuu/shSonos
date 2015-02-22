@@ -12,11 +12,12 @@ _LOG = logging.getLogger(__name__)
 
 
 class SoCoPlugin(object):
+
     """ The base class for SoCo plugins """
 
     def __init__(self, soco):
         cls = self.__class__.__name__
-        _LOG.info('Initializing SoCo plugin {cls}'.format(cls=cls))
+        _LOG.info('Initializing SoCo plugin %s', cls)
         self.soco = soco
 
     @property
@@ -28,7 +29,7 @@ class SoCoPlugin(object):
     def from_name(cls, fullname, soco, *args, **kwargs):
         """ Instantiate a plugin by its full name """
 
-        _LOG.info('Loading plugin {fullname}'.format(fullname=fullname))
+        _LOG.info('Loading plugin %s', fullname)
 
         parts = fullname.split('.')
         modname = '.'.join(parts[:-1])
@@ -37,6 +38,6 @@ class SoCoPlugin(object):
         mod = importlib.import_module(modname)
         cls = getattr(mod, clsname)
 
-        _LOG.info('Loaded class {cls}'.format(cls=cls))
+        _LOG.info('Loaded class %s', cls)
 
         return cls(soco, *args, **kwargs)
