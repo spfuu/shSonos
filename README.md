@@ -1,4 +1,11 @@
 ## Release
+
+v0.6b0 (2015-02-08)
+
+    --  some minor bugfixes in Sonos Broker
+    --  some minor bugfixes in Cmd client
+    
+
 v0.5.2     (2015-02-01)
     
     --  set new auto-renew timer for event subscription, more debug logs 
