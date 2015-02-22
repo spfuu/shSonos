@@ -5,7 +5,7 @@ v0.6b1     (2015-02-22)
     --  new command: RefreshMediaLibrary (updates / refreshs the media library)
     --  RefreshMediaLibrary added to sonos command line client
     --  Bug: parsing error while playing some radio stations
-    
+    --  Added radio parser for Alsterradio 106.8
 
 v0.6b0     (2015-02-08)
 
