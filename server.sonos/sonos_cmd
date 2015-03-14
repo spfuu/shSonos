@@ -126,7 +126,7 @@ class SonosBrokerCmd(cmd.Cmd):
         if self.udp_socket:
             self.udp_socket.close()
         self._udp_listener_thread.join(1)
-        sys.stdout.write(" done!")
+        sys.stdout.write(" done!\n")
         sys.stdout.flush()
         return True
 
@@ -842,6 +842,56 @@ class SonosSpeakerCmd(cmd.Cmd):
             print("unknown argument")
             return
 
+    def help_wifi_state(self):
+        print("wifi_state      : Gets the current wifi state.")
+        print("wifi_state [get]: Forces the Broker to retrieve the speakers wifi state.")
+        print("wifi state [set]: Sets the wifi state.")
+
+    def do_wifi_state(self, line):
+        line = line.lower()
+        if not line:
+            pass
+        elif line == "get":
+            self.commands.get_wifi_state(self.uid, force_refresh=True)
+        elif line == "set":
+            default_state = self.wifi_state
+            default_persistent = 0
+            persistent = 0
+
+            state = input(normalize_output("Wifi state", "0|1", default_state)).lower()
+            if not state:
+                state = default_state
+
+            if state not in ['0', '1', 1, 0]:
+                print("Invalid input, using {default_state}.".format(default_state=default_state))
+                state = default_state
+            else:
+                state = int(state)
+
+            if not state:
+                persistent = input(normalize_output("Persistent after reboot", "0|1", default_persistent))
+                if not persistent:
+                    persistent = default_persistent
+                if persistent not in ['0', '1', 1, 0]:
+                    print("Invalid input, using {default_persistent}.".format(default_persistent=default_persistent))
+                    persistent = default_persistent
+                else:
+                    persistent = int(persistent)
+
+            result = self.commands.set_wifi_state(self.uid, state, persistent)
+
+            if result[0] is False:
+                return
+
+            print("The speaker is now inaccessible for a short time.")
+            # we need to set up the value manually since there is no trigger event
+            self.wifi_state = state
+
+        else:
+            print("unknown argument")
+            return
+        print("wifi_state: {}".format(self.wifi_state))
+
 
 class Commands():
     @property
@@ -1371,6 +1421,31 @@ class Commands():
                 }
             }
         )
+
+
+    def get_wifi_state(self, uid, force_refresh):
+        return self.send(
+            {
+                'command': 'get_wifi_state',
+                'parameter': {
+                    'uid': uid.lower(),
+                    'force_refresh': force_refresh
+                }
+            }
+        )
+
+    def set_wifi_state(self, uid, wifi_state, persistent=False):
+        return self.send(
+            {
+                'command': 'set_wifi_state',
+                'parameter': {
+                    'uid': uid.lower(),
+                    'wifi_state': wifi_state,
+                    'persistent': persistent
+                }
+            }
+        )
+
 
 
 if __name__ == '__main__':

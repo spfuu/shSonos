@@ -1707,3 +1707,74 @@ class RefreshMediaLibrary(JsonCommandBase):
             self._response = err
         finally:
             return self._status, self._response
+
+
+### Wifi State #########################################################################################################
+
+class GetWifiState(JsonCommandBase):
+    def __init__(self, parameter):
+        super().__init__(parameter)
+
+    def run(self):
+        try:
+            logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
+                                                                                  attributes=utils.dump_attributes(
+                                                                                      self)))
+            force_refresh = 0
+            if hasattr(self, 'force_refresh'):
+                if self.force_refresh in [0, 1, True, False, '0', '1']:
+                    force_refresh = int(self.force_refresh)
+
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
+            sonos_speaker.sonos_speakers[self.uid].get_wifi_state(force_refresh=force_refresh)
+            sonos_speaker.sonos_speakers[self.uid].dirty_property('wifi_state')
+            sonos_speaker.sonos_speakers[self.uid].send()
+            self._status = True
+        except requests.RequestException:
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
+                format(uid=self.uid)
+        except AttributeError as err:
+            self._response = JsonCommandBase.missing_param_error(err)
+        except Exception as err:
+            self._response = err
+        finally:
+            return self._status, self._response
+
+
+class SetWifiState(JsonCommandBase):
+    def __init__(self, parameter):
+        super().__init__(parameter)
+
+    def run(self):
+        try:
+            logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
+                                                                                  attributes=utils.dump_attributes(
+                                                                                      self)))
+            if hasattr(self, 'wifi_state'):
+                if self.wifi_state not in [0, 1, True, False, '0', '1']:
+                    raise Exception("The parameter 'wifi_state' has to be 0|1 or True|False !")
+                wifi_state = int(self.wifi_state)
+
+            persistent = 0
+            if hasattr(self, 'persistent'):
+                if self.persistent not in [0, 1, True, False, '0', '1']:
+                    raise Exception("The parameter 'persistent' has to be 0|1 or True|False !")
+                persistent = int(self.persistent)
+
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
+            sonos_speaker.sonos_speakers[self.uid].set_wifi_state(wifi_state, persistent=persistent,
+                                                                  trigger_action=True)
+            self._status = True
+        except requests.RequestException:
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
+                format(uid=self.uid)
+        except AttributeError as err:
+            self._response = JsonCommandBase.missing_param_error(err)
+        except Exception as err:
+            self._response = err
+        finally:
+            return self._status, self._response
