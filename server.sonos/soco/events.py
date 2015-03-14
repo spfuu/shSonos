@@ -403,7 +403,10 @@ class Subscription(object):
                 interval = self.interval
                 while not stop_flag.wait(interval):
                     log.info("Autorenewing subscription %s", sub.sid)
-                    sub.renew()
+                    try:
+                        sub.renew()
+                    except Exception as err:
+                        log.warning("{err}.\nSpeaker offline?".format(err=err))
 
         # TIMEOUT is provided for in the UPnP spec, but it is not clear if
         # Sonos pays any attention to it. A timeout of 86400 secs always seems
