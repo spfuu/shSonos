@@ -51,8 +51,8 @@ class SonosServerService():
         self.lock = Lock()
         self.host = host
         self.port = port
-        self.event_queue = queue.Queue()
 
+        SonosSpeaker.event_queue = queue.Queue()
         SonosSpeaker.set_tts(local_folder, remote_folder, quota, tts_local_mode)
 
         p_t = threading.Thread(target=self.process_events)
@@ -91,6 +91,8 @@ class SonosServerService():
             with sonos_speaker._sonos_lock:
                 zone_group_state_shared_cache.clear()
                 active_uids = []
+
+
                 soco_speakers = SonosServerService._discover()
 
                 if soco_speakers is None:
@@ -153,7 +155,7 @@ class SonosServerService():
                     try:
                         speaker.set_zone_coordinator()
                         speaker.set_group_members()
-                        speaker.event_subscription(self.event_queue)
+                        speaker.event_subscription()
                     except KeyError:
                         pass  # speaker maybe deleted by another thread
 
@@ -166,7 +168,7 @@ class SonosServerService():
         speakers = []
         while True:
             try:
-                event = self.event_queue.get()
+                event = SonosSpeaker.event_queue.get()
                 if event is None:
                     return
 
@@ -217,8 +219,8 @@ class SonosServerService():
                 break
             finally:
                 self.event_lock.acquire()
-                self.event_queue.task_done()
-                if not self.event_queue.unfinished_tasks:
+                SonosSpeaker.event_queue.task_done()
+                if not SonosSpeaker.event_queue.unfinished_tasks:
                     for speaker in speakers:
                         speaker.send()
                     del speakers[:]
