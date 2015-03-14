@@ -1,5 +1,14 @@
 ## Release
 
+v0.6b2     (2015-03-14)
+    
+    --  commands added: set_wifi_state, get_wifi_state
+        --  now you can activate or deactivate the speakers wireless network interface (e.g. if 
+            you use the speaker with an ethernet connection)
+        --  commands integrated in sonos command line client 
+    --  some changes handling event subscriptions
+    --  increased event subscription period to 240 sec
+
 v0.6b1     (2015-02-22)
 
     --  new command: RefreshMediaLibrary (updates / refreshs the media library)
@@ -11,7 +20,6 @@ v0.6b0     (2015-02-08)
 
     --  some minor bugfixes in Sonos Broker
     --  some minor bugfixes in Cmd client
-    
 
 v0.5.2     (2015-02-01)
     
@@ -43,21 +51,6 @@ v0.5       (2015-01-18)
         --  this options lists all available Sonos speaker in the network. 
             This is helpful to get the speakers UIDs.
          
-v0.4       (2014-11-09)
-
-    --  added new SoCo version
-    --  changed event parser logic ( thanks to the great SoCo framework)
-    --  play_tts can now executed like a radio stream without saving the tts file locally
-        --  this has some disadvantages (no exact timestamp to resume the previous paused track,
-            some time delay due to the radio stream buffering); the "local mode" should be the 
-            preferred one
-    --  added 'fade_in' parameter to play_snippet and play_tts command
-        -- the volume for the resumed track fades in
-    --  better Google TTS handling (especially resuming previous tracks) by implementing the SoCo snapshot
-        functionality --> this needs some testing ;)
-    --  bug: changed base64 encode and decode algorithm for saving google tts files to urlsafe variant
-    --  sonos broker should no stop reliable
-    --  minor bug fixes in documentation
     
 
 ## Overview
@@ -418,6 +411,8 @@ Click on the links below to get a detailed command descriptions and their usage.
 ###### [get_playlist](#get_playlist)
 ###### [set_playlist](#set_playlist)
 ###### [refresh_media_library](#ref_lib)
+###### [get_wifi_state](#get_wifi)
+###### [set_wifi_state](#set_wifi)
 
 ----
 #### <a name="cl_subs"></a>client_subscribe
@@ -2129,6 +2124,66 @@ This has some disadvantages. Please read the Google TTS section in this document
         }
     }
 
+######HTTP Response
+    HTTP 200 OK
+        or
+    Exception with HTTP status 400 and the specific error message.
+
+###### UDP Response sent to subscribed clients:
+    No UDP response
+    
+
+----
+#### <a name="get_wifi">get_wifi_state
+ Gets the current wifi status. Since there is no sonos event for the wifi state, you have to trigger
+ this command manually to retrieve the value. 
+
+| parameter | required / optional | valid values | description |
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| force_refresh | optional | 0 or 1| If True|1, the Broker queries the speaker for its wifi state, otherwise the cached value for state is used. Default: 0|
+
+######Example
+    JSON format:
+    {
+        'command': 'get_wifi_state',
+        'parameter': {
+            'uid': rincon_000e58c3892e01410,
+            'force_refresh': 0
+    }
+   
+######HTTP Response
+    HTTP 200 OK
+        or
+    Exception with HTTP status 400 and the specific error message.
+
+###### UDP Response sent to subscribed clients:
+    No UDP response
+    
+
+----
+#### <a name="set_wifi">set_wifi_state
+ Sets the current wifi status. The parameter "persistent" only affects the wifi state "off". 
+ Normally, after a reboot the wifi interface is enabled again. With a combination of "wifi_state = 0"
+ and "persistent = 1" the wifi interface will remain deactivated.
+
+| parameter | required / optional | valid values | description |
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| wifi_state | required | 0 or 1| If False, the wifi interface will be deactivated, otherwise it will be enabled.|
+| persistent | optional | 0 or 1| If True, the wifi interface will remain deactivated after a reboot of the speaker. Default: 0|
+
+######Example
+    JSON format:
+    {
+        'command': 'set_wifi_state',
+        'parameter': {
+            'uid': rincon_000e58c3892e01410,
+             'wifi_state': 0,
+             'persistent': 0
+         }
+    }
+   
 ######HTTP Response
     HTTP 200 OK
         or
