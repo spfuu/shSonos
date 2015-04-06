@@ -27,7 +27,33 @@ logger = logging.getLogger('')
 sonos_speakers = {}
 _sonos_lock = threading.Lock()
 
-class SonosSpeaker():
+
+class ProcessSnippetsThread(threading.Thread):
+    def __init__(self, speaker_instance):
+        threading.Thread.__init__(self)
+        self.speaker_instance = speaker_instance
+        self.stop_request = threading.Event()
+
+    def run(self):
+        while not self.stop_request.isSet():
+            try:
+                event = self.speaker_instance._snippet_queue.get(True, 0.05)
+                if isinstance(event[1], Snapshot):
+                    self.speaker_instance._play_saved_music_item()
+                else:
+                    self.speaker_instance._play_snippet(event[1], event[2])
+                self.speaker_instance._snippet_queue.task_done()
+            except queue.Empty:
+                pass
+            except KeyboardInterrupt:
+                break
+
+    def join(self, timeout=None):
+        self.stop_request.set()
+        super(ProcessSnippetsThread, self).join(timeout)
+
+
+class SonosSpeaker(object):
     event_queue = None
     tts_local_mode = False
     local_folder = ''
@@ -40,12 +66,15 @@ class SonosSpeaker():
         SonosSpeaker.remote_folder = remote_folder
         SonosSpeaker.quota = quota
 
+    def __del__(self):
+        logger.debug("DESTRUCTOR !!! Speaker object destructed")
+
     def __init__(self, soco):
         self._tts_local_mode = SonosSpeaker.tts_local_mode
         self._fade_in = False
         self._saved_music_item = None
         self._zone_members = NotifyList()
-        self._zone_members.register_callback(self.zone_member_changed)
+        self._zone_members.register_callback(utils.WeakMethod(self, 'zone_member_changed'))
         self._dirty_properties = []
         self._soco = soco
         self._uid = self.soco.uid.lower()
@@ -92,7 +121,7 @@ class SonosSpeaker():
         self._hardware_version = self.soco.speaker_info['hardware_version']
         self._mac_address = self.soco.speaker_info['mac_address']
         self._wifi_state = self.get_wifi_state(force_refresh=True)
-        self._snippet_event_thread = threading.Thread(target=self.process_snippets)
+        self._snippet_event_thread = ProcessSnippetsThread(self)
         self._snippet_event_thread.daemon = True
         self._snippet_event_thread.start()
 
@@ -1283,6 +1312,7 @@ class SonosSpeaker():
             if self.sub_zone_group is None:
                 logger.debug('renewing topology event for {uid}'.format(uid=self.uid))
                 try:
+
                     self._sub_zone_group = self.soco.zoneGroupTopology.subscribe(definitions.SUBSCRIPTION_TIMEOUT,
                                                                                  True, SonosSpeaker.event_queue)
                 except Exception as err:
@@ -1403,20 +1433,6 @@ class SonosSpeaker():
             if member_uid != self.uid:
                 self.zone_members.append(sonos_speakers[member_uid])
 
-    def process_snippets(self):
-        while True:
-            try:
-                event = self._snippet_queue.get()
-                if isinstance(event[1], Snapshot):
-                    self._play_saved_music_item()
-                else:
-                    self._play_snippet(event[1], event[2])
-                self._snippet_queue.task_done()
-            except queue.Empty:
-                pass
-            except KeyboardInterrupt:
-                break
-
     def get_playlist(self):
         try:
             snapshot = Snapshot(device=self.soco, snapshot_queue=True)
@@ -1451,6 +1467,15 @@ class SonosSpeaker():
             snapshot.restore()
         if play_on_insert:
             self.set_play(1, True)
+
+    def terminate(self):
+        self.event_unsubscribe()
+        self.zone_members[:] = []
+        self._zone_members.unregister_callback(self.zone_member_changed)
+        self._zone_members = None
+        self._snippet_event_thread.join()
+        self._snippet_event_thread = None
+        del self._soco
 
     led = property(get_led, set_led)
     bass = property(get_bass, set_bass)
