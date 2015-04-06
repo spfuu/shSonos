@@ -1,5 +1,9 @@
 ## Release
 
+v0.6b3     (2015-04-06)
+    
+    --  fixed a resource leak (thx @hoggle)
+
 v0.6b2     (2015-03-14)
     
     --  commands added: set_wifi_state, get_wifi_state
