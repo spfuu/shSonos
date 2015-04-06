@@ -7,6 +7,7 @@ import json
 import os
 import platform
 import socket
+import weakref
 import requests
 import re
 import urllib
@@ -26,6 +27,15 @@ except ImportError:
     UnicodeType = str
 
 logger = logging.getLogger('')
+
+
+class WeakMethod:
+    def __init__(self, inst, method_name):
+        self.proxy = weakref.proxy(inst)
+        self.method_name = method_name
+
+    def __call__(self, *args):
+        return getattr(self.proxy, self.method_name)(*args)
 
 
 def really_unicode(in_string):
