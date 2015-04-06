@@ -286,7 +286,7 @@ class SonosBroker():
             self._http_server.socket.close()
         for thread in threading.enumerate():
             try:
-                thread.join(1)
+                thread.join(2)
             except:
                 pass
         if threading.active_count() > 1:
