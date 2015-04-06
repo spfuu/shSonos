@@ -469,9 +469,9 @@ class Subscription(object):
             return
         # Autorenew just before expiry, say at 85% of self.timeout seconds
         interval = self.timeout * 85 / 100
-        auto_renew_thread = AutoRenewThread(
+        self._auto_renew_thread = AutoRenewThread(
             interval, self._auto_renew_thread_flag, self)
-        auto_renew_thread.start()
+        self._auto_renew_thread.start()
 
     def renew(self, requested_timeout=None):
         """Renew the event subscription.
@@ -549,11 +549,14 @@ class Subscription(object):
         headers = {
             'SID': self.sid
         }
-        response = requests.request(
-            'UNSUBSCRIBE',
-            self.service.base_url + self.service.event_subscription_url,
-            headers=headers)
-        response.raise_for_status()
+        try:
+            response = requests.request(
+                'UNSUBSCRIBE',
+                self.service.base_url + self.service.event_subscription_url,
+                headers=headers, timeout=1)
+            response.raise_for_status()
+        except Exception:
+            pass
         self.is_subscribed = False
         self._timestamp = None
         log.info(
@@ -572,6 +575,8 @@ class Subscription(object):
             except KeyError:
                 pass
         self._has_been_unsubscribed = True
+        if self._auto_renew_thread:
+            self._auto_renew_thread.join()
 
     @property
     def time_left(self):
