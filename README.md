@@ -1,5 +1,9 @@
 ## Release
 
+v0.6b4     (2015-04-07)
+    
+    --  bug fix: error while restoring a playlist
+
 v0.6b3     (2015-04-06)
     
     --  fixed a resource leak (thx @hoggle)
