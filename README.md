@@ -5,8 +5,8 @@ v0.6      (2015-04-11)
     --  bug fix: error while restoring a playlist
     --  fixed a resource leak (thx @hoggle)
     --  commands added: set_wifi_state, get_wifi_state
-        --  now you can activate or deactivate the speakers wireless network interface (e.g. if 
-            you use the speaker with an ethernet connection)
+        --  now you can activate or deactivate the speakers wireless network interface 
+            (e.g. if you use the speaker with an ethernet connection)
         --  commands integrated in sonos command line client 
     --  some changes handling event subscriptions
     --  increased event subscription period to 240 sec
