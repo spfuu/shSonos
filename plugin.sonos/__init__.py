@@ -493,7 +493,7 @@ class Sonos():
         return self._send_cmd(SonosCommand.refresh_media_library(display_option))
 
     def version(self):
-        return "v1.4.1\t2015-04-11"
+        return "v1.4\t2015-04-11"
 
 
 class SonosSpeaker():
