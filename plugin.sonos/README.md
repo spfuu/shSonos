@@ -6,7 +6,7 @@ Smarthome.py framework (https://github.com/mknx/smarthome).
   v1.4  2015-04-11
   
     -- added "wifi_state" command (only Sonos Broker >= v0.6)
-    -- added refresh_media_library command (only Sonos Broker >= v0.6)
+    -- added refresh_media_library function (only Sonos Broker >= v0.6)
     
   v1.3  2015-01-18
 
