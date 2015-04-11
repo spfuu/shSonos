@@ -859,7 +859,7 @@ class SonosCommand():
         return {
             'command': 'refresh_media_library',
             'parameter': {
-                'display_option': display_option
+                'display_option': display_option.upper()
             }
         }
 
