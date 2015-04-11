@@ -6,6 +6,7 @@ import logging
 import queue
 import tempfile
 import urllib
+import requests
 from lib_sonos.utils import NotifyList
 from soco.alarms import get_alarms
 from soco.exceptions import SoCoUPnPException
@@ -27,7 +28,33 @@ sonos_speakers = {}
 _sonos_lock = threading.Lock()
 
 
-class SonosSpeaker():
+class ProcessSnippetsThread(threading.Thread):
+    def __init__(self, speaker_instance):
+        threading.Thread.__init__(self)
+        self.speaker_instance = speaker_instance
+        self.stop_request = threading.Event()
+
+    def run(self):
+        while not self.stop_request.isSet():
+            try:
+                event = self.speaker_instance._snippet_queue.get(True, 0.05)
+                if isinstance(event[1], Snapshot):
+                    self.speaker_instance._play_saved_music_item()
+                else:
+                    self.speaker_instance._play_snippet(event[1], event[2])
+                self.speaker_instance._snippet_queue.task_done()
+            except queue.Empty:
+                pass
+            except KeyboardInterrupt:
+                break
+
+    def join(self, timeout=None):
+        self.stop_request.set()
+        super(ProcessSnippetsThread, self).join(timeout)
+
+
+class SonosSpeaker(object):
+    event_queue = None
     tts_local_mode = False
     local_folder = ''
     remote_folder = ''
@@ -39,12 +66,15 @@ class SonosSpeaker():
         SonosSpeaker.remote_folder = remote_folder
         SonosSpeaker.quota = quota
 
+    def __del__(self):
+        logger.debug("DESTRUCTOR !!! Speaker object destructed")
+
     def __init__(self, soco):
         self._tts_local_mode = SonosSpeaker.tts_local_mode
         self._fade_in = False
         self._saved_music_item = None
         self._zone_members = NotifyList()
-        self._zone_members.register_callback(self.zone_member_changed)
+        self._zone_members.register_callback(utils.WeakMethod(self, 'zone_member_changed'))
         self._dirty_properties = []
         self._soco = soco
         self._uid = self.soco.uid.lower()
@@ -72,12 +102,12 @@ class SonosSpeaker():
         self._sub_rendering_control = None
         self._sub_zone_group = None
         self._sub_alarm = None
+        self._sub_system_prop = None
         self._properties_hash = None
         self._zone_coordinator = None
         self._additional_zone_members = ''
         self._snippet_queue = queue.PriorityQueue(10)
         self._snippet_queue_lock = threading.Lock()
-
         self._volume = self.soco.volume
         self._bass = self.soco.bass
         self._treble = self.soco.treble
@@ -90,8 +120,8 @@ class SonosSpeaker():
         self._software_version = self.soco.speaker_info['software_version']
         self._hardware_version = self.soco.speaker_info['hardware_version']
         self._mac_address = self.soco.speaker_info['mac_address']
-
-        self._snippet_event_thread = threading.Thread(target=self.process_snippets)
+        self._wifi_state = self.get_wifi_state(force_refresh=True)
+        self._snippet_event_thread = ProcessSnippetsThread(self)
         self._snippet_event_thread.daemon = True
         self._snippet_event_thread.start()
 
@@ -164,6 +194,14 @@ class SonosSpeaker():
         return False
 
     # ## EVENTS #########################################################################################################
+
+    @property
+    def sub_device_properties(self):
+        return self._sub_device_prop
+
+    @property
+    def sub_system_properties(self):
+        return self._sub_system_prop
 
     @property
     def sub_av_transport(self):
@@ -294,7 +332,7 @@ class SonosSpeaker():
         self._playmode = value
         self.dirty_property('playmode')
 
-        #dirty properties for all zone members, if coordinator
+        # dirty properties for all zone members, if coordinator
         if self.is_coordinator:
             for speaker in self._zone_members:
                 speaker.dirty_property('playmode')
@@ -487,7 +525,7 @@ class SonosSpeaker():
         self._track_uri = value
         self.dirty_property('track_uri')
 
-        #dirty properties for all zone members, if coordinator
+        # dirty properties for all zone members, if coordinator
         if self.is_coordinator:
             for speaker in self._zone_members:
                 speaker.dirty_property('track_uri')
@@ -511,7 +549,7 @@ class SonosSpeaker():
         self.dirty_property('track_duration')
         self._track_duration = value
 
-        #dirty properties for all zone members, if coordinator
+        # dirty properties for all zone members, if coordinator
         if self.is_coordinator:
             for speaker in self._zone_members:
                 speaker.dirty_property('track_duration')
@@ -556,7 +594,7 @@ class SonosSpeaker():
         self._track_position = value
         self.dirty_property('track_position')
 
-        #dirty properties for all zone members, if coordinator
+        # dirty properties for all zone members, if coordinator
         if self.is_coordinator:
             for speaker in self._zone_members:
                 speaker.dirty_property('track_position')
@@ -578,7 +616,7 @@ class SonosSpeaker():
         self._playlist_position = value
         self.dirty_property('playlist_position')
 
-        #dirty properties for all zone members, if coordinator
+        # dirty properties for all zone members, if coordinator
         if self.is_coordinator:
             for speaker in self._zone_members:
                 speaker.dirty_property('playlist_position')
@@ -600,7 +638,7 @@ class SonosSpeaker():
         self._streamtype = value
         self.dirty_property('streamtype')
 
-        #dirty properties for all zone members, if coordinator
+        # dirty properties for all zone members, if coordinator
         if self.is_coordinator:
             for speaker in self._zone_members:
                 speaker.dirty_property('streamtype')
@@ -635,7 +673,7 @@ class SonosSpeaker():
         self._pause = 0
         self.dirty_property('stop', 'play', 'pause')
 
-        #dirty properties for all zone members, if coordinator
+        # dirty properties for all zone members, if coordinator
         if self.is_coordinator:
             for speaker in self._zone_members:
                 speaker.dirty_property('pause', 'play', 'stop')
@@ -670,7 +708,7 @@ class SonosSpeaker():
         self._stop = int(not self._play)
         self.dirty_property('pause', 'play', 'stop')
 
-        #dirty properties for all zone members, if coordinator
+        # dirty properties for all zone members, if coordinator
         if self.is_coordinator:
             for speaker in self._zone_members:
                 speaker.dirty_property('pause', 'play', 'stop')
@@ -705,7 +743,7 @@ class SonosSpeaker():
         self._stop = 0
         self.dirty_property('pause', 'play', 'stop')
 
-        #dirty properties for all zone members, if coordinator
+        # dirty properties for all zone members, if coordinator
         if self.is_coordinator:
             for speaker in self._zone_members:
                 speaker.dirty_property('pause', 'play', 'stop')
@@ -727,7 +765,7 @@ class SonosSpeaker():
         self._radio_station = value
         self.dirty_property('radio_station')
 
-        #dirty properties for all zone members, if coordinator
+        # dirty properties for all zone members, if coordinator
         if self.is_coordinator:
             for speaker in self._zone_members:
                 speaker.dirty_property('radio_station')
@@ -896,6 +934,80 @@ class SonosSpeaker():
             for speaker in self._zone_members:
                 speaker.current_state(group_command=False)
 
+    ### WIFI STATE #####################################################################################################
+
+    def get_wifi_state(self, force_refresh=False):
+        """
+        Gets the current wifi state.
+        :param force_refresh:
+        :return: You have to poll this value manually. There is no sonos event for a wifi state change.
+        """
+
+        if force_refresh:
+            url = "http://{ip}:1400/status/ifconfig".format(ip=self.ip)
+            wifi_request = requests.get(url, timeout=5)
+            if wifi_request.status_code is not 200:
+                raise Exception("Could not retrieve wifi state from speaker with uid '{uid}'".format(uid=self.uid))
+
+            if 'ath0' in wifi_request.text:
+                self._wifi_state = 1
+            else:
+                self._wifi_state = 0
+
+        return self._wifi_state
+
+    def set_wifi_state(self, value, persistent=False, trigger_action=False):
+        """
+        Sets the wifi state
+        :param  value: wifi state: on, off, persistent-off
+        :param  trigger_action: If True, the value is passed to the sonos speaker to change the wifi state. If False,
+                the behavior of this function is more or less like a property.
+        :rtype : None
+        """
+
+        if isinstance(value, str):
+            value = value.lower()
+
+        if value in [0, 'off', False, '0']:
+            named_value = 'off'
+            value = 0
+
+        else:
+            # default should be wifi on, this is the default sonos behaviour
+            named_value = 'on'
+            value = 1
+
+        if trigger_action:
+            if persistent and not value:
+                persistent = "persist-"
+            else:
+                persistent = ''
+
+            url = "http://{ip}:1400/wifictrl?wifi={persistent}{named_value}".format(ip=self.ip, persistent=persistent,
+                                                                                    named_value=named_value)
+
+            # after disabling / enabling  the wifi, sometimes the event subscriptions act oddly
+            # we'll unsubscribe an re-subscribe the events
+
+            logger.debug("Unsubscribing events ... ")
+            self.event_unsubscribe()
+
+            response = requests.get(url, timeout=5)
+
+            if response.status_code is not 200:
+                raise Exception("Could not set wifi state for speaker with uid '{uid}'.\nError: {err}".format(
+                    uid=self.uid, err=response.text)
+                )
+            logger.debug("Wifi state set for speker with uid '{uid}'.".format(uid=self.uid))
+
+            # re-registering
+            threading.Timer(15, self.event_subscription).start()
+
+        if self._wifi_state == value:
+            return
+        self._wifi_state = value
+        self.dirty_property('wifi_state')
+
     def dirty_music_metadata(self):
 
         """
@@ -946,7 +1058,8 @@ class SonosSpeaker():
             'treble',
             'loudness',
             'alarms',
-            'is_coordinator'
+            'is_coordinator',
+            'wifi_state'
         )
 
     @property
@@ -969,6 +1082,7 @@ class SonosSpeaker():
         self._status = value
 
         if self._status == 0:
+            self._wifi_state = 0
             self._tts_local_mode = False
             self._streamtype = ''
             self._volume = 0
@@ -1031,7 +1145,7 @@ class SonosSpeaker():
         if not self.is_coordinator:
             logger.debug("forwarding play_snippet command to coordinator with uid {uid}".
                          format(uid=self.zone_coordinator.uid))
-            self._zone_coordinator.play_snippet(uri, volume)
+            self._zone_coordinator.play_snippet(uri, volume, group_command=group_command)
         else:
             with self._snippet_queue_lock:
                 try:
@@ -1169,6 +1283,10 @@ class SonosSpeaker():
         try:
             if self.sub_zone_group is not None:
                 self.sub_zone_group.unsubscribe()
+            if self.sub_alarm is not None:
+                self.sub_alarm.unsubscribe()
+            if self.sub_system_properties is not None:
+                self.sub_system_properties.unsubscribe()
             if self.sub_av_transport is not None:
                 self.sub_av_transport.unsubscribe()
             if self.sub_rendering_control is not None:
@@ -1176,7 +1294,7 @@ class SonosSpeaker():
         except Exception as err:
             logger.exception(err)
 
-    def event_subscription(self, event_queue):
+    def event_subscription(self):
 
         """
         Subscribes the Broker to all necessary Sonos speaker events
@@ -1184,24 +1302,70 @@ class SonosSpeaker():
         """
 
         try:
-            if self.sub_zone_group is None or self.sub_zone_group.time_left == 0:
+            if self.sub_zone_group is not None:
+                if not self.sub_zone_group.time_left:
+                    try:
+                        self._sub_zone_group.unsubscribe()
+                    except Exception as err:
+                        logger.warning(err)
+                    self._sub_zone_group = None
+            if self.sub_zone_group is None:
                 logger.debug('renewing topology event for {uid}'.format(uid=self.uid))
-                self._sub_zone_group = self.soco.zoneGroupTopology.subscribe(definitions.SUBSCRIPTION_TIMEOUT,
-                                                                             True, event_queue)
+                try:
 
-            if self.sub_av_transport is None or self.sub_av_transport.time_left == 0:
+                    self._sub_zone_group = self.soco.zoneGroupTopology.subscribe(definitions.SUBSCRIPTION_TIMEOUT,
+                                                                                 True, SonosSpeaker.event_queue)
+                except Exception as err:
+                    logger.warning(err)
+                    pass
+
+            if self.sub_av_transport is not None:
+                if not self.sub_av_transport.time_left:
+                    try:
+                        self.sub_av_transport.unsubscribe()
+                    except Exception as err:
+                        logger.warning(err)
+                    self._sub_av_transport = None
+            if self.sub_av_transport is None:
                 logger.debug('renewing av-transport event for {uid}'.format(uid=self.uid))
-                self._sub_av_transport = self.soco.avTransport.subscribe(definitions.SUBSCRIPTION_TIMEOUT,
-                                                                         True, event_queue)
+                try:
+                    self._sub_av_transport = self.soco.avTransport.subscribe(definitions.SUBSCRIPTION_TIMEOUT,
+                                                                             True, SonosSpeaker.event_queue)
+                except Exception as err:
+                    logger.warning(err)
+                    pass
 
-            if self.sub_rendering_control is None or self.sub_rendering_control.time_left == 0:
+            if self.sub_rendering_control is not None:
+                if not self.sub_rendering_control.time_left:
+                    try:
+                        self.sub_rendering_control.unsubscribe()
+                    except Exception as err:
+                        logger.warning(err)
+                    self._sub_rendering_control = None
+            if self.sub_rendering_control is None:
                 logger.debug('renewing rendering event for {uid}'.format(uid=self.uid))
-                self._sub_rendering_control = self.soco.renderingControl.subscribe(definitions.SUBSCRIPTION_TIMEOUT,
-                                                                                   True, event_queue)
+                try:
+                    self._sub_rendering_control = self.soco.renderingControl.subscribe(definitions.SUBSCRIPTION_TIMEOUT,
+                                                                                       True, SonosSpeaker.event_queue)
+                except Exception as err:
+                    logger.warning(err)
+                    pass
 
-            if self.sub_alarm is None or self.sub_alarm.time_left == 0:
+            if self.sub_alarm is not None:
+                if not self.sub_alarm.time_left:
+                    try:
+                        self.sub_alarm.unsubscribe()
+                    except Exception as err:
+                        logger.warning(err)
+                    self._sub_alarm = None
+            if self.sub_alarm is None:
                 logger.debug('renewing alarm event for {uid}'.format(uid=self.uid))
-                self._sub_alarm = self.soco.alarmClock.subscribe(definitions.SUBSCRIPTION_TIMEOUT, True, event_queue)
+                try:
+                    self._sub_alarm = self.soco.alarmClock.subscribe(definitions.SUBSCRIPTION_TIMEOUT, True,
+                                                                     SonosSpeaker.event_queue)
+                except Exception as err:
+                    logger.warning(err)
+                    pass
 
         except Exception as err:
             logger.exception(err)
@@ -1233,9 +1397,9 @@ class SonosSpeaker():
             'Recurrence': alarm.recurrence,
             'StartTime': str(alarm.start_time),
             'IncludedLinkZones': alarm.include_linked_zones
-            #'ProgramUri': alarm.program_uri,
-            #'ProgramMetadata': alarm.program_metadata,
-            #'Uid': alarm.zone.uid
+            # 'ProgramUri': alarm.program_uri,
+            # 'ProgramMetadata': alarm.program_metadata,
+            # 'Uid': alarm.zone.uid
         }
 
     def dirty_property(self, *args):
@@ -1244,6 +1408,8 @@ class SonosSpeaker():
                 self._dirty_properties.append(arg)
 
     def set_zone_coordinator(self):
+        if self.soco.group is None:
+            return
         soco = next(member for member in self.soco.group.members if member.is_coordinator is True)
         if not soco:
             '''
@@ -1258,24 +1424,14 @@ class SonosSpeaker():
 
     def set_group_members(self):
         del self.zone_members[:]
+
+        if not self.soco.group:
+            return
+
         for member in self.soco.group.members:
             member_uid = member.uid.lower()
             if member_uid != self.uid:
                 self.zone_members.append(sonos_speakers[member_uid])
-
-    def process_snippets(self):
-        while True:
-            try:
-                event = self._snippet_queue.get()
-                if isinstance(event[1], Snapshot):
-                    self._play_saved_music_item()
-                else:
-                    self._play_snippet(event[1], event[2])
-                self._snippet_queue.task_done()
-            except queue.Empty:
-                pass
-            except KeyboardInterrupt:
-                break
 
     def get_playlist(self):
         try:
@@ -1292,28 +1448,34 @@ class SonosSpeaker():
             f.close()
 
     def set_playlist(self, playlist, play_on_insert):
-        try:
-            snapshot = Snapshot(device=self.soco, snapshot_queue=False)
-            snapshot.device.stop()
-            snapshot.snapshot()
 
-            # check magic bytes
-            if not playlist.startswith("#so_pl#"):
-                raise Exception("This is not a valid playlist file.")
+        snapshot = Snapshot(device=self.soco, snapshot_queue=False)
+        snapshot.device.stop()
+        snapshot.snapshot()
 
-            # remove magic bytes
-            playlist = playlist.lstrip(definitions.MB_PLAYLIST)
+        # check magic bytes
+        if not playlist.startswith("#so_pl#"):
+            raise Exception("This is not a valid playlist file.")
 
-            with tempfile.TemporaryFile() as f:
-                f.write(base64.b64decode(playlist))
-                f.seek(0)
-                snapshot.queue = pickle.load(f)
-                snapshot.restore()
-            if play_on_insert:
-                self.set_play(1, True)
-        except Exception as err:
-            print(err)
-            pass
+        # remove magic bytes
+        playlist = playlist.lstrip(definitions.MB_PLAYLIST)
+
+        with tempfile.TemporaryFile() as f:
+            f.write(base64.b64decode(playlist))
+            f.seek(0)
+            snapshot.queue = pickle.load(f)
+            snapshot.restore()
+        if play_on_insert:
+            self.set_play(1, True)
+
+    def terminate(self):
+        self.event_unsubscribe()
+        self.zone_members[:] = []
+        self._zone_members.unregister_callback(self.zone_member_changed)
+        self._zone_members = None
+        self._snippet_event_thread.join()
+        self._snippet_event_thread = None
+        del self._soco
 
     led = property(get_led, set_led)
     bass = property(get_bass, set_bass)
@@ -1327,3 +1489,4 @@ class SonosSpeaker():
     pause = property(get_pause, set_pause)
     max_volume = property(get_maxvolume, set_maxvolume)
     track_position = property(get_trackposition, set_trackposition)
+    wifi_state = property(get_wifi_state, set_wifi_state)

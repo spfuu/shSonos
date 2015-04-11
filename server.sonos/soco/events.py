@@ -19,6 +19,7 @@ import atexit
 
 import requests
 
+from soco import config
 from .compat import (SimpleHTTPRequestHandler, urlopen, URLError, socketserver,
                      Queue,)
 from .xml import XML
@@ -146,6 +147,7 @@ def parse_event_xml(xml_event):
 
 
 class Event(object):
+
     """ A read-only object representing a received event
 
     The values of the evented variables can be accessed via the `variables`
@@ -175,6 +177,7 @@ class Event(object):
 
     """
     # pylint: disable=too-few-public-methods, too-many-arguments
+
     def __init__(self, sid, seq, service, timestamp, variables=None):
         # Initialisation has to be done like this, because __setattr__ is
         # overridden, and will not allow direct setting of attributes
@@ -200,11 +203,13 @@ class Event(object):
 
 
 class EventServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+
     """ A TCP server which handles each new request in a new thread """
     allow_reuse_address = True
 
 
 class EventNotifyHandler(SimpleHTTPRequestHandler):
+
     """ Handles HTTP NOTIFY Verbs sent to the listener server """
 
     def do_NOTIFY(self):  # pylint: disable=invalid-name
@@ -244,6 +249,7 @@ class EventNotifyHandler(SimpleHTTPRequestHandler):
 
 
 class EventServerThread(threading.Thread):
+
     """The thread in which the event listener server will run"""
 
     def __init__(self, address):
@@ -254,8 +260,9 @@ class EventServerThread(threading.Thread):
         self.address = address
 
     def run(self):
-        # Start the server on the local IP at port 1400.  Handling of requests
-        # is delegated to instances of the EventNotifyHandler class
+        # Start the server on the local IP at port 1400 (default).
+        # Handling of requests is delegated to instances of the
+        # EventNotifyHandler class
         listener = EventServer(self.address, EventNotifyHandler)
         log.info("Event listener running on %s", listener.server_address)
         # Listen for events untill told to stop
@@ -264,6 +271,7 @@ class EventServerThread(threading.Thread):
 
 
 class EventListener(object):
+
     """The Event Listener.
 
     Runs an http server in a thread which is an endpoint for NOTIFY messages
@@ -280,6 +288,7 @@ class EventListener(object):
 
     def start(self, any_zone):
         """Start the event listener listening on the local machine at port 1400
+        (default)
 
         Make sure that your firewall allows connections to this port
 
@@ -294,14 +303,11 @@ class EventListener(object):
         # Sonos net, see http://stackoverflow.com/q/166506
 
         temp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        temp_sock.connect((any_zone.ip_address, 1400))
+        temp_sock.connect((any_zone.ip_address, config.EVENT_LISTENER_PORT))
         ip_address = temp_sock.getsockname()[0]
         temp_sock.close()
         # Start the event listener server in a separate thread.
-        # Hardcoded to listen on port 1400. Any free port could
-        # be used but this seems appropriate for Sonos, and avoids the need
-        # to find a free port.
-        self.address = (ip_address, 1400)
+        self.address = (ip_address, config.EVENT_LISTENER_PORT)
         self._listener_thread = EventServerThread(self.address)
         self._listener_thread.daemon = True
         self._listener_thread.start()
@@ -327,6 +333,7 @@ class EventListener(object):
 
 
 class Subscription(object):
+
     """ A class representing the subscription to a UPnP event
 
     """
@@ -377,6 +384,7 @@ class Subscription(object):
         """
 
         class AutoRenewThread(threading.Thread):
+
             """ Used by the auto_renew code to renew a subscription from
                 within a thread.
                 """
@@ -395,7 +403,10 @@ class Subscription(object):
                 interval = self.interval
                 while not stop_flag.wait(interval):
                     log.info("Autorenewing subscription %s", sub.sid)
-                    sub.renew()
+                    try:
+                        sub.renew()
+                    except Exception as err:
+                        log.warning("{err}.\nSpeaker offline?".format(err=err))
 
         # TIMEOUT is provided for in the UPnP spec, but it is not clear if
         # Sonos pays any attention to it. A timeout of 86400 secs always seems
@@ -457,10 +468,10 @@ class Subscription(object):
         if not auto_renew:
             return
         # Autorenew just before expiry, say at 85% of self.timeout seconds
-        interval = self.timeout * 85/100
-        auto_renew_thread = AutoRenewThread(
+        interval = self.timeout * 85 / 100
+        self._auto_renew_thread = AutoRenewThread(
             interval, self._auto_renew_thread_flag, self)
-        auto_renew_thread.start()
+        self._auto_renew_thread.start()
 
     def renew(self, requested_timeout=None):
         """Renew the event subscription.
@@ -538,11 +549,14 @@ class Subscription(object):
         headers = {
             'SID': self.sid
         }
-        response = requests.request(
-            'UNSUBSCRIBE',
-            self.service.base_url + self.service.event_subscription_url,
-            headers=headers)
-        response.raise_for_status()
+        try:
+            response = requests.request(
+                'UNSUBSCRIBE',
+                self.service.base_url + self.service.event_subscription_url,
+                headers=headers, timeout=1)
+            response.raise_for_status()
+        except Exception:
+            pass
         self.is_subscribed = False
         self._timestamp = None
         log.info(
@@ -561,6 +575,8 @@ class Subscription(object):
             except KeyError:
                 pass
         self._has_been_unsubscribed = True
+        if self._auto_renew_thread:
+            self._auto_renew_thread.join()
 
     @property
     def time_left(self):
@@ -573,7 +589,7 @@ class Subscription(object):
         if self._timestamp is None:
             return 0
         else:
-            time_left = self.timeout-(time.time()-self._timestamp)
+            time_left = self.timeout - (time.time() - self._timestamp)
             return time_left if time_left > 0 else 0
 
 # pylint: disable=C0103

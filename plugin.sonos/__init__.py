@@ -419,6 +419,22 @@ class Sonos():
                         logger.error(err)
                     return
 
+                if command == 'wifi_state':
+                    if isinstance(value, bool):
+                        persistent_item_name = '{}.persistent'.format(item._name)
+                        persistent = 0
+                        for child in item.return_children():
+                            if child._name.lower() == persistent_item_name.lower():
+                                if value != 0 and persistent == 1:
+                                    logger.warning("command wifi_state: persistent parameter with value '1' will"
+                                                   "only affect wifi_state with value '1' (the wifi interface will"
+                                                   "remain deactivated after reboot). Ignoring 'persistent' "
+                                                   "parameter.")
+                                else:
+                                    persistent = child()
+                                break
+                        cmd = self._command.wifi_state(uid, value, persistent)
+
                 if cmd:
                     self._send_cmd(cmd)
                     return
@@ -514,6 +530,7 @@ class SonosSpeaker():
         self.playmode = []
         self.alarms = []
         self.tts_local_mode = []
+        self.wifi_state = []
 
 class SonosCommand():
 
@@ -798,6 +815,16 @@ class SonosCommand():
             }
         }
 
+    @staticmethod
+    def wifi_state(uid, wifi_state, persistent):
+        return {
+            'command': 'set_wifi_state',
+            'parameter': {
+                'uid': uid.lower(),
+                'wifi_state': wifi_state,
+                'persistent': persistent
+            }
+        }
 
     @staticmethod
     def favradio(start_item, max_items):

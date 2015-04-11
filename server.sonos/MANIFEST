@@ -29,3 +29,4 @@ soco/services.py
 soco/snapshot.py
 soco/utils.py
 soco/xml.py
+test/test_parse_status.py

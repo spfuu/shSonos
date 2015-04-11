@@ -2,7 +2,11 @@ This sub-project is a client implementation fpr the Sonos Broker. It is a plugin
 Smarthome.py framework (https://github.com/mknx/smarthome).
 
 ##Release
+
+  v1.4  2015-04-08
   
+    -- added "wifi_state" command (only Sonos Broker >= v0.6)
+    
   v1.3  2015-01-18
 
     --  added "get_playlist" and "set_playlist" commmands

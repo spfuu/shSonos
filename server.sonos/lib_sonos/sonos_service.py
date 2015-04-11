@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 # -*- coding: utf-8 -*-
 import queue
+import weakref
 import requests
 from collections import namedtuple
 import threading
@@ -51,8 +52,8 @@ class SonosServerService():
         self.lock = Lock()
         self.host = host
         self.port = port
-        self.event_queue = queue.Queue()
 
+        SonosSpeaker.event_queue = queue.Queue()
         SonosSpeaker.set_tts(local_folder, remote_folder, quota, tts_local_mode)
 
         p_t = threading.Thread(target=self.process_events)
@@ -84,12 +85,12 @@ class SonosServerService():
 
     @staticmethod
     def _discover():
-        return discover(timeout=5, include_invisible=False)
+        return discover(timeout=1, include_invisible=False)
 
     def discover(self):
         try:
             with sonos_speaker._sonos_lock:
-                zone_group_state_shared_cache.clear()
+
                 active_uids = []
                 soco_speakers = SonosServerService._discover()
 
@@ -108,7 +109,7 @@ class SonosServerService():
                             active_uids.append(uid)
                         except Exception:
                             # !! sometimes an offline speaker is cached and will be found by the discover function
-                            speaker_to_remove.append(soco_speaker.uid)
+                            speaker_to_remove.append(uid)
                             continue
                         try:
                             _sp = SonosSpeaker(soco_speaker)
@@ -116,32 +117,28 @@ class SonosServerService():
                             sonos_speaker.sonos_speakers[uid].model = SonosServerService.get_model_name(
                                 sonos_speaker.sonos_speakers[uid].ip)
                         except Exception:
-                            speaker_to_remove.append(soco_speaker.uid)
+                            speaker_to_remove.append(uid)
                             continue  # speaker maybe deleted by another thread
                     else:
                         try:
                             sonos_speaker.sonos_speakers[uid].soco.get_speaker_info(refresh=True)
                             active_uids.append(uid)
                         except Exception:
-                            speaker_to_remove.append(soco_speaker.uid)
+                            speaker_to_remove.append(uid)
                             continue  # speaker maybe deleted by another thread
-
-                for uid in speaker_to_remove:
-                    uid = uid.lower()
-                    if uid in sonos_speaker.sonos_speakers:
-                        sonos_speaker.sonos_speakers.pop(uid)
-
-                # remove all offline speakers from internal list
                 try:
                     offline_uids = set(list(sonos_speaker.sonos_speakers.keys())) - set(active_uids)
-                except KeyError:
+                    offline_uids = set(list(offline_uids) + speaker_to_remove)
+                except KeyError as err:
+                    print(err)
                     pass  # speaker maybe deleted by another thread
 
                 for uid in offline_uids:
-                    logger.info("offline speaker: {uid} -- removing from list".format(uid=uid))
+                    logger.info("offline speaker: {uid} -- removing from list (maybe cached)".format(uid=uid))
                     try:
                         sonos_speaker.sonos_speakers[uid].status = False
                         sonos_speaker.sonos_speakers[uid].send()
+                        sonos_speaker.sonos_speakers[uid].terminate()
                         del sonos_speaker.sonos_speakers[uid]
                     except KeyError:
                         continue  # speaker maybe deleted by another thread
@@ -153,10 +150,12 @@ class SonosServerService():
                     try:
                         speaker.set_zone_coordinator()
                         speaker.set_group_members()
-                        speaker.event_subscription(self.event_queue)
+                        speaker.event_subscription()
                     except KeyError:
                         pass  # speaker maybe deleted by another thread
 
+        except ReferenceError:
+            pass
         except Exception as err:
             logger.exception('Error in method discover()!\nError: {err}'.format(err=err))
         finally:
@@ -166,7 +165,7 @@ class SonosServerService():
         speakers = []
         while True:
             try:
-                event = self.event_queue.get()
+                event = SonosSpeaker.event_queue.get()
                 if event is None:
                     return
 
@@ -191,7 +190,7 @@ class SonosServerService():
 
                 with sonos_speaker._sonos_lock:
                     try:
-                        speaker = sonos_speaker.sonos_speakers[uid]
+                        speaker = weakref.proxy(sonos_speaker.sonos_speakers[uid])
                         if speaker not in speakers:
                             speakers.append(speaker)
                     except KeyError:
@@ -217,8 +216,8 @@ class SonosServerService():
                 break
             finally:
                 self.event_lock.acquire()
-                self.event_queue.task_done()
-                if not self.event_queue.unfinished_tasks:
+                SonosSpeaker.event_queue.task_done()
+                if not SonosSpeaker.event_queue.unfinished_tasks:
                     for speaker in speakers:
                         speaker.send()
                     del speakers[:]
@@ -232,7 +231,6 @@ class SonosServerService():
 
         if dom.findtext('.//{urn:schemas-upnp-org:device-1-0}modelName') is not None:
             return dom.findtext('.//{urn:schemas-upnp-org:device-1-0}modelName')
-
         return ""
 
     @staticmethod
