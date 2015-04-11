@@ -489,8 +489,11 @@ class Sonos():
     def get_favorite_radiostations(self, start_item=0, max_items=50):
         return self._send_cmd_response(SonosCommand.favradio(start_item, max_items))
 
+    def refresh_media_library(self, display_option='none'):
+        return self._send_cmd(SonosCommand.refresh_media_library(display_option))
+
     def version(self):
-        return "v1.4\t2015-04-11"
+        return "v1.4.1\t2015-04-11"
 
 
 class SonosSpeaker():
@@ -843,6 +846,20 @@ class SonosCommand():
             'parameter': {
                 'start_item': start_item,
                 'max_items': max_items
+            }
+        }
+
+    @staticmethod
+    def refresh_media_library(display_option):
+        display_option = display_option.lower()
+        if display_option not in ['none', 'itunes', 'wmp']:
+            logger.warning("refresh_media_library: invalid 'display_option' value '{val}'. Value has to be 'none', "
+                           "'itunes' or 'wmp'. Using default value 'none'.".format(val=display_option))
+            display_option = 'none'
+        return {
+            'command': 'refresh_media_library',
+            'parameter': {
+                'display_option': display_option
             }
         }
 
