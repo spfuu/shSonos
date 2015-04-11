@@ -1,31 +1,19 @@
 ## Release
 
-v0.6b4     (2015-04-07)
+v0.6      (2015-04-11)
     
     --  bug fix: error while restoring a playlist
-
-v0.6b3     (2015-04-06)
-    
     --  fixed a resource leak (thx @hoggle)
-
-v0.6b2     (2015-03-14)
-    
     --  commands added: set_wifi_state, get_wifi_state
         --  now you can activate or deactivate the speakers wireless network interface (e.g. if 
             you use the speaker with an ethernet connection)
         --  commands integrated in sonos command line client 
     --  some changes handling event subscriptions
     --  increased event subscription period to 240 sec
-
-v0.6b1     (2015-02-22)
-
     --  new command: RefreshMediaLibrary (updates / refreshs the media library)
-    --  RefreshMediaLibrary added to sonos command line client
-    --  Bug: parsing error while playing some radio stations
-    --  Added radio parser for Alsterradio 106.8
-
-v0.6b0     (2015-02-08)
-
+        --  RefreshMediaLibrary added to sonos command line client
+    --  bug: parsing error while playing some radio stations
+    --  added radio parser for Alsterradio 106.8
     --  some minor bugfixes in Sonos Broker
     --  some minor bugfixes in Cmd client
 

@@ -5,7 +5,7 @@ Smarthome.py framework (https://github.com/mknx/smarthome).
 
   v1.4  2015-04-08
   
-    -- added "wifi_state" command (Sonos Broker v0.6)
+    -- added "wifi_state" command (only Sonos Broker >= v0.6)
     
   v1.3  2015-01-18
 
