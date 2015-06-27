@@ -10,12 +10,13 @@ import socket
 import logging
 import re
 import requests
+from functools import wraps
 
 from .services import DeviceProperties, ContentDirectory
 from .services import RenderingControl, AVTransport, ZoneGroupTopology
 from .services import AlarmClock
 from .groups import ZoneGroup
-from .exceptions import DIDLMetadataError, SoCoUPnPException
+from .exceptions import SoCoUPnPException, SoCoSlaveException
 from .data_structures import DidlPlaylistContainer,\
     SearchResult, Queue, DidlObject, DidlMusicAlbum,\
     from_didl_string, to_didl_string, DidlResource
@@ -82,6 +83,19 @@ class _SocoSingletonBase(  # pylint: disable=too-few-public-methods,no-init
     pass
 
 
+def only_on_master(function):
+    """Decorator that raises SoCoSlaveException on master call on slave"""
+    @wraps(function)
+    def inner_function(self, *args, **kwargs):
+        """Master checking inner function"""
+        if not self.is_coordinator:
+            message = 'The method or property "{0}" can only be called/used '\
+                'on the coordinator in a group'.format(function.__name__)
+            raise SoCoSlaveException(message)
+        return function(self, *args, **kwargs)
+    return inner_function
+
+
 # pylint: disable=R0904,too-many-instance-attributes
 class SoCo(_SocoSingletonBase):
 
@@ -104,7 +118,7 @@ class SoCo(_SocoSingletonBase):
         next -- Go to the next track.
         previous -- Go back to the previous track.
         switch_to_line_in -- Switch the speaker's input to line-in.
-        switch_to_tv -- Switch the speaker's input to TV.
+        switch_to_tv -- Switch the playbar speaker's input to TV.
         get_current_track_info -- Get information about the currently playing
                                   track.
         get_speaker_info -- Get information about the Sonos speaker.
@@ -155,6 +169,9 @@ class SoCo(_SocoSingletonBase):
         queue_size -- Get size of queue.
         library_updating -- Whether music library update is in progress.
         album_artist_display_option -- album artist display option
+        is_playing_tv -- Is the playbar speaker input from TV?
+        is_playing_radio -- Is the speaker input from radio?
+        is_playing_line_in -- Is the speaker input from line-in?
 
     .. warning::
 
@@ -334,6 +351,7 @@ class SoCo(_SocoSingletonBase):
         ])
 
     @property
+    @only_on_master  # Only for symmetry with the setter
     def cross_fade(self):
         """ The speaker's cross fade state.
         True if enabled, False otherwise """
@@ -345,6 +363,7 @@ class SoCo(_SocoSingletonBase):
         return True if int(cross_fade_state) else False
 
     @cross_fade.setter
+    @only_on_master
     def cross_fade(self, crossfade):
         """ Set the speaker's cross fade state. """
         crossfade_value = '1' if crossfade else '0'
@@ -353,6 +372,7 @@ class SoCo(_SocoSingletonBase):
             ('CrossfadeMode', crossfade_value)
         ])
 
+    @only_on_master
     def play_from_queue(self, index, start=True):
         """ Play a track from the queue by index. The index number is
         required as an argument, where the first index is 0.
@@ -393,6 +413,7 @@ class SoCo(_SocoSingletonBase):
             return self.play()
         return False
 
+    @only_on_master
     def play(self):
         """Play the currently selected track.
 
@@ -407,6 +428,7 @@ class SoCo(_SocoSingletonBase):
             ('Speed', 1)
         ])
 
+    @only_on_master
     def play_uri(self, uri='', meta='', title='', start=True):
         """ Play a given stream. Pauses the queue.
         If there is no metadata passed in and there is a title set then a
@@ -452,6 +474,7 @@ class SoCo(_SocoSingletonBase):
             return self.play()
         return False
 
+    @only_on_master
     def pause(self):
         """ Pause the currently playing track.
 
@@ -466,6 +489,7 @@ class SoCo(_SocoSingletonBase):
             ('Speed', 1)
         ])
 
+    @only_on_master
     def stop(self):
         """ Stop the currently playing track.
 
@@ -480,6 +504,7 @@ class SoCo(_SocoSingletonBase):
             ('Speed', 1)
         ])
 
+    @only_on_master
     def seek(self, timestamp):
         """ Seeks to a given timestamp in the current track, specified in the
         format of HH:MM:SS or H:MM:SS.
@@ -499,6 +524,7 @@ class SoCo(_SocoSingletonBase):
             ('Target', timestamp)
         ])
 
+    @only_on_master
     def next(self):
         """ Go to the next track.
 
@@ -519,6 +545,7 @@ class SoCo(_SocoSingletonBase):
             ('Speed', 1)
         ])
 
+    @only_on_master
     def previous(self):
         """ Go back to the previously played track.
 
@@ -879,8 +906,47 @@ class SoCo(_SocoSingletonBase):
             ('CurrentURIMetaData', '')
         ])
 
+    @property
+    def is_playing_radio(self):
+        """ Is the speaker playing radio?
+
+        return True or False
+        """
+        response = self.avTransport.GetPositionInfo([
+            ('InstanceID', 0),
+            ('Channel', 'Master')
+        ])
+        track_uri = response['TrackURI']
+        return re.match(r'^x-rincon-mp3radio:', track_uri) is not None
+
+    @property
+    def is_playing_line_in(self):
+        """ Is the speaker playing line-in?
+
+        return True or False
+        """
+        response = self.avTransport.GetPositionInfo([
+            ('InstanceID', 0),
+            ('Channel', 'Master')
+        ])
+        track_uri = response['TrackURI']
+        return re.match(r'^x-rincon-stream:', track_uri) is not None
+
+    @property
+    def is_playing_tv(self):
+        """ Is the playbar speaker input from TV?
+
+        return True or False
+        """
+        response = self.avTransport.GetPositionInfo([
+            ('InstanceID', 0),
+            ('Channel', 'Master')
+        ])
+        track_uri = response['TrackURI']
+        return re.match(r'^x-sonos-htastream:', track_uri) is not None
+
     def switch_to_tv(self):
-        """ Switch the speaker's input to TV.
+        """ Switch the playbar speaker's input to TV.
 
         Returns:
         True if the Sonos speaker successfully switched to TV.
@@ -1501,6 +1567,7 @@ class SoCo(_SocoSingletonBase):
             metadata[camel_to_underscore(tag)] = int(response[tag])
         return response, metadata
 
+    @only_on_master
     def add_uri_to_queue(self, uri):
         """Adds the URI to the queue
 
@@ -1513,12 +1580,10 @@ class SoCo(_SocoSingletonBase):
         item = DidlObject(resources=res, title='', parent_id='', item_id='')
         return self.add_to_queue(item)
 
+    @only_on_master
     def add_to_queue(self, queueable_item):
         """ Adds a queueable item to the queue """
         metadata = to_didl_string(queueable_item)
-        if isinstance(metadata, str):
-            metadata.encode('utf-8')
-
         response = self.avTransport.AddURIToQueue([
             ('InstanceID', 0),
             ('EnqueuedURI', queueable_item.resources[0].uri),
@@ -1529,6 +1594,7 @@ class SoCo(_SocoSingletonBase):
         qnumber = response['FirstTrackNumberEnqueued']
         return int(qnumber)
 
+    @only_on_master
     def remove_from_queue(self, index):
         """ Remove a track from the queue by index. The index number is
         required as an argument, where the first index is 0.
@@ -1550,6 +1616,7 @@ class SoCo(_SocoSingletonBase):
             ('UpdateID', updid),
         ])
 
+    @only_on_master
     def clear_queue(self):
         """ Removes all tracks from the queue.
 
@@ -1672,6 +1739,7 @@ class SoCo(_SocoSingletonBase):
         return DidlPlaylistContainer(
             resources=res, title=title, parent_id='SQ:', item_id=item_id)
 
+    @only_on_master
     # pylint: disable=invalid-name
     def create_sonos_playlist_from_queue(self, title):
         """ Create a new Sonos playlist from the current queue.
@@ -1705,34 +1773,25 @@ class SoCo(_SocoSingletonBase):
                 be added
 
         """
-        # Check if the required attributes are there
-        for attribute in ['didl_metadata', 'uri']:
-            if not hasattr(queueable_item, attribute):
-                message = 'queueable_item has no attribute {0}'.\
-                    format(attribute)
-                raise AttributeError(message)
-        # Get the metadata
-        try:
-            metadata = XML.tostring(queueable_item.didl_metadata)
-        except DIDLMetadataError as exception:
-            message = ('The queueable item could not be enqueued, because it '
-                       'raised a DIDLMetadataError exception with the '
-                       'following message:\n{0}').format(str(exception))
-            raise ValueError(message)
-        if isinstance(metadata, str):
-            metadata = metadata.encode('utf-8')
-
+        # Get the update_id for the playlist
         response, _ = self._music_lib_search(sonos_playlist.item_id, 0, 1)
         update_id = response['UpdateID']
+
+        # Form the metadata for queueable_item
+        metadata = to_didl_string(queueable_item)
+
+        # Make the request
         self.avTransport.AddURIToSavedQueue([
             ('InstanceID', 0),
             ('UpdateID', update_id),
             ('ObjectID', sonos_playlist.item_id),
-            ('EnqueuedURI', queueable_item.uri),
+            ('EnqueuedURI', queueable_item.resources[0].uri),
             ('EnqueuedURIMetaData', metadata),
-            ('AddAtIndex', 4294967295)  # this field has always this value, we
-                                        # do not known the meaning of this
-                                        # "magic" number.
+            # 2 ** 32 - 1 = 4294967295, this field has always this value. Most
+            # likely, playlist positions are represented as a 32 bit uint and
+            # this is therefore the largest index possible. Asking to add at
+            # this index therefore probably amounts to adding it "at the end"
+            ('AddAtIndex', 4294967295)
         ])
 
     def get_item_album_art_uri(self, item):
