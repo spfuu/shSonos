@@ -19,6 +19,7 @@ items such as tracks, playlists, composers, albums etc.
 
 from __future__ import unicode_literals
 
+import sys
 import warnings
 warnings.simplefilter('always', DeprecationWarning)
 import textwrap
@@ -52,7 +53,10 @@ def to_didl_string(*args):
         })
     for arg in args:
         didl.append(arg.to_element())
-    return XML.tostring(didl)
+    if sys.version_info[0] == 2:
+        return XML.tostring(didl)
+    else:
+        return XML.tostring(didl, encoding='unicode')
 
 
 def from_didl_string(string):
@@ -352,10 +356,10 @@ class DidlObject(DidlMetaClass(str('DidlMetaClass'), (object,), {})):
         # Check we have the right sort of element. tag can be an empty string
         # which indicates that any tag is allowed (see eg the musicAlbum DIDL
         # class)
-        # if not element.tag.endswith(cls.tag):
-        #    raise DIDLMetadataError(
-        #        "Wrong element. Expected '<{0}>',"
-        #        " got '<{1}>'".format(cls.tag, element.tag))
+        if not element.tag.endswith(cls.tag):
+            raise DIDLMetadataError(
+                "Wrong element. Expected '<{0}>',"
+                " got '<{1}>'".format(cls.tag, element.tag))
         # and that the upnp matches what we are expecting
         item_class = element.find(ns_tag('upnp', 'class')).text
         if item_class != cls.item_class:
@@ -684,6 +688,17 @@ class DidlAudioBroadcast(DidlAudioItem):
 
         }
     )
+
+
+class DidlAudioBroadcastFavorite(DidlAudioBroadcast):
+
+    """Class that represents an audio broadcast sonos favorite."""
+
+    # Note: The sonos-favorite part of the class spec obviously isn't part of
+    # the DIDL spec, so just assume that it has the same definition as the
+    # regular object.item.audioItem.audioBroadcast
+
+    item_class = 'object.item.audioItem.audioBroadcast.sonos-favorite'
 
 
 ###############################################################################
