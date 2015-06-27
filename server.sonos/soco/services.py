@@ -66,6 +66,7 @@ zone_group_state_shared_cache = Cache()
 
 # pylint: disable=too-many-instance-attributes
 class Service(object):
+
     """ An class representing a UPnP service. The base class for all Sonos
     Service classes
 
