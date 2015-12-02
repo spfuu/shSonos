@@ -1,6 +1,22 @@
 ## Release
 
-v0.6      (2015-04-11)
+v0.6.2b1    (2015-12-02)
+
+    -- added a valid user-agent for Google TTS requests, this should solve the captcha issue
+
+v0.6.2b     (2015-10-27)
+
+    -- property 'model_number' added
+    -- property 'display_version' added
+    -- property 'household_id' added (a unique identifier for all players in a household)
+    -- some changes in SoCo framework
+    -- bugfixes in command-line tool
+
+v0.6.1      (2015-07-07)
+
+    -- command 'balance' (especially for sonos amp and stereo paired sonos speaker) added
+
+v0.6        (2015-04-11)
     
     --  bug fix: error while restoring a playlist
     --  fixed a resource leak (thx @hoggle)

@@ -2,6 +2,12 @@ This sub-project is a client implementation fpr the Sonos Broker. It is a plugin
 Smarthome.py framework (https://github.com/mknx/smarthome).
 
 ##Release
+    
+  v1.5  2015-10-30
+  
+    -- property 'display_version' added
+    -- property 'model_number' added
+    -- property 'household_id' added (a unique identifier for all players in a household)
 
   v1.4  2015-04-11
   
@@ -278,6 +284,21 @@ Edit file with this sample of mine:
         [[model]]
             type = str
             sonos_recv = model
+            visu_acl = rw
+
+        [[model_number]]
+            type = str
+            sonos_recv = model_number
+            visu_acl = rw
+    
+        [[display_version]]
+            type = str
+            sonos_recv = display_version
+            visu_acl = rw
+    
+        [[household_id]]
+            type = str
+            sonos_recv = household_id
             visu_acl = rw
     
         [[zone_name]]

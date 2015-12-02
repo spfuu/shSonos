@@ -114,9 +114,7 @@ class SonosServerService():
                         try:
                             _sp = SonosSpeaker(soco_speaker)
                             sonos_speaker.sonos_speakers[uid] = _sp
-                            sonos_speaker.sonos_speakers[uid].model = SonosServerService.get_model_name(
-                                sonos_speaker.sonos_speakers[uid].ip)
-                        except Exception:
+                        except Exception as ex:
                             speaker_to_remove.append(uid)
                             continue  # speaker maybe deleted by another thread
                     else:
@@ -222,16 +220,6 @@ class SonosServerService():
                         speaker.send()
                     del speakers[:]
                 self.event_lock.release()
-
-    # missing model name, not implemented in soco framework
-    @staticmethod
-    def get_model_name(ip):
-        response = requests.get('http://' + ip + ':1400/xml/device_description.xml')
-        dom = XML.fromstring(response.content)
-
-        if dom.findtext('.//{urn:schemas-upnp-org:device-1-0}modelName') is not None:
-            return dom.findtext('.//{urn:schemas-upnp-org:device-1-0}modelName')
-        return ""
 
     @staticmethod
     def set_radio_data(speaker, variables):
@@ -368,6 +356,16 @@ class SonosServerService():
                     speaker.set_volume(speaker.max_volume, trigger_action=True)
                 else:
                     speaker.volume = int(volume)
+
+            volume_lf = variables['volume']['LF']
+            if volume_lf:
+                if int(volume_lf) < 100:
+                    speaker.balance = 100 - int(volume_lf)
+
+            volume_rf = variables['volume']['RF']
+            if volume_rf:
+                if int(volume_rf) < 100:
+                    speaker.balance = int(volume_rf) - 100
 
         if 'mute' in variables:
             speaker.mute = int(variables['mute']['Master'])

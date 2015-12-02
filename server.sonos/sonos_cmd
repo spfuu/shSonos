@@ -75,7 +75,6 @@ class SonosBrokerCmd(cmd.Cmd):
         self.prompt = "=>> "
         self.intro = "Welcome to Sonos Broker console!"
 
-
     def start_listener(self):
         """
         Starts a udp listener to retrieve Sonos Broker events
@@ -114,7 +113,6 @@ class SonosBrokerCmd(cmd.Cmd):
             except Exception as err:
                 print(err)
                 continue
-
 
     def stop_listener(self):
         """
@@ -206,7 +204,6 @@ class SonosBrokerCmd(cmd.Cmd):
 
 
 class SonosSpeakerCmd(cmd.Cmd):
-
     counter = 0
 
     def __eq__(self, other):
@@ -237,6 +234,7 @@ class SonosSpeakerCmd(cmd.Cmd):
         self.uid = None
         self.ip = None
         self.model = None
+        self.model_number = None
         self.zone_name = None
         self.zone_icon = None
         self.serial_number = None
@@ -268,6 +266,7 @@ class SonosSpeakerCmd(cmd.Cmd):
         self.playmode = None
         self.alarms = None
         self.is_coordinator = False
+        self.balance = None
 
     def do_EOF(self, *args):
         """
@@ -314,6 +313,28 @@ class SonosSpeakerCmd(cmd.Cmd):
             print("unknown argument")
             return
         print("volume: {}".format(self.volume))
+
+    def help_balance(self):
+        print("balance: Gets the current balance level.")
+        print("balance [get]: Forces the Broker to retrieve the speakers balance level.")
+        print("balance [set]: Sets the balance.")
+
+    def do_balance(self, line):
+        line = line.lower()
+        if not line:
+            pass
+        elif line == "get":
+            self.commands.get_balance(self.uid)
+        elif line == "set":
+            default_bal = self.balance
+            balance = input(normalize_output("Balance", "-100-100", default_bal))
+            if not balance:
+                balance = default_bal
+            self.commands.set_balance(self.uid, balance)
+        else:
+            print("unknown argument")
+            return
+        print("balance: {}".format(self.balance))
 
     def help_bass(self):
         print("bass: Gets the current bass level.")
@@ -519,7 +540,8 @@ class SonosSpeakerCmd(cmd.Cmd):
             self.commands.get_playmode(self.uid)
         elif line == "set":
             default_playmode = self.playmode
-            playmode = input(normalize_output("Playmode", "normal|shuffle_norepeat|shuffle|repeat_all", default_playmode))
+            playmode = input(
+                normalize_output("Playmode", "normal|shuffle_norepeat|shuffle|repeat_all", default_playmode))
             if not playmode:
                 playmode = default_playmode
             self.commands.set_playmode(self.uid, playmode)
@@ -685,7 +707,7 @@ class SonosSpeakerCmd(cmd.Cmd):
         else:
             print("unknown argument")
             return
-        print("radio_show: {}".format(self.do_radio_show()))
+        print("radio_show: {}".format(self.radio_show))
 
     def help_play_url(self):
         print("play_url: Plays the given url.")
@@ -941,7 +963,6 @@ class Commands():
         sleep(0.5)
         return True, response_text
 
-
     def subscribe(self, hostname, port):
         """
         Connects the client to the Sonos broker
@@ -988,6 +1009,27 @@ class Commands():
                     'uid': uid.lower(),
                     'volume': volume,
                     'group_command': group_command
+                }
+            }
+        )
+
+    def get_balance(self, uid):
+        return self.send(
+            {
+                'command': 'get_balance',
+                'parameter': {
+                    'uid': uid.lower()
+                }
+            }
+        )
+
+    def set_balance(self, uid, balance):
+        return self.send(
+            {
+                'command': 'set_balance',
+                'parameter': {
+                    'uid': uid.lower(),
+                    'balance': balance
                 }
             }
         )
@@ -1422,7 +1464,6 @@ class Commands():
             }
         )
 
-
     def get_wifi_state(self, uid, force_refresh):
         return self.send(
             {
@@ -1445,7 +1486,6 @@ class Commands():
                 }
             }
         )
-
 
 
 if __name__ == '__main__':

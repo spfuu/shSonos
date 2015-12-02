@@ -25,8 +25,10 @@ soco/events.py
 soco/exceptions.py
 soco/groups.py
 soco/ms_data_structures.py
+soco/music_library.py
 soco/services.py
 soco/snapshot.py
+soco/soap.py
 soco/utils.py
 soco/xml.py
 test/test_parse_status.py
