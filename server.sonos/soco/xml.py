@@ -1,15 +1,18 @@
+# -*- coding: utf-8 -*-
+# pylint: disable=invalid-name
 
-""" Module that contains XML related utility functions """
+"""This class contains XML related utility functions."""
 
-# pylint: disable=unused-import, invalid-name, no-member
-
-from __future__ import absolute_import
+from __future__ import (
+    absolute_import, unicode_literals
+)
 
 try:
     import xml.etree.cElementTree as XML
 except ImportError:
     import xml.etree.ElementTree as XML
 
+#: Commonly used namespaces, and abbreviations, used by `ns_tag`.
 NAMESPACES = {
     'dc': 'http://purl.org/dc/elements/1.1/',
     'upnp': 'urn:schemas-upnp-org:metadata-1-0/upnp/',
@@ -27,7 +30,7 @@ except AttributeError:
     import xml.etree.ElementTree as XML2
 
     def register_namespace(a_prefix, a_uri):
-        " Registers a namespace prefix to assist in serialization"
+        """Registers a namespace prefix to assist in serialization."""
         # pylint: disable=protected-access
         XML2._namespace_map[a_uri] = a_prefix
 
@@ -36,8 +39,19 @@ for prefix, uri in NAMESPACES.items():
 
 
 def ns_tag(ns_id, tag):
-    """Return a namespace/tag item. The ns_id is translated to a full name
-    space via the NAMESPACES variable.
+    """Return a namespace/tag item.
 
+    Args:
+        ns_id (str): A namespace id, eg ``"dc"`` (see `NAMESPACES`)
+        tag (str): An XML tag, eg ``"author"``
+
+    Returns:
+        str: A fully qualified tag.
+
+    The ns_id is translated to a full name space via the :const:`NAMESPACES`
+    constant::
+
+        >>> xml.ns_tag('dc','author')
+        '{http://purl.org/dc/elements/1.1/}author'
     """
     return '{{{0}}}{1}'.format(NAMESPACES[ns_id], tag)
