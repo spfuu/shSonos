@@ -27,8 +27,6 @@ import re
 import socket
 import threading
 import json
-import urllib
-from urllib.parse import urlparse
 import fcntl
 import struct
 import requests
@@ -493,7 +491,7 @@ class Sonos():
         return self._send_cmd(SonosCommand.refresh_media_library(display_option))
 
     def version(self):
-        return "v1.4\t2015-04-11"
+        return "v1.5\t2015-10-30"
 
 
 class SonosSpeaker():
@@ -501,6 +499,9 @@ class SonosSpeaker():
         self.uid = []
         self.ip = []
         self.model = []
+        self.model_number = []
+        self.display_version = []
+        self.household_id = []
         self.zone_name = []
         self.zone_icon = []
         self.is_coordinator = []
@@ -534,8 +535,9 @@ class SonosSpeaker():
         self.alarms = []
         self.tts_local_mode = []
         self.wifi_state = []
+        self.balance = []
 
-class SonosCommand():
+class SonosCommand:
 
     @staticmethod
     def subscribe(ip, port):
