@@ -23,7 +23,7 @@ NS = {'dc': '{http://purl.org/dc/elements/1.1/}',
 # regular expressions to find sonos meta info through udp stream
 ip_pattern = '^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$'
 
-VERSION = "0.6.2b1 (2015-12-02)"
+VERSION = "v0.6.2b2 (2015-12-19)"
 
 DEFAULT_HOST = '0.0.0.0'
 DEFAULT_PORT = 12900

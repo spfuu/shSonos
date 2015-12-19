@@ -1,3 +1,7 @@
+v0.6.2b2    (2015-12-19)
+    
+    -- bugfix: setting play, pause, stop could lead to an infinite loop (play-pause-play ...)
+
 v0.6.2b1    (2015-12-02)
     -- added a valid user-agent for Google TTS requests, this should solve the captcha issue
 

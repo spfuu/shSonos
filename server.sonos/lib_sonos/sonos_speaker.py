@@ -527,6 +527,9 @@ class SonosSpeaker(object):
         :param group_command: Acts as a group command, all members in a group will be muted. False by default.
         """
         mute = int(value)
+
+        if self._mute == mute:
+            return
         if trigger_action:
             if group_command:
                 for speaker in self._zone_members:
@@ -683,6 +686,8 @@ class SonosSpeaker(object):
 
     def set_stop(self, value, trigger_action=False):
         stop = int(value)
+        if self._stop == stop:
+            return
         if trigger_action:
             if not self.is_coordinator:
                 logger.debug("forwarding stop setter to coordinator with uid {uid}".
@@ -718,6 +723,8 @@ class SonosSpeaker(object):
 
     def set_play(self, value, trigger_action=False):
         play = int(value)
+        if self._play == play:
+            return
         if trigger_action:
             if not self.is_coordinator:
                 logger.debug("forwarding play setter to coordinator with uid {uid}".
@@ -753,6 +760,8 @@ class SonosSpeaker(object):
 
     def set_pause(self, value, trigger_action=False):
         pause = int(value)
+        if self._pause == pause:
+            return
         if trigger_action:
             if not self.is_coordinator:
                 logger.debug("forwarding pause setter to coordinator with uid {uid}".
