@@ -10,8 +10,8 @@ import socket
 import threading
 import time
 import weakref
-
 import requests
+from requests.adapters import HTTPAdapter
 
 from . import config
 from .compat import (
@@ -450,7 +450,7 @@ class Subscription(object):
             headers["TIMEOUT"] = "Second-{0}".format(requested_timeout)
         response = requests.request(
             'SUBSCRIBE', service.base_url + service.event_subscription_url,
-            headers=headers)
+            headers=headers, timeout=3)
         response.raise_for_status()
         self.sid = response.headers['sid']
         timeout = response.headers['timeout']
@@ -525,7 +525,7 @@ class Subscription(object):
         response = requests.request(
             'SUBSCRIBE',
             self.service.base_url + self.service.event_subscription_url,
-            headers=headers)
+            headers=headers, timeout=3)
         response.raise_for_status()
         timeout = response.headers['timeout']
         # According to the spec, timeout can be "infinite" or "second-123"
@@ -543,6 +543,9 @@ class Subscription(object):
             self.sid)
 
     def unsubscribe(self):
+        s = requests.Session()
+        s.mount('http://', HTTPAdapter(max_retries=3))
+
         """Unsubscribe from the service's events.
 
         Once unsubscribed, a Subscription instance should not be reused
@@ -564,7 +567,7 @@ class Subscription(object):
         response = requests.request(
             'UNSUBSCRIBE',
             self.service.base_url + self.service.event_subscription_url,
-            headers=headers)
+            headers=headers, timeout=2)
         response.raise_for_status()
         self.is_subscribed = False
         self._timestamp = None
