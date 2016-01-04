@@ -264,6 +264,16 @@ class Sonos():
                                 break
                         cmd = self._command.bass(uid, value, group_command)
 
+                if command == 'balance':
+                    if isinstance(value, int):
+                        group_item_name = '{}.group_command'.format(item._name)
+                        group_command = 0
+                        for child in item.return_children():
+                            if child._name.lower() == group_item_name.lower():
+                                group_command = child()
+                                break
+                        cmd = self._command.balance(uid, value, group_command)
+
                 if command == 'treble':
                     if isinstance(value, int):
                         group_item_name = '{}.group_command'.format(item._name)
@@ -491,7 +501,10 @@ class Sonos():
         return self._send_cmd(SonosCommand.refresh_media_library(display_option))
 
     def version(self):
-        return "v1.5\t2015-10-30"
+        return "v1.61\t2016-01-03"
+
+    def discover(self):
+        return self._send_cmd(SonosCommand.discover())
 
 
 class SonosSpeaker():
@@ -595,6 +608,17 @@ class SonosCommand:
             'parameter': {
                 'uid': '{uid}'.format(uid=uid),
                 'mute': int(value),
+                'group_command': int(group_command)
+            }
+        }
+
+    @staticmethod
+    def balance(uid, value, group_command=0):
+        return {
+            'command': 'set_balance',
+            'parameter': {
+                'uid': '{uid}'.format(uid=uid),
+                'balance': int(value),
                 'group_command': int(group_command)
             }
         }
@@ -864,6 +888,10 @@ class SonosCommand:
                 'display_option': display_option.upper()
             }
         }
+
+    @staticmethod
+    def discover():
+        return {'command': 'discover', }
 
 
 #######################################################################
