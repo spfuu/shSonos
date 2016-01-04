@@ -226,7 +226,6 @@ class SoCo(_SocoSingletonBase):
         return '{0}("{1}")'.format(self.__class__.__name__, self.ip_address)
 
     @property
-    @only_on_master
     def balance(self):
         """ The speaker's balance. An integer between -100 and 100. """
 
@@ -253,7 +252,6 @@ class SoCo(_SocoSingletonBase):
         return int(balance_right) if int(balance_right) <= 0 else int(balance_left)
 
     @balance.setter
-    @only_on_master
     def balance(self, balance):
         """ Set the speaker's channel balance. An integer between -100 and 100."""
         balance = int(balance)
@@ -1149,7 +1147,7 @@ class SoCo(_SocoSingletonBase):
             return self.speaker_info
         else:
             response = requests.get('http://' + self.ip_address +
-                                    ':1400/xml/device_description.xml')
+                                    ':1400/xml/device_description.xml', timeout=2)
             dom = XML.fromstring(response.content)
 
         device = dom.find('{urn:schemas-upnp-org:device-1-0}device')
