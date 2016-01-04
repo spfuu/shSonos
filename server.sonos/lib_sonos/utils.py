@@ -142,7 +142,12 @@ def save_google_tts(local_share, tts_string, tts_language, quota):
         return fname
 
     try:
-        response = requests.get(url)
+        params = {
+            "User-agent": "Mozilla/5.0 (Linux; Android 4.2.2)",
+            "Referer": "http://translate.google.com/"
+        }
+
+        response = requests.get(url, params=params)
         if response and response.status_code == 200:
             with open(abs_fname, 'wb') as file:
                 file.write(response.content)
@@ -161,6 +166,13 @@ def to_json(value):
 def check_volume_range(volume):
     if volume < 0 or volume > 100:
         print('Volume has to be between 0 and 100.')
+        return False
+    return True
+
+
+def check_balance_range(balance):
+    if balance not in range(-100, 101, 1):
+        print('Balance has to be between -100 and 100.')
         return False
     return True
 

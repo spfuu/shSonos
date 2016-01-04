@@ -72,6 +72,7 @@ class SonosSpeaker(object):
     def __init__(self, soco):
         self._tts_local_mode = SonosSpeaker.tts_local_mode
         self._fade_in = False
+        self._balance = 0
         self._saved_music_item = None
         self._zone_members = NotifyList()
         self._zone_members.register_callback(utils.WeakMethod(self, 'zone_member_changed'))
@@ -114,7 +115,11 @@ class SonosSpeaker(object):
         self._loudness = self.soco.loudness
         self._playmode = self.soco.play_mode
         self._ip = self.soco.ip_address
-        self._zone_icon = self.soco.speaker_info['zone_icon']
+        self._model = self.soco.speaker_info['model_name']
+        self._household_id = self.soco.household_id
+        self._display_version = self.soco.speaker_info['display_version']
+        self._model_number = self.soco.speaker_info['model_number']
+        self._zone_icon = self.soco.speaker_info['player_icon']
         self._zone_name = soco.speaker_info['zone_name']
         self._serial_number = self.soco.speaker_info['serial_number']
         self._software_version = self.soco.speaker_info['software_version']
@@ -150,26 +155,25 @@ class SonosSpeaker(object):
         """
         return self._tts_local_mode
 
-    # ## MODEL ##########################################################################################################
+    ### MODEL ##########################################################################################################
 
     @property
     def model(self):
-
-        """
-        Return the model name of the speaker.
-        :return: model name
-        :rtype : string
-        """
         return self._model
 
-    @model.setter
-    def model(self, value):
-        if self._model == value:
-            return
-        self._model = value
-        self.dirty_property('model')
+    ### MODEL NUMBER####################################################################################################
 
-    # ## METADATA #######################################################################################################
+    @property
+    def model_number(self):
+        return self._model_number
+
+    ### DISPLAY VERSION #################################################################################################
+
+    @property
+    def display_version(self):
+        return self._display_version
+
+    ### METADATA #######################################################################################################
 
     @property
     def metadata(self):
@@ -225,17 +229,23 @@ class SonosSpeaker(object):
     def serial_number(self):
         return self._serial_number
 
-    # ## SOFTWARE VERSION ###############################################################################################
+    ### SOFTWARE VERSION ###############################################################################################
 
     @property
     def software_version(self):
         return self._software_version
 
-    # ## HARDWARE VERSION ###############################################################################################
+    ### HARDWARE VERSION ###############################################################################################
 
     @property
     def hardware_version(self):
         return self._hardware_version
+
+    ### HOUSEHOLD ID ###################################################################################################
+
+    @property
+    def household_id(self):
+        return self._household_id
 
     ### MAC ADDRESS ####################################################################################################
 
@@ -383,6 +393,25 @@ class SonosSpeaker(object):
     def ip(self):
         return self._ip
 
+    ### BALANCE ########################################################################################################
+    def get_balance(self):
+        return self._balance
+
+    def set_balance(self, balance, trigger_action=False, group_command=False):
+        balance = int(balance)
+        if not utils.check_balance_range(balance):
+            return
+        if trigger_action:
+            if group_command:
+                for speaker in self._zone_members:
+                    speaker.set_volume(balance, trigger_action=True, group_command=False)
+            if utils.check_balance_range(balance):
+                self.soco.balance = balance
+        if self._balance == balance:
+            return
+        self._balance = balance
+        self.dirty_property('balance')
+
     ### VOLUME #########################################################################################################
 
     def get_volume(self):
@@ -394,10 +423,10 @@ class SonosSpeaker(object):
             if group_command:
                 for speaker in self._zone_members:
                     speaker.set_volume(volume, trigger_action=True, group_command=False)
-            utils.check_volume_range(volume)
-            if utils.check_max_volume_exceeded(volume, self.max_volume):
-                volume = self.max_volume
-            self.soco.volume = volume
+            if utils.check_volume_range(volume):
+                if utils.check_max_volume_exceeded(volume, self.max_volume):
+                    volume = self.max_volume
+                self.soco.volume = volume
         if self._volume == volume:
             return
         self._volume = volume
@@ -498,6 +527,9 @@ class SonosSpeaker(object):
         :param group_command: Acts as a group command, all members in a group will be muted. False by default.
         """
         mute = int(value)
+
+        if self._mute == mute:
+            return
         if trigger_action:
             if group_command:
                 for speaker in self._zone_members:
@@ -654,6 +686,8 @@ class SonosSpeaker(object):
 
     def set_stop(self, value, trigger_action=False):
         stop = int(value)
+        if self._stop == stop:
+            return
         if trigger_action:
             if not self.is_coordinator:
                 logger.debug("forwarding stop setter to coordinator with uid {uid}".
@@ -689,6 +723,8 @@ class SonosSpeaker(object):
 
     def set_play(self, value, trigger_action=False):
         play = int(value)
+        if self._play == play:
+            return
         if trigger_action:
             if not self.is_coordinator:
                 logger.debug("forwarding play setter to coordinator with uid {uid}".
@@ -724,6 +760,8 @@ class SonosSpeaker(object):
 
     def set_pause(self, value, trigger_action=False):
         pause = int(value)
+        if self._pause == pause:
+            return
         if trigger_action:
             if not self.is_coordinator:
                 logger.debug("forwarding pause setter to coordinator with uid {uid}".
@@ -934,6 +972,8 @@ class SonosSpeaker(object):
             for speaker in self._zone_members:
                 speaker.current_state(group_command=False)
 
+
+
     ### WIFI STATE #####################################################################################################
 
     def get_wifi_state(self, force_refresh=False):
@@ -1041,6 +1081,8 @@ class SonosSpeaker(object):
         self.dirty_music_metadata()
 
         self.dirty_property(
+            'household_id',
+            'display_version',
             'tts_local_mode',
             'ip',
             'mac_address',
@@ -1054,12 +1096,14 @@ class SonosSpeaker(object):
             'additional_zone_members',
             'status',
             'model',
+            'model_number',
             'bass',
             'treble',
             'loudness',
             'alarms',
             'is_coordinator',
-            'wifi_state'
+            'wifi_state',
+            'balance'
         )
 
     @property
@@ -1078,7 +1122,9 @@ class SonosSpeaker(object):
 
     @status.setter
     def status(self, value):
-        # status == 0 -> speaker offline:
+        if value == self._status:
+            return
+
         self._status = value
 
         if self._status == 0:
@@ -1110,6 +1156,8 @@ class SonosSpeaker(object):
             self._zone_icon = ''
             self._playmode = ''
             self._alarms = ''
+
+        self.dirty_property('status')
 
     def play_uri(self, uri, metadata=None):
 
@@ -1291,6 +1339,8 @@ class SonosSpeaker(object):
                 self.sub_av_transport.unsubscribe()
             if self.sub_rendering_control is not None:
                 self.sub_rendering_control.unsubscribe()
+        except ConnectionError:
+            logger.warning("Speaker offline. Could not un-subscribe.")
         except Exception as err:
             logger.exception(err)
 
@@ -1482,6 +1532,7 @@ class SonosSpeaker(object):
     treble = property(get_treble, set_treble)
     loudness = property(get_loudness, set_loudness)
     volume = property(get_volume, set_volume)
+    balance = property(get_balance, set_balance)
     mute = property(get_mute, set_mute)
     playmode = property(get_playmode, set_playmode)
     stop = property(get_stop, set_stop)

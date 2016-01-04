@@ -1,6 +1,19 @@
 ## Release
+v0.7    (2016-01-04)
 
-v0.6      (2015-04-11)
+    -- command "discover" added to force a manual scan for Sonos speaker in the network
+    -- command "balance" can now take the optional parameter "group_command"; documentation updated
+    -- property "status" now triggers a value change notification to all connected clients 
+    -- bugfix: setting play, pause, stop could lead to an infinite loop (play-pause-play ...)
+    -- added a valid user-agent for Google TTS requests, this should solve the captcha issue
+    -- property 'model_number' added
+    -- property 'display_version' added
+    -- property 'household_id' added (a unique identifier for all players in a household)
+    -- some changes in SoCo framework
+    -- bugfixes in command-line tool
+    -- command 'balance' (especially for sonos amp and stereo paired sonos speaker) added
+
+v0.6        (2015-04-11)
     
     --  bug fix: error while restoring a playlist
     --  fixed a resource leak (thx @hoggle)
@@ -379,6 +392,8 @@ Click on the links below to get a detailed command descriptions and their usage.
 ###### [set_bass](#s_bass)
 ###### [get_treble](#g_treble)
 ###### [set_treble](#s_treble)
+###### [get_balance](#g_balance)
+###### [set_balance](#s_balance)
 ###### [get_loudness](#g_loudness)
 ###### [set_loudness](#s_loudness)
 ###### [get_led](#g_led)
@@ -409,6 +424,7 @@ Click on the links below to get a detailed command descriptions and their usage.
 ###### [refresh_media_library](#ref_lib)
 ###### [get_wifi_state](#get_wifi)
 ###### [set_wifi_state](#set_wifi)
+###### [discover](#discover)
 
 ----
 #### <a name="cl_subs"></a>client_subscribe
@@ -1133,7 +1149,7 @@ No special parameter needed.
 ######Example
     JSON format:
     {
-        'command': 'set_volume',
+        'command': 'set_treble',
         'parameter': {
             'uid': 'rincon_b8e93730d19801410',
             'treble': 1,
@@ -1149,6 +1165,72 @@ No special parameter needed.
     { 
         ...
         "treble": [-10 - 10], 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+    
+    The response is only sent if the new value is different from the old value.
+
+----
+#### <a name="g_balance">get_balance
+ Gets the current balance settings from a Sonos speaker.
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'balance'-status changes.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_balance',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        "balance": [-100 - 100], 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+
+----
+#### <a name="s_balance">set_balance
+ Sets the treble for a Sonos speaker.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| balance | required | -100 - 100 | The balance to be set. Default: 0|
+| group_command | optional | 0 or 1 | If 'True', the command is executed for all zone members of the speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'set_balance',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410',
+            'treble': ,
+            'group_command': 0
+        }   
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    { 
+        ...
+        "balance": [-100 - 100], 
         "uid": "rincon_b8e93730d19801410",
         ...
     }
@@ -2178,6 +2260,24 @@ This has some disadvantages. Please read the Google TTS section in this document
              'wifi_state': 0,
              'persistent': 0
          }
+    }
+   
+######HTTP Response
+    HTTP 200 OK
+        or
+    Exception with HTTP status 400 and the specific error message.
+
+###### UDP Response sent to subscribed clients:
+    No UDP response
+
+----
+#### <a name="discover>discover
+ Performs a manual scan for Sonos speaker in the network. This command requires no parameters.
+ 
+######Example
+    JSON format:
+    {
+        'command': 'discover'
     }
    
 ######HTTP Response

@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 # -*- coding: utf-8 -*-
 import queue
 import weakref
-import requests
 from collections import namedtuple
 import threading
 from lib_sonos import sonos_speaker
@@ -41,7 +40,6 @@ log = logging.getLogger(__name__)
 Argument = namedtuple('Argument', 'name, vartype')
 Action = namedtuple('Action', 'name, in_args, out_args')
 
-
 # noinspection PyProtectedMember
 class SonosServerService():
     _sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
@@ -76,7 +74,7 @@ class SonosServerService():
                 logger.debug('active threads: {}'.format(len(threading.enumerate())))
                 logger.info('scan devices ...')
                 zone_group_state_shared_cache.clear()
-                self.discover()
+                SonosServerService.discover()
 
             except Exception as err:
                 logger.exception(err)
@@ -85,9 +83,10 @@ class SonosServerService():
 
     @staticmethod
     def _discover():
-        return discover(timeout=1, include_invisible=False)
+        return discover(timeout=2, include_invisible=False)
 
-    def discover(self):
+    @classmethod
+    def discover(cls):
         try:
             with sonos_speaker._sonos_lock:
 
@@ -114,9 +113,7 @@ class SonosServerService():
                         try:
                             _sp = SonosSpeaker(soco_speaker)
                             sonos_speaker.sonos_speakers[uid] = _sp
-                            sonos_speaker.sonos_speakers[uid].model = SonosServerService.get_model_name(
-                                sonos_speaker.sonos_speakers[uid].ip)
-                        except Exception:
+                        except Exception as ex:
                             speaker_to_remove.append(uid)
                             continue  # speaker maybe deleted by another thread
                     else:
@@ -223,16 +220,6 @@ class SonosServerService():
                     del speakers[:]
                 self.event_lock.release()
 
-    # missing model name, not implemented in soco framework
-    @staticmethod
-    def get_model_name(ip):
-        response = requests.get('http://' + ip + ':1400/xml/device_description.xml')
-        dom = XML.fromstring(response.content)
-
-        if dom.findtext('.//{urn:schemas-upnp-org:device-1-0}modelName') is not None:
-            return dom.findtext('.//{urn:schemas-upnp-org:device-1-0}modelName')
-        return ""
-
     @staticmethod
     def set_radio_data(speaker, variables):
 
@@ -274,7 +261,7 @@ class SonosServerService():
             if stream_content:
                 if not stream_content.startswith(ignore_title_string):
                     # if radio, in most cases the following format is used: artist - title
-                    #if stream_content is not null, radio is assumed
+                    # if stream_content is not null, radio is assumed
 
                     artist, title = title_artist_parser(speaker.radio_station if speaker.radio_station else '',
                                                         stream_content)
@@ -368,6 +355,16 @@ class SonosServerService():
                     speaker.set_volume(speaker.max_volume, trigger_action=True)
                 else:
                     speaker.volume = int(volume)
+
+            volume_lf = variables['volume']['LF']
+            if volume_lf:
+                if int(volume_lf) < 100:
+                    speaker.balance = 100 - int(volume_lf)
+
+            volume_rf = variables['volume']['RF']
+            if volume_rf:
+                if int(volume_rf) < 100:
+                    speaker.balance = int(volume_rf) - 100
 
         if 'mute' in variables:
             speaker.mute = int(variables['mute']['Master'])

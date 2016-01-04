@@ -1,23 +1,24 @@
 # -*- coding: utf-8 -*-
-# pylint: disable=R0913,W0142
 
-""" Spotify Plugin """
+"""Spotify Plugin."""
+
+from __future__ import unicode_literals
 
 import requests
 
-from ..xml import XML
-from ..compat import quote_plus
 from . import SoCoPlugin
-
+from ..compat import quote_plus
+from ..xml import XML
 
 __all__ = ['Spotify']
 
 
 class SpotifyTrack(object):
 
-    """ Class that represents a Spotify track
+    """Class that represents a Spotify track.
 
-    usage example: SpotifyTrack('spotify:track:20DfkHC5grnKNJCzZQB6KC') """
+    usage example: SpotifyTrack('spotify:track:20DfkHC5grnKNJCzZQB6KC')
+    """
 
     def __init__(self, spotify_uri):
         self.data = {}
@@ -25,37 +26,37 @@ class SpotifyTrack(object):
 
     @property
     def spotify_uri(self):
-        """ The track's Spotify URI """
+        """The track's Spotify URI."""
         return self.data['spotify_uri']
 
     @spotify_uri.setter
     def spotify_uri(self, uri):
-        """ Set the track's Spotify URI """
+        """Set the track's Spotify URI."""
         self.data['spotify_uri'] = uri
 
     @property
     def album_uri(self):
-        """ The album's URI """
+        """The album's URI."""
         return self.data['album_uri']
 
     @album_uri.setter
     def album_uri(self, uri):
-        """ Set the album's URI """
+        """Set the album's URI."""
         self.data['album_uri'] = uri
 
     @property
     def title(self):
-        """ The track's title """
+        """The track's title."""
         return self.data['title']
 
     @title.setter
     def title(self, title):
-        """ Set the track's title """
+        """Set the track's title."""
         self.data['title'] = title.encode('utf-8')
 
     @property
     def didl_metadata(self):
-        """ DIDL Metadata """
+        """DIDL Metadata."""
         if ('spotify_uri' in self.data and 'title' in self.data and
                 'album_uri' in self.data):
 
@@ -92,15 +93,16 @@ class SpotifyTrack(object):
             return ''
 
     def satisfied(self):
-        """ Checks if necessary track data is available """
+        """Checks if necessary track data is available."""
         return 'title' in self.data and 'didl_metadata' in self.data
 
 
 class SpotifyAlbum(object):
 
-    """ Class that represents a Spotifyalbum
+    """Class that represents a Spotifyalbum.
 
-    usage example: SpotifyAlbum('spotify:album:6a50SaJpvdWDp13t0wUcPU') """
+    usage example: SpotifyAlbum('spotify:album:6a50SaJpvdWDp13t0wUcPU')
+    """
 
     def __init__(self, spotify_uri):
         self.data = {}
@@ -108,32 +110,32 @@ class SpotifyAlbum(object):
 
     @property
     def spotify_uri(self):
-        """ The album's Spotify URI """
+        """The album's Spotify URI."""
         return self.data['spotify_uri']
 
     @spotify_uri.setter
     def spotify_uri(self, uri):
-        """ Set the album's Spotify URI """
+        """Set the album's Spotify URI."""
         self.data['spotify_uri'] = uri
 
     @property
     def artist_uri(self):
-        """ The artist's URI """
+        """The artist's URI."""
         return self.data['artist_uri']
 
     @artist_uri.setter
     def artist_uri(self, artist_uri):
-        """ Set the artist's URI """
+        """Set the artist's URI."""
         self.data['artist_uri'] = artist_uri
 
     @property
     def title(self):
-        """ The album's title """
+        """The album's title."""
         return self.data['title']
 
     @title.setter
     def title(self, title):
-        """ Set the album's title """
+        """Set the album's title."""
         self.data['title'] = title.encode('utf-8')
 
     @property
@@ -149,7 +151,7 @@ class SpotifyAlbum(object):
 
     @property
     def didl_metadata(self):
-        """ DIDL Metadata """
+        """DIDL Metadata."""
         if self.satisfied:
             didl_metadata = """\
 <DIDL-Lite xmlns:dc="http://purl.org/dc/elements/1.1/"
@@ -173,7 +175,7 @@ class SpotifyAlbum(object):
             return None
 
     def satisfied(self):
-        """ Checks if necessary album data is available """
+        """Checks if necessary album data is available."""
         return ('spotify_uri' in self.data and
                 'artist' in self.data and
                 'title' in self.data)
@@ -181,13 +183,13 @@ class SpotifyAlbum(object):
 
 class Spotify(SoCoPlugin):
 
-    """ Class that implements spotify plugin"""
+    """Class that implements spotify plugin."""
 
     sid = '9'
     api_lookup_url = 'http://ws.spotify.com/lookup/1/.json'
 
     def __init__(self, soco):
-        """ Initialize the plugin"""
+        """Initialize the plugin."""
         super(Spotify, self).__init__(soco)
 
     @property
@@ -195,7 +197,7 @@ class Spotify(SoCoPlugin):
         return 'Spotify plugin'
 
     def _add_track_metadata(self, spotify_track):
-        """ Adds metadata by using the spotify public API """
+        """Adds metadata by using the spotify public API."""
         track = SpotifyTrack(spotify_track.spotify_uri)
         params = {'uri': spotify_track.spotify_uri}
         res = requests.get(self.api_lookup_url, params=params)
@@ -208,7 +210,7 @@ class Spotify(SoCoPlugin):
         return track
 
     def _add_album_metadata(self, spotify_album):
-        """ Adds metadata by using the spotify public API """
+        """Adds metadata by using the spotify public API."""
         album = SpotifyAlbum(spotify_album.spotify_uri)
         params = {'uri': spotify_album.spotify_uri}
         res = requests.get(self.api_lookup_url, params=params)
@@ -221,14 +223,14 @@ class Spotify(SoCoPlugin):
         return album
 
     def add_track_to_queue(self, spotify_track):
-        """ Add a spotify track to the queue using the SpotifyTrack class"""
+        """Add a spotify track to the queue using the SpotifyTrack class."""
         if not spotify_track.satisfied():
             spotify_track = self._add_track_metadata(spotify_track)
 
         return self.soco.add_to_queue(spotify_track)
 
     def add_album_to_queue(self, spotify_album):
-        """ Add a spotify album to the queue using the SpotifyAlbum class """
+        """Add a spotify album to the queue using the SpotifyAlbum class."""
         if not spotify_album.satisfied():
             spotify_album = self._add_album_metadata(spotify_album)
 
