@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 # -*- coding: utf-8 -*-
 import queue
 import weakref
-import requests
 from collections import namedtuple
 import threading
 from lib_sonos import sonos_speaker
@@ -41,7 +40,6 @@ log = logging.getLogger(__name__)
 Argument = namedtuple('Argument', 'name, vartype')
 Action = namedtuple('Action', 'name, in_args, out_args')
 
-
 # noinspection PyProtectedMember
 class SonosServerService():
     _sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
@@ -76,7 +74,7 @@ class SonosServerService():
                 logger.debug('active threads: {}'.format(len(threading.enumerate())))
                 logger.info('scan devices ...')
                 zone_group_state_shared_cache.clear()
-                self.discover()
+                SonosServerService.discover()
 
             except Exception as err:
                 logger.exception(err)
@@ -85,9 +83,10 @@ class SonosServerService():
 
     @staticmethod
     def _discover():
-        return discover(timeout=1, include_invisible=False)
+        return discover(timeout=2, include_invisible=False)
 
-    def discover(self):
+    @classmethod
+    def discover(cls):
         try:
             with sonos_speaker._sonos_lock:
 
@@ -262,7 +261,7 @@ class SonosServerService():
             if stream_content:
                 if not stream_content.startswith(ignore_title_string):
                     # if radio, in most cases the following format is used: artist - title
-                    #if stream_content is not null, radio is assumed
+                    # if stream_content is not null, radio is assumed
 
                     artist, title = title_artist_parser(speaker.radio_station if speaker.radio_station else '',
                                                         stream_content)
