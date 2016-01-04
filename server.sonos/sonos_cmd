@@ -155,6 +155,12 @@ class SonosBrokerCmd(cmd.Cmd):
             print(speaker)
         print("\n")
 
+    def help_discover(self):
+        print('Performs a manual scan for (new) Sonos speakers in the network.')
+
+    def do_discover(self, argument):
+        self.commands.discover()
+
     def help_speaker(self):
         print("speaker: Lists all available speakers to interact with.")
         print("speaker [num]: Interact with the chosen speaker.")
@@ -330,7 +336,10 @@ class SonosSpeakerCmd(cmd.Cmd):
             balance = input(normalize_output("Balance", "-100-100", default_bal))
             if not balance:
                 balance = default_bal
-            self.commands.set_balance(self.uid, balance)
+            group_command = input(normalize_output("Group command", "0|1", "0"))
+            if not group_command:
+                group_command = 0
+            self.commands.set_balance(self.uid, balance, group_command)
         else:
             print("unknown argument")
             return
@@ -991,6 +1000,13 @@ class Commands():
             }
         )
 
+    def discover(self):
+        return self.send(
+            {
+                'command': 'discover',
+            }
+        )
+
     def get_volume(self, uid):
         return self.send(
             {
@@ -1023,13 +1039,14 @@ class Commands():
             }
         )
 
-    def set_balance(self, uid, balance):
+    def set_balance(self, uid, balance, group_command):
         return self.send(
             {
                 'command': 'set_balance',
                 'parameter': {
                     'uid': uid.lower(),
-                    'balance': balance
+                    'balance': balance,
+                    'group_command': group_command
                 }
             }
         )
