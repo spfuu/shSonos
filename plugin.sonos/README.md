@@ -3,17 +3,11 @@ Smarthome.py framework (https://github.com/mknx/smarthome).
 
 ##Release
 
-  v1.61 2016-01-03
+  v1.7 2016-01-04
         
-    --  bug: discover function call now working
-    --  command "balance" added; documentation updated 
-    
-  v1.6  2015-12-23
-    
+    -- bug: discover function call now working
+    -- command "balance" added; documentation updated 
     -- function 'discover' added to perform a manual scan for new Sonos speaker
-  
-  v1.5  2015-10-30
-  
     -- property 'display_version' added
     -- property 'model_number' added
     -- property 'household_id' added (a unique identifier for all players in a household)
