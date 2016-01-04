@@ -395,18 +395,18 @@ class SonosSpeaker(object):
 
     ### BALANCE ########################################################################################################
     def get_balance(self):
-        if not self.is_coordinator:
-            logger.debug("forwarding balance getter to coordinator with uid {uid}".
-                         format(uid=self.zone_coordinator.uid))
-            return self.zone_coordinator.get_balance()
         return self._balance
 
-    def set_balance(self, balance, trigger_action=False):
+    def set_balance(self, balance, trigger_action=False, group_command=False):
         balance = int(balance)
         if not utils.check_balance_range(balance):
             return
         if trigger_action:
-            self.soco.balance = balance
+            if group_command:
+                for speaker in self._zone_members:
+                    speaker.set_volume(balance, trigger_action=True, group_command=False)
+            if utils.check_balance_range(balance):
+                self.soco.balance = balance
         if self._balance == balance:
             return
         self._balance = balance
@@ -972,6 +972,8 @@ class SonosSpeaker(object):
             for speaker in self._zone_members:
                 speaker.current_state(group_command=False)
 
+
+
     ### WIFI STATE #####################################################################################################
 
     def get_wifi_state(self, force_refresh=False):
@@ -1120,7 +1122,9 @@ class SonosSpeaker(object):
 
     @status.setter
     def status(self, value):
-        # status == 0 -> speaker offline:
+        if value == self._status:
+            return
+
         self._status = value
 
         if self._status == 0:
@@ -1152,6 +1156,8 @@ class SonosSpeaker(object):
             self._zone_icon = ''
             self._playmode = ''
             self._alarms = ''
+
+        self.dirty_property('status')
 
     def play_uri(self, uri, metadata=None):
 
@@ -1333,6 +1339,8 @@ class SonosSpeaker(object):
                 self.sub_av_transport.unsubscribe()
             if self.sub_rendering_control is not None:
                 self.sub_rendering_control.unsubscribe()
+        except ConnectionError:
+            logger.warning("Speaker offline. Could not un-subscribe.")
         except Exception as err:
             logger.exception(err)
 
