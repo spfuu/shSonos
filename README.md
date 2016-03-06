@@ -2,12 +2,13 @@
 
 v0.8b   (2016-02-23)
 
-    -- ATTENTION: commands "get_playlist" and "set_playlist" removed. I decided to stick with the internal Sonos 
+    -- ATTENTION: commands "get_playlist" and "set_playlist" removed. I decided to stick with 
+       the internal Sonos 
        playlists.
     -- new implementation Google TTS: Captcha and other issues should now be solved (for this time) 
-    -- ATTENTION: parameter "force_stream_mode" removed for command "play_tts" caused by the new implementation for 
-       Google TTS. The possibility for an additional TTS "stream mode" was removed. (see documentation Google TTS for
-       setup)
+    -- ATTENTION: parameter "force_stream_mode" removed for command "play_tts" caused by the new 
+       implementation for Google TTS. The possibility for an additional TTS "stream mode" was removed. 
+       (see documentation Google TTS for setup)
     -- ATTENTION: property "tts_local_mode" removed 
     -- new commands "get_sonos_playlists" and "load_sonos_playlist". See documentation for implementation
           
