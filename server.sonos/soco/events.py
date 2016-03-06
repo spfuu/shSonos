@@ -127,7 +127,10 @@ def parse_event_xml(xml_event):
                     # If DIDL metadata is returned, convert it to a music
                     # library data structure
                     if value.startswith('<DIDL-Lite'):
-                        value = from_didl_string(value)[0]
+                        try:
+                            value = from_didl_string(value)[0]
+                        except:
+                            return None
                     channel = last_change_var.get('channel')
                     if channel is not None:
                         if result.get(tag) is None:

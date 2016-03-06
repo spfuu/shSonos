@@ -253,10 +253,11 @@ class SonosBroker():
                         'Not enough disk space left on \'{}\'. At least {} mb of free diskspace required!'.format(
                             self._save_path,
                             self._quota))
-                    self._tts_local_mode = False
+                    logger.warning("\nIgnore this  warning, if the snippet directoy is a smb or cifs mounted "
+                                   "directory.")
 
         if not self._tts_local_mode:
-            logger.debug("Google-TTS 'local mode' disabled! Only streaming mode available.")
+            logger.debug("Google-TTS disabled!")
         else:
             logger.debug("Google-TTS 'local mode' enabled!")
             logger.debug('server_url: {}'.format(self._server_url))
@@ -269,7 +270,7 @@ class SonosBroker():
             "Starting server with ip address {ip} ... be sure this is correct.".format(ip=self._server_ip))
         time.sleep(1)
         self._sonos_service = SonosServerService(self._server_ip, self._port, self._server_url, self._save_path,
-                                                 self._quota, self._tts_local_mode)
+                                                 self._quota)
         self._http_server = ThreadedHTTPServer((self._host, self._port), SonosHttpHandler)
         logger.info('Starting http server, use <Ctrl-C> to stop')
 

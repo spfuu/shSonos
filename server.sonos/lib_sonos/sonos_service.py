@@ -45,14 +45,14 @@ class SonosServerService():
     _sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     _sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
 
-    def __init__(self, host, port, remote_folder, local_folder, quota, tts_local_mode):
+    def __init__(self, host, port, remote_folder, local_folder, quota):
         self.event_lock = Lock()
         self.lock = Lock()
         self.host = host
         self.port = port
 
         SonosSpeaker.event_queue = queue.Queue()
-        SonosSpeaker.set_tts(local_folder, remote_folder, quota, tts_local_mode)
+        SonosSpeaker.set_tts(local_folder, remote_folder, quota)
 
         p_t = threading.Thread(target=self.process_events)
         p_t.daemon = True
@@ -352,6 +352,7 @@ class SonosServerService():
             volume = variables['volume']['Master']
             if volume:
                 if utils.check_max_volume_exceeded(volume, speaker.max_volume):
+                    sleep(1)
                     speaker.set_volume(speaker.max_volume, trigger_action=True)
                 else:
                     speaker.volume = int(volume)

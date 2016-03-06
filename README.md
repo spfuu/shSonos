@@ -1,4 +1,16 @@
 ## Release
+
+v0.8b   (2016-02-23)
+
+    -- ATTENTION: commands "get_playlist" and "set_playlist" removed. I decided to stick with the internal Sonos 
+       playlists.
+    -- new implementation Google TTS: Captcha and other issues should now be solved (for this time) 
+    -- ATTENTION: parameter "force_stream_mode" removed for command "play_tts" caused by the new implementation for 
+       Google TTS. The possibility for an additional TTS "stream mode" was removed. (see documentation Google TTS for
+       setup)
+    -- ATTENTION: property "tts_local_mode" removed 
+    -- new commands "get_sonos_playlists" and "load_sonos_playlist". See documentation for implementation
+          
 v0.7    (2016-01-04)
 
     -- command "discover" added to force a manual scan for Sonos speaker in the network
@@ -29,37 +41,6 @@ v0.6        (2015-04-11)
     --  added radio parser for Alsterradio 106.8
     --  some minor bugfixes in Sonos Broker
     --  some minor bugfixes in Cmd client
-
-v0.5.2     (2015-02-01)
-    
-    --  set new auto-renew timer for event subscription, more debug logs 
-    --  set scan interval to 180 sec as default value
-
-v0.5.1     (2015-01-23)
-
-    --  Hotfix: error while handling a DIDL item (in SoCo framework)
-
-v0.5       (2015-01-18)
-
-    --  interactive command shell added to interact with the speakers directly (see docu)
-    --  commands added: get_playlist, set_playlist (see documentation). Its now possible to
-        save and set the playlist for a speaker / zone.
-    --  commands added: 'is_coordinator'[readonly], 'tts_local_mode'[readonly]: please 
-        read the documentation
-    --  changed some strings to clarify, that a non-existing or broken GoogleTTS 
-        configuration disables only the 'local mode'; the 'streaming mode' is always 
-        available
-    --  changed the 'client_list'command: only the uids will be shown
-    --  bugfix: error during processing a Spotify track
-    --  bugfix: an error occurred, if the Broker was started with the '-l' parameter and a 
-        previous online speaker went offline
-    --  changed logging handler in daemon.py to global logging handler specified in the 
-        config file
-    --  new SoCo version     
-    --  new start option "-l"
-        --  this options lists all available Sonos speaker in the network. 
-            This is helpful to get the speakers UIDs.
-         
     
 
 ## Overview
@@ -223,15 +204,9 @@ Sonos broker features the Google Text-To-Speech API. You can play any text limit
 
 #### Internals
 
-If a text is given to the google tts function, sonos broker makes a http request to the Google API. The response can be 
-    1. stored as a mp3-file to the local / remote folder. 
-    2. or handled like a radio stream without saving the file locally.
+If a text is given to the google tts function, sonos broker makes a http request to the Google API. The response is 
+stored as a mp3-file to the local / remote folder. 
     
-The first option should always be the preferred one. The "radio stream" option has some big disadvantages (time delay,
-no snippet length and therefor inaccurate track resuming). If Google TTS is disabled (either by disabling Google TTS in
-the sonos_broker.cfg or other failures), the stream mode is assumed. You can force this behaviour by setting the 
-command parameter 'force_stream_mode' to 1 (see [play_tts command](#p_tts)).
-
 Before the request is made ('local mode'), the broker checks whether a file exists
 with the same name. The file name of a tts-file is always:  BASE64(<tts_txt>_<tts_language>).mp3
 You can set a file quota in the config file. This limits the amount of disk space the broker can use to save tts files. 
@@ -419,8 +394,8 @@ Click on the links below to get a detailed command descriptions and their usage.
 ###### [get_favorite_radio_stations](#g_fav_radio)
 ###### [is_coordinator](#is_coor)
 ###### [tts_local_mode](#tts_local)
-###### [get_playlist](#get_playlist)
-###### [set_playlist](#set_playlist)
+###### [get_sonos_playlists](#get_sonos_playlists)
+###### [load_sonos_playlist](#load_sonos_playlist)
 ###### [refresh_media_library](#ref_lib)
 ###### [get_wifi_state](#get_wifi)
 ###### [set_wifi_state](#set_wifi)
@@ -1821,9 +1796,8 @@ No special parameter needed.
 ----
 #### <a name="p_snippet">play_snippet
  Plays a audio snippet. After the snippet was played (maximum 60 seconds, longer snippets will be truncated)
- the previous played song will be resumed. You can queue up to 10 snippets. They're played in the order they 
- are called.
-
+ the previous played song will be resumed.
+ 
 | parameter | required / optional | valid values | description |     
 | :-------- | :------------------ | :----------- | :---------- |
 | uid | required | | The UID of the Sonos speaker. |
@@ -1861,17 +1835,14 @@ No special parameter needed.
 
 ----
 #### <a name="p_tts">play_tts
- Plays a text-to-speech snippet using the Google TTS API. After the snippet was played (maximum 10 seconds in streaming 
- mode, longer snippets will be truncated) the previous played song will be resumed. You can queue up to 10 snippets. 
- They're played in the order they are called. To setup the Broker for TTS support, please take a deeper look at the 
- dedicated Google TTS section in this document.
+ Plays a text-to-speech snippet using the Google TTS API. To setup the Broker for TTS support, please take a deeper 
+ look at the dedicated Google TTS section in this document.
 
 | parameter | required / optional | valid values | description |     
 | :-------- | :------------------ | :----------- | :---------- |
 | uid | required | | The UID of the Sonos speaker. |
 | tts | required | | The text to be auditioned, max. 100 chars. |
 | language | optional | en, de, es, fr, it| The tts language. Default: 'de'. |
-| force_stream_mode | optional | 0 or 1| If True, the tts snippet will not be saved locally. This has some disadvantages like time delay and inaccurate track resuming.|
 | fade_in | optional | 0 or 1 | If True, the volume for the resumed track / radio fades in |
 | volume | optional | -1 - 100 | The snippet volume. If -1 (default) the current volume is used.  After the snippet was played, the prevoius volume value is set. |
 | group_command | optional | 0 or 1 | If 'True', the command is executed for all zone members of the speaker. This affects only the parameter 'volume'.|
@@ -1882,9 +1853,8 @@ No special parameter needed.
         'command': 'play_tts',
         'parameter': {
             'uid': 'rincon_000e58c3892e01410',
-            'tts': 'Die Temperatur im Wohnzimmer ist 2 Grad Celsius.'
+            'tts': 'Die Temperatur im Wohnzimmer beträgt 2 Grad Celsius.'
             'language': 'de',
-            'force_stream_mode': '0'
             'volume': 30,
             'group_command': 1
         }   
@@ -1969,48 +1939,46 @@ No special parameter needed.
 ######UDP Response sent to subscribed clients:
     JSON format:
     {
-        "additional_zone_members": "rincon_112ef9e4892e00001",
-        "alarms": {
-            "32": {
-                "Duration": "02:00:00",
-                "Enabled": false,
-                "IncludedLinkZones": false,
-                "PlayMode": "SHUFFLE_NOREPEAT",
-                "Recurrence": "DAILY",
-                "StartTime": "07:00:00",
-                "Volume": 25
-            }
-        },
+        "additional_zone_members": "",
+        "alarms": "",
+        "balance": 0,
         "bass": 0,
-        "hardware_version": "1.8.3.7-2",
-        "ip": "192.168.0.4",
+        "display_version": "6.0",
+        "hardware_version": "1.8.1.2-2",
+        "household_id": "Sonos_Ef8RhcyY1ijYDDFp1I3GitguTP",
+        "ip": "192.168.0.11",
+        "is_coordinator": true,
         "led": 1,
         "loudness": 1,
-        "mac_address": "10:1F:21:C3:77:1A",
+        "mac_address": "B8-E9-37-38-E1-72",
         "max_volume": -1,
-        "model": "Sonos PLAY:1",
-        "mute": "0",
-        "pause": 0,
+        "model": "Sonos PLAY:3",
+        "model_number": "S3",
+        "mute": 0,
+        "pause": 1,
         "play": 0,
         "playlist_position": 0,
         "playmode": "normal",
         "radio_show": "",
         "radio_station": "",
-        "serial_number": "00-0E-58-C3-89-2E:7",
-        "software_version": "27.2-80271",
+        "serial_number": "B8-E9-37-38-E1-72:5",
+        "software_version": "31.3-22220",
+        "sonos_playlists": "Morning,Evening,U2",
         "status": true,
-        "stop": 1,
+        "stop": 0,
         "streamtype": "music",
-        "track_album_art": "http://192.168.0.4:1400/getaa?s=1&u=x-sonos-spotify%3aspotify%253atrack%253a3xCk8npVehdV55KuPdjrmZ%3fsid%3d9%26flags%3d32",
-        "track_artist": "Feuerwehrmann Sam & Clemens Gerhard",
-        "track_duration": "0:10:15",
+        "track_album_art": "http://192.168.0.11:1400/getaa?s=1&u=x-sonos-http%3atr%253a119434742.mp3%3fsid%3d2%26flags%3d8224%26sn%3d1",
+        "track_artist": "Was ist Was",
+        "track_duration": "0:02:22",
         "track_position": "00:00:00",
-        "track_title": "Das Baby im Schafspelz",
-        "track_uri": "x-sonos-spotify:spotify%3atrack%3a3xCk8npVehdV55KuPdjrmZ?sid=9&flags=32",
+        "track_title": "Europa - Teil 10",
+        "track_uri": "x-sonos-http:tr%3a119434742.mp3?sid=2&flags=8224&sn=1",
         "treble": 0,
-        "uid": "rincon_000e58c3892e01410",
-        "volume": 8,
-        "zone_icon": "x-rincon-roomicon:bedroom",
+        "tts_local_mode": false,
+        "uid": "rincon_b8e91111d11111400",
+        "volume": 17,
+        "wifi_state": 1,
+        "zone_icon": "/img/icon-S3.png",
         "zone_name": "Kinderzimmer"
     }
     
@@ -2080,7 +2048,7 @@ No special parameter needed.
     {
         'command': 'is_coordinator',
         'parameter': {
-            'uid': 'rincon_000e58c3892e01410',
+            'uid': 'rincon_b8e91111d11111400',
         }
     }
 
@@ -2092,7 +2060,7 @@ No special parameter needed.
     JSON format: 
     {
         "is_coordinator": true,
-        "uid": "rincon_b8e93730d19801400"
+        "uid": "rincon_b8e91111d11111400"
     }
 
 ----
@@ -2111,7 +2079,7 @@ This has some disadvantages. Please read the Google TTS section in this document
     {
         'command': 'tts_local_mode',
         'parameter': {
-            'uid': 'rincon_000e58c3892e01410',
+            'uid': 'rincon_b8e91111d11111400',
         }
     }
 
@@ -2123,56 +2091,24 @@ This has some disadvantages. Please read the Google TTS section in this document
     JSON format: 
     {
         "is_coordinator": true,
-        "uid": "rincon_b8e93730d19801400"
+        "uid": "rincon_b8e91111d11111400"
     }
 
+
 ----
-#### <a name="get_playlist">get_playlist
- [readonly]
- Returns the the current playlist as a base64 string. You can save this string to use it with the set_playlist command.
+#### <a name="get_sonos_playlists">get_sonos_playlists
+ Gets all Sonos playlists separated by ','.
 
 | parameter | required / optional | valid values | description |
 | :-------- | :------------------ | :----------- | :---------- |
-| uid | required | | The UID of the Sonos speaker. |
+| uid | required | string | The UID of the Sonos speaker. |
 
 ######Example
     JSON format:
     {
-        'command': 'get_playlist',
+        'command': 'get_sonos_playlists',
         'parameter': {
-            'uid': 'rincon_000e58c3892e01410',
-        }
-    }
-
-######HTTP Response
-    HTTP 200 OK and a base64 string representing the playlist
-        or
-    Exception with HTTP status 400 and the specific error message.
-
-###### UDP Response sent to subscribed clients:
-    No UDP response
-
-
-----
-#### <a name="set_playlist">set_playlist
- Sets the playlist for a speaker ( and for the entire zone). You should read a file containing
- the base64-coded playlist (gathered by the get_playlist command) and assign the json variable
-  'playlist' with this value.
-
-| parameter | required / optional | valid values | description |
-| :-------- | :------------------ | :----------- | :---------- |
-| uid | required | | The UID of the Sonos speaker. |
-| playlist | required | base64 encoded string| The playlist as a base64 encoded string. |
-| play_after_insert | optional | 0 or 1 | Starts playing the after inserting the playlist. Default: 0  |
-
-######Example
-    JSON format:
-    {
-        'command': 'set_playlist',
-        'parameter': {
-            'uid': 'rincon_000e58c3892e01410',
-            'playlist': '#so_pl#gASVwhsAAAAAAABdlIwUc29jby5kYXRhX3N0cnVjdHVyZX.... ,
-            'play_after_insert': 1
+            'uid': 'rincon_b8e91111d11111400'
         }
     }
 
@@ -2182,8 +2118,43 @@ This has some disadvantages. Please read the Google TTS section in this document
     Exception with HTTP status 400 and the specific error message.
 
 ###### UDP Response sent to subscribed clients:
-    No UDP response
+    JSON format:
+    {
+        ...
+        "uid": "rincon_b8e91111d11111400",
+        "sonos_playlists": "mylist,another_list,Abba'
+        ...
+    }
+
+
+----
+#### <a name="load_sonos_playlist">load_sonos_playlist
+ Loads a Sonos playlist by a given name.
+ 
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| sonos_playlist | required | string | A Sonos playlist name. (see get_sonos_playlists) |
+| play_after_insert | optional | 0 or 1 | Start playing after loading the Sonos playlist. Default: 0 |
+| clear_queue | optional | 0 or 1 | Clears the queue before loading list. Default: 0 |
+
+######Example
+    JSON format:
+    {
+        'command': 'load_sonos_playlist',
+        'parameter': {
+            'uid': "rincon_b8e91111d11111400",
+            'sonos_playlist': "DepecheMode",
+            'play_after_insert': 1,
+            'clear_queue': 1
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
     
+######UDP Response sent to subscribed clients:
+    No specific response
+
 
 ----
 #### <a name="ref_lib">refresh_media_library
@@ -2198,7 +2169,7 @@ This has some disadvantages. Please read the Google TTS section in this document
     {
         'command': 'refresh_media_library',
         'parameter': {
-            'display_option': display_option
+            'display_option': "ITUNES"
         }
     }
 
@@ -2226,7 +2197,7 @@ This has some disadvantages. Please read the Google TTS section in this document
     {
         'command': 'get_wifi_state',
         'parameter': {
-            'uid': rincon_000e58c3892e01410,
+            'uid': rincon_b8e91111d11111400,
             'force_refresh': 0
     }
    
@@ -2236,7 +2207,13 @@ This has some disadvantages. Please read the Google TTS section in this document
     Exception with HTTP status 400 and the specific error message.
 
 ###### UDP Response sent to subscribed clients:
-    No UDP response
+    JSON format: 
+    {
+        ...
+        "wifi_state": 1,
+        "uid": "rincon_b8e91111d11111400"
+        ...
+    }
     
 
 ----
@@ -2248,8 +2225,8 @@ This has some disadvantages. Please read the Google TTS section in this document
 | parameter | required / optional | valid values | description |
 | :-------- | :------------------ | :----------- | :---------- |
 | uid | required | | The UID of the Sonos speaker. |
-| wifi_state | required | 0 or 1| If False, the wifi interface will be deactivated, otherwise it will be enabled.|
-| persistent | optional | 0 or 1| If True, the wifi interface will remain deactivated after a reboot of the speaker. Default: 0|
+| wifi_state | required | 0 or 1 | If False, the wifi interface will be deactivated, otherwise it will be enabled. |
+| persistent | optional | 0 or 1 | If True, the wifi interface will remain deactivated after a reboot of the speaker. Default: 0 |
 
 ######Example
     JSON format:
@@ -2269,6 +2246,7 @@ This has some disadvantages. Please read the Google TTS section in this document
 
 ###### UDP Response sent to subscribed clients:
     No UDP response
+
 
 ----
 #### <a name="discover>discover

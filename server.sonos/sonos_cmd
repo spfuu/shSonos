@@ -234,11 +234,11 @@ class SonosSpeakerCmd(cmd.Cmd):
     def __init__(self, commands):
         cmd.Cmd.__init__(self)
         SonosSpeakerCmd.counter += 1
-        self.tts_local_mode = False
         self.commands = commands
         self.speaker_id = SonosSpeakerCmd.counter
         self.uid = None
         self.ip = None
+        self.sonos_playlists = None
         self.model = None
         self.model_number = None
         self.zone_name = None
@@ -756,15 +756,10 @@ class SonosSpeakerCmd(cmd.Cmd):
 
     def help_play_tts(self):
         print("play_tts: Plays a text-to-speech snippet using the Google TTS API. The previous played song will be "
-              "resumed. If you're using the streaming mode, the snippet will be truncated after 10 seconds. You "
-              "can queue up to 10 snippets. They're played in the order they are called. To setup the Broker for TTS "
-              "support, please take a deeper look at the Sonos Broker documentation.")
+              "resumed. You can queue up to 10 snippets. They're played in the order they are called. To setup the "
+              "Broker for TTS support, please take a deeper look at the Sonos Broker documentation.")
 
     def do_play_tts(self, line):
-
-        if not self.tts_local_mode:
-            print("Warning! Google TTS 'local mode' disbaled. Only the 'streaming mode' is available.")
-            print("Please read the Sonos Broker documentation to setup Google TTS.")
 
         tts = input(normalize_output("tts", "max 100 chars", ""))
         if not tts:
@@ -781,17 +776,11 @@ class SonosSpeakerCmd(cmd.Cmd):
         if not language:
             language = default_language
 
-        stream_mode = 1
-        if self.tts_local_mode:
-            stream_mode = input(normalize_output("force stream mode", "0|1", "0"))
-            if not stream_mode:
-                stream_mode = 0
-
         group_command = input(normalize_output("group command", "0|1", "0"))
         if not group_command:
             group_command = 0
 
-        self.commands.play_tts(self.uid, tts, volume, language, fade_in, stream_mode, group_command)
+        self.commands.play_tts(self.uid, tts, volume, language, fade_in, group_command)
 
     def help_is_coordinator(self):
         print("is_coordinator: Returns the status whether the speaker is a group coordinator or not.")
@@ -822,56 +811,6 @@ class SonosSpeakerCmd(cmd.Cmd):
             print("unknown argument")
             return
         print("tts_local_mode: {}".format(self.tts_local_mode))
-
-    def help_playlist(self):
-        print("playlist: Gets the current playlist.")
-        print("playlist [get]: Gets the current playlist.")
-        print("playlist [set]: Sets the current playlist.")
-
-    def do_playlist(self, line):
-        line = line.lower()
-        if not line or line == "get":
-            default_path = ""
-            path = input(normalize_output("Playlist", "save path", default_path))
-
-            try:
-                if not os.path.exists(os.path.dirname(path)):
-                    os.makedirs(os.path.dirname(path))
-            except Exception:
-                print("Couldn't create '{path}'.'!".format(path=os.path.dirname(path)))
-                return
-
-            status, response = self.commands.get_playlist(self.uid)
-
-            if not status:
-                print("Couldn't get playlist from speaker. Error: {response}".format(response=response))
-                return
-
-            with open(path, 'w') as f:
-                f.write(response)
-                print("Playlist saved to '{path}'.".format(path=path))
-
-        elif line == "set":
-            default_path = ""
-            path = input(normalize_output("Playlist", "path to file", default_path))
-            play_after_insert = input(normalize_output("Play after insert", "0|1", 0))
-
-            if not os.path.isfile(path):
-                print("File does not exists!")
-                return
-
-            if not play_after_insert:
-                play_after_insert = 0
-
-            with open(path, 'r') as f:
-                playlist = f.read()
-                status, response = self.commands.set_playlist(self.uid, playlist, play_after_insert)
-
-                if not status:
-                    print(response)
-        else:
-            print("unknown argument")
-            return
 
     def help_wifi_state(self):
         print("wifi_state      : Gets the current wifi state.")
@@ -922,6 +861,41 @@ class SonosSpeakerCmd(cmd.Cmd):
             print("unknown argument")
             return
         print("wifi_state: {}".format(self.wifi_state))
+
+    def help_sonos_playlists(self):
+        print("sonos_playlists      : Gets the current sonos playlists.")
+        print("sonos_playlists [get]: Forces the Broker to retrieve the sonos playlists.")
+
+    def do_sonos_playlists(self, line):
+        line = line.lower()
+
+        if line == "get" or not line:
+            self.commands.get_sonos_playlists(self.uid)
+            sleep(0.5)
+            print("Sonos playlists: {}".format(self.sonos_playlists))
+
+        elif line == "set" or line == "load":
+            playlist_name = input(normalize_output("Sonos playlist name", "", ""))
+            if not playlist_name:
+                playlist_name = ""
+            play_after_insert = input(normalize_output("Play after insert", "0|1", ""))
+            if not play_after_insert:
+                play_after_insert = "0"
+            clear_queue = input(normalize_output("Clear queue", "0|1", ""))
+            if not clear_queue:
+                clear_queue = "0"
+            result = self.commands.load_sonos_playlist(self.uid, playlist_name, play_after_insert, clear_queue)
+
+            additional_output = "."
+            if play_after_insert == 0:
+                additional_output = " and is now playing."
+            if result[0] == True:
+                print("\nPlaylist '{playlist_name}' added to queue{additional_output}".
+                      format(additional_output=additional_output, playlist_name=playlist_name))
+
+        else:
+            print("unknown argument")
+            return
 
 
 class Commands():
@@ -1413,7 +1387,7 @@ class Commands():
             }
         )
 
-    def play_tts(self, uid, tts, volume, language, fade_in, force_stream_mode, group_command):
+    def play_tts(self, uid, tts, volume, language, fade_in, group_command):
         return self.send(
             {
                 'command': 'play_tts',
@@ -1423,7 +1397,6 @@ class Commands():
                     'volume': volume,
                     'fade_in': fade_in,
                     'group_command': group_command,
-                    'force_stream_mode': force_stream_mode,
                     'language': language
                 }
             }
@@ -1445,28 +1418,6 @@ class Commands():
                 'command': 'tts_local_mode',
                 'parameter': {
                     'uid': uid.lower(),
-                }
-            }
-        )
-
-    def get_playlist(self, uid):
-        return self.send(
-            {
-                'command': 'get_playlist',
-                'parameter': {
-                    'uid': uid.lower(),
-                }
-            }
-        )
-
-    def set_playlist(self, uid, playlist, play_ater_insert):
-        return self.send(
-            {
-                'command': 'set_playlist',
-                'parameter': {
-                    'uid': uid.lower(),
-                    'playlist': playlist,
-                    'play_after_insert': play_ater_insert
                 }
             }
         )
@@ -1504,12 +1455,35 @@ class Commands():
             }
         )
 
+    def get_sonos_playlists(self, uid):
+        return self.send(
+            {
+                'command': 'get_sonos_playlists',
+                'parameter': {
+                    'uid': uid.lower()
+                }
+            }
+        )
+
+    def load_sonos_playlist(self, uid, sonos_playlist, play_after_insert, clear_queue):
+        return self.send(
+            {
+                'command': 'load_sonos_playlist',
+                'parameter': {
+                    'uid': uid.lower(),
+                    'sonos_playlist': sonos_playlist,
+                    'play_after_insert': play_after_insert,
+                    'clear_queue': clear_queue
+                }
+            }
+        )
+
 
 if __name__ == '__main__':
-    # client_ip = "192.168.178.53"
-    # client_port = 5005
-    # server_ip = "192.168.178.53"
+    client_ip = "192.168.178.56"
+    client_port = 15005
+    server_ip = "192.168.178.5"
     # server_port = "12900"
     # cmd = SonosBrokerCmd(client_ip, client_port, server_ip, server_port)
-    broker_cmd = SonosBrokerCmd()
+    broker_cmd = SonosBrokerCmd(client_hostname=client_ip, client_port=client_port, server_hostname=server_ip)
     broker_cmd.cmdloop()

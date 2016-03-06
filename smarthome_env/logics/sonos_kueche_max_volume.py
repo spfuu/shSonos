@@ -1,0 +1,1 @@
+sh.Sonos_Kueche.max_volume(30)

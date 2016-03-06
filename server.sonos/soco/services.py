@@ -374,7 +374,7 @@ class Service(object):
             self.base_url + self.control_url,
             headers=headers,
             data=body.encode('utf-8'),
-            timeout=2
+            timeout=10
         )
         log.debug("Received %s, %s", response.headers, response.text)
         status = response.status_code
