@@ -6,8 +6,8 @@ Smarthome.py framework (https://github.com/mknx/smarthome).
   v1.8b 2016-03-05
   
     -- ATTENTION: properties "set_playlist" and "get_playlist" REMOVED. Please use "sonos_playlists" instead.
-    -- ATTENTION: parameter "force_stream_mode" removed for command "play_tts" caused by the new implementation for 
-       Google TTS. Please update your item config.
+    -- ATTENTION: parameter "force_stream_mode" removed for command "play_tts" caused by the new 
+       implementation for Google TTS. Please update your item config.
     -- ATTENTION: property "tts_local_mode" removed 
     -- property "sonos_playlists" added to retrieve all sonos playlists separated by ','
     -- command "load_sonos_playlist" added
