@@ -136,9 +136,13 @@ class SonosServerService():
                         sonos_speaker.sonos_speakers[uid].status = False
                         sonos_speaker.sonos_speakers[uid].send()
                         sonos_speaker.sonos_speakers[uid].terminate()
-                        del sonos_speaker.sonos_speakers[uid]
                     except KeyError:
                         continue  # speaker maybe deleted by another thread
+                    finally:
+                        try:
+                            del sonos_speaker.sonos_speakers[uid]
+                        except:
+                            pass
 
                 # register events for all speaker, this has to be the last step due to some logics in the event
                 # handling routine
