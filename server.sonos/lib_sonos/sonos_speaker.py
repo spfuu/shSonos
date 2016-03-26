@@ -78,7 +78,6 @@ class SonosSpeaker(object):
         self._properties_hash = None
         self._zone_coordinator = None
         self._additional_zone_members = ''
-        self._snippet_queue = queue.PriorityQueue(10)
         self._snippet_queue_lock = threading.Lock()
         self._volume = self.soco.volume
         self._bass = self.soco.bass
@@ -1138,7 +1137,7 @@ class SonosSpeaker(object):
             self._radio_station = ''
             self._max_volume = -1
             self._zone_name = ''
-            self._zone_coordinator = ''
+            self._zone_coordinator = self
             self._zone_icon = ''
             self._playmode = ''
             self._alarms = ''
@@ -1294,6 +1293,12 @@ class SonosSpeaker(object):
             logger.warning("Speaker offline. Could not un-subscribe.")
         except Exception as err:
             logger.exception(err)
+        finally:
+            self._sub_zone_group = None
+            self._sub_alarm = None
+            self._sub_system_prop = None
+            self._sub_av_transport = None
+            self._sub_rendering_control = None
 
     def event_subscription(self):
 
@@ -1417,8 +1422,6 @@ class SonosSpeaker(object):
             current instance is the coordinator
             '''
             self._zone_coordinator = None
-            self._snippet_event_thread.join()
-            self._snippet_event_thread = None
 
         self._zone_coordinator = sonos_speakers[soco.uid.lower()]
         self.dirty_property('is_coordinator')
@@ -1439,8 +1442,6 @@ class SonosSpeaker(object):
         self.zone_members[:] = []
         self._zone_members.unregister_callback(self.zone_member_changed)
         self._zone_members = None
-        self._snippet_event_thread.join()
-        self._snippet_event_thread = None
         del self._soco
 
     led = property(get_led, set_led)
