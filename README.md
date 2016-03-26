@@ -1,6 +1,12 @@
 ## Release
 
-v0.8b   (2016-02-23)
+v0.8b1
+    
+    -- small bugfixes
+    -- Deezer tracks and their metadata are handled correctly now
+    -- Sonos-Broker commandline tools now with parameters (type "sonos_cmd -h" for help)
+    
+v0.8b0   (2016-02-23)
 
     -- ATTENTION: commands "get_playlist" and "set_playlist" removed. I decided to stick with 
        the internal Sonos 
