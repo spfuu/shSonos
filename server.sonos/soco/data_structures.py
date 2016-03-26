@@ -849,6 +849,30 @@ class DidlAlbum(DidlContainer):
         }
     )
 
+class DidlMusicAlbumDefault(DidlAlbum):
+
+    """Class that represents a music library album."""
+
+    # the DIDL Lite class for this object.
+    item_class = 'object.container.album.musicAlbum.#DEFAULT'
+    # According to the spec, all musicAlbums should be represented in
+    # XML by a <container> tag. Sonos sometimes uses <container> and
+    # sometimes uses <item>. Set the tag type to '' to indicate that
+    # either is allowed.
+    tag = ''
+    # name: (ns, tag)
+    # pylint: disable=protected-access
+    #:
+    _translation = DidlAudioItem._translation.copy()
+    _translation.update(
+        {
+            'artist': ('upnp', 'artist'),
+            'genre': ('upnp', 'genre'),
+            'producer': ('upnp', 'producer'),
+            'toc': ('upnp', 'toc'),
+            'album_art_uri': ('upnp', 'albumArtURI'),
+        }
+    )
 
 class DidlMusicAlbum(DidlAlbum):
 
