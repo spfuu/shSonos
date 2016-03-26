@@ -859,7 +859,7 @@ class SonosCommand:
 
     @staticmethod
     def discover():
-        return {'command': 'discover', }
+        return {'command': 'discover'}
 
 
 #######################################################################
