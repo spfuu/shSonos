@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import argparse
 
 import cmd
 import json
 import os
 import socket
+import struct
 from time import sleep
+import fcntl
 import requests
 from threading import Thread
 import sys
@@ -1478,12 +1481,53 @@ class Commands():
             }
         )
 
+def get_interface_ip(ifname):
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    return socket.inet_ntoa(fcntl.ioctl(s.fileno(), 0x8915, struct.pack('256s', ifname[:15].encode('utf-8')))[20:24])
+
+def get_lan_ip_fallback():
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        s.connect(('<broadcast>', 0))
+        return s.getsockname()[0]
+    except Exception as err:
+        print(err)
+        return None
+
+def get_lan_ip():
+    try:
+        ip = socket.gethostbyname(socket.gethostname())
+        if ip.startswith("127.") and os.name != "nt":
+            interfaces = ["eth0", "eth1", "eth2", "wlan0", "wlan1", "wifi0", "ath0", "ath1", "ppp0"]
+            for ifname in interfaces:
+                try:
+                    ip = get_interface_ip(ifname)
+                    break
+                except IOError:
+                    pass
+    except socket.gaierror:
+        return get_lan_ip_fallback()
+    return ip
+
 
 if __name__ == '__main__':
-    client_ip = "192.168.178.56"
-    client_port = 15005
-    server_ip = "192.168.178.5"
-    # server_port = "12900"
-    # cmd = SonosBrokerCmd(client_ip, client_port, server_ip, server_port)
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('-s', '--server_ip', help='Default: 127.0.0.1', default='127.0.0.1', dest='server_ip')
+    parser.add_argument('-c', '--client_port', help='The port, on which the client receives the UDP packages from'
+                                                    'the Sonos Broker. Default: 5005', default=5005, type=int,
+                        dest='client_port')
+    parser.add_argument('-p', '--server_port', help='Sonos Broker port. Default: 12900', default=12900, type=int,
+                        dest='server_port')
+    args = parser.parse_args()
+
+    client_port = args.client_port
+    server_ip = args.server_ip
+    server_port = args.server_port
+
+    client_ip = get_lan_ip()
+
     broker_cmd = SonosBrokerCmd(client_hostname=client_ip, client_port=client_port, server_hostname=server_ip)
     broker_cmd.cmdloop()
