@@ -3,7 +3,14 @@ Smarthome.py framework (https://github.com/mknx/smarthome).
 
 ##Release
   
-  v1.8b 2016-03-05
+  v1.8b1 2016-03-26
+  
+    -- bugfix: no correct event handling while playing a Deezer track
+    -- some small changes in code base for offline speaker handling
+    -- sonos_cmd: now with parameters, use "sonos_cmd -h" to get more infos
+    
+        
+  v1.8b0 2016-03-05
   
     -- ATTENTION: properties "set_playlist" and "get_playlist" REMOVED. Please use "sonos_playlists" instead.
     -- ATTENTION: parameter "force_stream_mode" removed for command "play_tts" caused by the new 
