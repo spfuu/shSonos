@@ -1,6 +1,10 @@
 ## Release
 
-v0.8b1
+v0.8b2  (2016-06-21)
+
+    -- fixed error when calling sonos_broker with 'l' (scan only flag)
+
+v0.8b1  (2016-03-26)
     
     -- small bugfixes
     -- Deezer tracks and their metadata are handled correctly now

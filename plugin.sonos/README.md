@@ -2,29 +2,18 @@ This sub-project is a client implementation fpr the Sonos Broker. It is a plugin
 Smarthome.py framework (https://github.com/mknx/smarthome).
 
 ##Release
-  
-  v1.8b1 2016-03-26
-  
-    -- bugfix: no correct event handling while playing a Deezer track
-    -- some small changes in code base for offline speaker handling
-    -- sonos_cmd: now with parameters, use "sonos_cmd -h" to get more infos
-    
-        
-  v1.8b0 2016-03-05
-  
-    -- ATTENTION: properties "set_playlist" and "get_playlist" REMOVED. Please use "sonos_playlists" instead.
-    -- ATTENTION: parameter "force_stream_mode" removed for command "play_tts" caused by the new 
-       implementation for Google TTS. Please update your item config.
-    -- ATTENTION: property "tts_local_mode" removed 
-    -- property "sonos_playlists" added to retrieve all sonos playlists separated by ','
-    -- command "load_sonos_playlist" added
-    -- bug: max_volume item is now the maximum value for 'volume'
 
-  v1.7 2016-01-04
+  v1.61 2016-01-03
         
-    -- bug: discover function call now working
-    -- command "balance" added; documentation updated 
+    --  bug: discover function call now working
+    --  command "balance" added; documentation updated 
+    
+  v1.6  2015-12-23
+    
     -- function 'discover' added to perform a manual scan for new Sonos speaker
+  
+  v1.5  2015-10-30
+  
     -- property 'display_version' added
     -- property 'model_number' added
     -- property 'household_id' added (a unique identifier for all players in a household)
@@ -34,10 +23,64 @@ Smarthome.py framework (https://github.com/mknx/smarthome).
     -- added "wifi_state" command (only Sonos Broker >= v0.6)
     -- added refresh_media_library function (only Sonos Broker >= v0.6)
     
+  v1.3  2015-01-18
+
+    --  added "get_playlist" and "set_playlist" commmands
+        It is now possible to store the playlist for later use.
+    --  added "is_coordinator" property
+    --  added "tts_local_mode" property
+    --  added a fallback method to retrieve the local ip address
+    --  only working with Sonos Broker version v0.5
+
+  v1.2  2014-11-09
+  
+    --  added force_stream_mode option to play_tts command (see broker documentation)
+    --  added 'fade_in' parameter to play_snippet and play_tts command
+        -- the volume for the resumed track fades in
+
+  v1.1  2014-09-23
+
+    --  changed commands to JSON requests to implement the new command interface introduced in Broker v0.3 
+    --  added group_command parameter to following items (update your sonos.conf !!!):
+        -   mute, led, volume, volume_up, volume_down, play_tts, play_snippet, max_volume, bass, 
+            treble, loudness
+        -   play_tts, play_snippet: the group parameter only affects the 'volume'-sub-parameter
+    --  broker_url parameter was not checked properly for invalid values 
+    
+    
+  v1.0  2014-07-08
+    
+    --  parameter 'broker_url' in plugin configuration now optional
+        -   if value is not set, the current system ip and the default broker port (12900) will be assumed
+        -   manually add  this parameter, if the sonos broker is not running on the same system
+    --  added optional parameter 'refresh' to plugin configuration (edit /usr/smarthome/etc/plugin.conf)
+        -   this parameter specifies, how often the broker is requested for sonos status updates 
+            (default: 120s)
+        -   Normally, all changes to the speakers will be triggered automatically to the plugin.
+    --  bug: if a sonos speaker was reported by the broker but was not declared in sonos.conf, an error 
+        occured
+    
+  
+  v0.9    2014-06-15
+    
+    --  changed values play, pause, stop, led back to normal values (no toggle values). 
+        It makes logics easier to write.
+    --  new commands:
+        -   bass [read/write]: sets the bass for a speaker (value between -10 and 10)
+        -   treble [read/write]: sets the treble value for a speaker (value between -10 and 10)
+        -   loudness [read/write]: sets the loudness compensation for a speaker (value 0|1)
+        -   playmode [read/write] sets the playmode for a sonos speaker 
+            values: 'normal', 'shuffle_norepeat', 'shuffle', 'repeat_all'
+    
+    
+  v0.8.1  2014-06-07
+    
+    --  bugfixes in some command processing
+    
 
 ## Requirements:
 
-  sonos_broker server v0.8b
+  sonos_broker server v0.3
   (https://github.com/pfischi/shSonos)
 
   smarthome.py
@@ -393,6 +436,27 @@ Edit file with this sample of mine:
             type = bool
             sonos_recv = is_coordinator
 
+        [[tts_local_mode]]
+            type = bool
+            sonos_recv = tts_local_mode
+        
+        [[get_playlist]]
+           type = str  # the give item value represents the local file path
+                    # where to save the playlist
+            sonos_send = get_playlist
+            enforce_updates = True
+
+        [[set_playlist]]
+            type = str  # the give item value represents the file path where
+                        # the playlist is stored (previously saved with
+                        # 'get_playlist')
+            sonos_send = set_playlist
+            enforce_updates = True
+
+            [[[play_after_insert]]]
+                type = bool
+                value = 0
+
         [[balance]]
             type = num
             visu_acl = rw
@@ -402,10 +466,6 @@ Edit file with this sample of mine:
             [[[group_command]]]
                 type = bool
                 value = 0
-        
-        [[sonos_playlists]]
-            type = str
-            sonos_recv = sonos_playlists
         
         
  This sonos.conf file implements most of the commands to interact with the Sonos Broker. Please follow the detailed
@@ -438,7 +498,7 @@ Edit file with this sample of mine:
     play_tts ('group_command' parameter only affects the snippet volume)
     partymode
     playmode
-    sonos_playlists
+    set_playlist
 
 ###### These commands only act as group commands if the parameter 'group_command' is set to 1:
 
@@ -457,19 +517,6 @@ Edit file with this sample of mine:
 
 ## Methods
 
-load_sonos_playlist(<sonos_uid>, <sonos_playlist>, <play_after_insert>, <clear_queue>)
-    
-    Loads a Sonos playlist to the queue. 
-    
-    sonos_playlist:     Sonos playlist name. This value can be retrieved by the sonos_playlists property. 
-    play_after_insert:  0 or 1. The first title of the playlist will be played after loading the playlist.
-    clear_queue:        0 or 1. The current queue will be cleared before inserting the tracks from the playlist.
-
-    Call this function with:
-    
-    sh.sonos.load_sonos_playlist()
-    
-    
 get_favorite_radiostations(<start_item>, <max_items>)
 
     Get all favorite radio stations from sonos library
@@ -498,10 +545,8 @@ get_favorite_radiostations(<start_item>, <max_items>)
             "total": "10"
     }
 
-    Call this function with:
-    
+    call this function with:
     sh.sonos.get_favorite_radiostations()
-    
     
 version()
 

@@ -1,3 +1,6 @@
+v0.8b2
+    -- fixed error when calling sonos_broker with 'l' (scan only flag)
+
 v0.8b1
 
     -- small bugfixes

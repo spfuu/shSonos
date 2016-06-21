@@ -1226,7 +1226,7 @@ class SonosSpeaker(object):
                                  ('ResetVolumeAfter', False), ('ProgramURI', '')])
 
                 except Exception as err:
-                    raise err
+                    print(err)
 
     def play_tts(self, tts, volume, language='en', group_command=False, fade_in=False):
         # we do not need any code here to get the zone coordinator.

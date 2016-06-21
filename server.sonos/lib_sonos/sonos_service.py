@@ -17,6 +17,7 @@ from threading import Lock
 from soco.data_structures import DidlAudioBroadcast
 from soco.services import zone_group_state_shared_cache
 from lib_sonos import utils
+import requests
 
 try:
     import xml.etree.cElementTree as XML
@@ -342,6 +343,17 @@ class SonosServerService():
                 SonosServerService.set_radio_data(speaker, variables)
             else:
                 SonosServerService.set_music_data(speaker, variables)
+
+    @staticmethod
+    def get_model_name(ip):
+
+        response = requests.get('http://' + ip + ':1400/xml/device_description.xml')
+        dom = XML.fromstring(response.content)
+
+        if dom.findtext('.//{urn:schemas-upnp-org:device-1-0}modelName') is not None:
+            return dom.findtext('.//{urn:schemas-upnp-org:device-1-0}modelName')
+
+        return ""
 
     def handle_AlarmClock_event(self, speaker, variables):
         """

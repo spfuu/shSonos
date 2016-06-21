@@ -27,6 +27,8 @@ from lib_sonos import sonos_commands
 # ####################################################################
 # GLOBALS
 # ####################################################################
+import requests
+
 command_service = None
 homedir = os.path.dirname(os.path.realpath(__file__))
 logger = logging.getLogger('')
@@ -333,9 +335,12 @@ def scan():
             print("\tip   :\t{}".format(speaker.ip_address))
             print("\tname :\t{}".format(speaker.player_name))
             print("\tmodel:\t{}".format(model))
-        except ConnectionError:
+        except requests.ConnectionError:
             print("Speaker '{uid}' seems to be offline.".format(uid=speaker.uid))
             continue
+        except Exception as ex:
+            print('unknown error')
+            print(ex)
 
 if __name__ == '__main__':
     argparser = argparse.ArgumentParser()
