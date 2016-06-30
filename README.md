@@ -1,5 +1,9 @@
 ## Release
 
+v0.8b3
+
+    -- GoogleTTS changes
+    
 v0.8b2  (2016-06-21)
 
     -- fixed error when calling sonos_broker with 'l' (scan only flag)
