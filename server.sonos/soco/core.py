@@ -6,10 +6,13 @@ the main entry to the SoCo functionality
 
 from __future__ import unicode_literals
 
+import datetime
 import logging
 import re
 import socket
 from functools import wraps
+import warnings
+from soco.exceptions import SoCoUPnPException
 
 
 import requests
@@ -139,11 +142,14 @@ class SoCo(_SocoSingletonBase):
         clear_queue
         get_favorite_radio_shows
         get_favorite_radio_stations
+        get_sonos_favorites
         create_sonos_playlist
         create_sonos_playlist_from_queue
         remove_sonos_playlist
         add_item_to_sonos_playlist
         get_item_album_art_uri
+        set_sleep_timer
+        get_sleep_timer
 
     ..  rubric:: Properties
     .. warning::
@@ -224,58 +230,6 @@ class SoCo(_SocoSingletonBase):
 
     def __repr__(self):
         return '{0}("{1}")'.format(self.__class__.__name__, self.ip_address)
-
-    @property
-    def balance(self):
-        """ The speaker's balance. An integer between -100 and 100. """
-
-        # get the volume from both channels
-        # a volume of 100 for both channels indicates a 50/50 balance
-        # If adjusting the balance to the left, the left channel volume remains 100, the right channel volume will be
-        # decreased.
-
-        response = self.renderingControl.GetVolume([
-            ('InstanceID', 0),
-            ('Channel', 'LF'),
-        ])
-        volume_left = response['CurrentVolume']
-
-        response = self.renderingControl.GetVolume([
-            ('InstanceID', 0),
-            ('Channel', 'RF'),
-        ])
-
-        volume_right = response['CurrentVolume']
-        balance_left = 100 - volume_left
-        balance_right = volume_right - 100
-
-        return int(balance_right) if int(balance_right) <= 0 else int(balance_left)
-
-    @balance.setter
-    def balance(self, balance):
-        """ Set the speaker's channel balance. An integer between -100 and 100."""
-        balance = int(balance)
-
-        if balance >= 0:
-            volume_left = 100 - balance
-            volume_right = 100
-        else:
-            volume_right = balance + 100
-            volume_left = 100
-
-        volume_left = max(0, min(volume_left, 100))
-        self.renderingControl.SetVolume([
-            ('InstanceID', 0),
-            ('Channel', 'LF'),
-            ('DesiredVolume', volume_left)
-        ])
-
-        volume_right = max(0, min(volume_right, 100))
-        self.renderingControl.SetVolume([
-            ('InstanceID', 0),
-            ('Channel', 'RF'),
-            ('DesiredVolume', volume_right)
-        ])
 
     @property
     def player_name(self):
@@ -496,18 +450,21 @@ class SoCo(_SocoSingletonBase):
         created. This is often the case if you have a custom stream, it will
         need at least the title in the metadata in order to play.
 
-        Arguments:
-        uri -- URI of a stream to be played.
-        meta -- The track metadata to show in the player, DIDL format.
-        title -- The track title to show in the player
-        start -- If the URI that has been set should start playing
+        .. note:: A change in Sonos® (as of at least version 6.4.2) means that
+           the devices no longer accepts ordinary "http://" and "https://"
+           URIs. This method automatically replaces these prefixes with the
+           one that Sonos® expects: "x-rincon-mp3radio://".
 
-        Returns:
-        True if the Sonos speaker successfully started playing the track.
-        False if the track did not start (this may be because it was not
-        requested to start because "start=False")
+        Args:
+            uri (str): URI of the stream to be played.
+            meta (str): The track metadata to show in the player, DIDL format.
+            title (str): The track title to show in the player
+            start (bool): If the URI that has been set should start playing
+            convert_internet_uris (bool): FIXME
 
-        Raises SoCoException (or a subclass) upon errors.
+        Raises:
+            SoCoException: (or a subclass) upon errors.
+
         """
         if meta == '' and title != '':
             meta_template = '<DIDL-Lite xmlns:dc="http://purl.org/dc/elements'\
@@ -522,6 +479,11 @@ class SoCo(_SocoSingletonBase):
             tunein_service = 'SA_RINCON65031_'
             # Radio stations need to have at least a title to play
             meta = meta_template.format(title=title, service=tunein_service)
+
+        for prefix in ('http://', 'https://'):
+            if uri.startswith(prefix):
+                # Replace only the first instance
+                uri = uri.replace(prefix, 'x-rincon-mp3radio://', 1)
 
         self.avTransport.SetAVTransportURI([
             ('InstanceID', 0),
@@ -1066,6 +1028,11 @@ class SoCo(_SocoSingletonBase):
         values. For example, a track may not have complete metadata and be
         missing an album name. In this case track['album'] will be an empty
         string.
+
+        .. note:: Calling this method on a slave in a group will not
+            return the track the group is playing, but the last track
+            this speaker was playing.
+
         """
         response = self.avTransport.GetPositionInfo([
             ('InstanceID', 0),
@@ -1133,11 +1100,15 @@ class SoCo(_SocoSingletonBase):
 
         return track
 
-    def get_speaker_info(self, refresh=False):
+    def get_speaker_info(self, refresh=False, timeout=None):
         """Get information about the Sonos speaker.
 
         Arguments:
         refresh -- Refresh the speaker info cache.
+        timeout -- How long to wait for the server to send
+                   data before giving up, as a float, or a
+                   (`connect timeout, read timeout`_) tuple
+                   e.g. (3, 5). Default is no timeout.
 
         Returns:
         Information about the Sonos speaker, such as the UID, MAC Address, and
@@ -1147,7 +1118,8 @@ class SoCo(_SocoSingletonBase):
             return self.speaker_info
         else:
             response = requests.get('http://' + self.ip_address +
-                                    ':1400/xml/device_description.xml', timeout=2)
+                                    ':1400/xml/device_description.xml',
+                                    timeout=timeout)
             dom = XML.fromstring(response.content)
 
         device = dom.find('{urn:schemas-upnp-org:device-1-0}device')
@@ -1363,8 +1335,10 @@ class SoCo(_SocoSingletonBase):
         requested (`max_items`), if it is, use `start` to page through and
         get the entire list of favorites.
         """
-
-        return self.__get_radio_favorites(RADIO_SHOWS, start, max_items)
+        message = 'The output type of this method will probably change in '\
+                  'the future to use SoCo data structures'
+        warnings.warn(message, stacklevel=2)
+        return self.__get_favorites(RADIO_SHOWS, start, max_items)
 
     def get_favorite_radio_stations(self, start=0, max_items=100):
         """Get favorite radio stations from Sonos' Radio app.
@@ -1379,9 +1353,30 @@ class SoCo(_SocoSingletonBase):
         requested (`max_items`), if it is, use `start` to page through and
         get the entire list of favorites.
         """
-        return self.__get_radio_favorites(RADIO_STATIONS, start, max_items)
+        message = 'The output type of this method will probably change in '\
+                  'the future to use SoCo data structures'
+        warnings.warn(message, stacklevel=2)
+        return self.__get_favorites(RADIO_STATIONS, start, max_items)
 
-    def __get_radio_favorites(self, favorite_type, start=0, max_items=100):
+    def get_sonos_favorites(self, start=0, max_items=100):
+        """Get Sonos favorites.
+
+        Returns:
+        A list containing the total number of favorites, the number of
+        favorites returned, and the actual list of favorite radio stations,
+        represented as a dictionary with `title`, `uri` and `meta` keys.
+
+        Depending on what you're building, you'll want to check to see if the
+        total number of favorites is greater than the amount you
+        requested (`max_items`), if it is, use `start` to page through and
+        get the entire list of favorites.
+        """
+        message = 'The output type of this method will probably change in '\
+                  'the future to use SoCo data structures'
+        warnings.warn(message, stacklevel=2)
+        return self.__get_favorites(SONOS_FAVORITES, start, max_items)
+
+    def __get_favorites(self, favorite_type, start=0, max_items=100):
         """ Helper method for `get_favorite_radio_*` methods.
 
         Arguments:
@@ -1390,11 +1385,13 @@ class SoCo(_SocoSingletonBase):
         max_items -- The total number of results to return.
 
         """
-        if favorite_type != RADIO_SHOWS or RADIO_STATIONS:
-            favorite_type = RADIO_STATIONS
+        if favorite_type != RADIO_SHOWS and favorite_type != RADIO_STATIONS:
+            favorite_type = SONOS_FAVORITES
 
         response = self.contentDirectory.Browse([
-            ('ObjectID', 'R:0/{0}'.format(favorite_type)),
+            ('ObjectID',
+             'FV:2' if favorite_type is SONOS_FAVORITES
+             else 'R:0/{0}'.format(favorite_type)),
             ('BrowseFlag', 'BrowseDirectChildren'),
             ('Filter', '*'),
             ('StartingIndex', start),
@@ -1410,12 +1407,17 @@ class SoCo(_SocoSingletonBase):
             metadata = XML.fromstring(really_utf8(results_xml))
 
             for item in metadata.findall(
+                    '{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}container'
+                    if favorite_type == RADIO_SHOWS else
                     '{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}item'):
                 favorite = {}
                 favorite['title'] = item.findtext(
                     '{http://purl.org/dc/elements/1.1/}title')
                 favorite['uri'] = item.findtext(
                     '{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}res')
+                if favorite_type == SONOS_FAVORITES:
+                    favorite['meta'] = item.findtext(
+                        '{urn:schemas-rinconnetworks-com:metadata-1-0/}resMD')
                 favorites.append(favorite)
 
         result['total'] = response['TotalMatches']
@@ -1534,6 +1536,67 @@ class SoCo(_SocoSingletonBase):
 
         if getattr(item, 'album_art_uri', False):
             return self._build_album_art_full_uri(item.album_art_uri)
+        else:
+            return None
+
+    @only_on_master
+    def set_sleep_timer(self, sleep_time_seconds):
+        """Sets the sleep timer.
+
+        Args:
+            sleep_time_seconds (int or NoneType): How long to wait before
+                turning off speaker in seconds, None to cancel a sleep timer.
+                Maximum value of 86399
+
+        Raises:
+            SoCoException: Upon errors interacting with Sonos controller
+            ValueError: Argument/Syntax errors
+
+        """
+        # Note: A value of None for sleep_time_seconds is valid, and needs to
+        # be preserved distinctly separate from 0. 0 means go to sleep now,
+        # which will immediately start the sound tappering, and could be a
+        # useful feature, while None means cancel the current timer
+        try:
+            if sleep_time_seconds is None:
+                sleep_time = ''
+            else:
+                sleep_time = format(
+                    datetime.timedelta(seconds=int(sleep_time_seconds))
+                )
+            self.avTransport.ConfigureSleepTimer([
+                ('InstanceID', 0),
+                ('NewSleepTimerDuration', sleep_time),
+            ])
+        except SoCoUPnPException as err:
+            if 'Error 402 received' in str(err):
+                raise ValueError('invalid sleep_time_seconds, must be integer \
+                    value between 0 and 86399 inclusive or None')
+            else:
+                raise
+        except ValueError:
+            raise ValueError('invalid sleep_time_seconds, must be integer \
+                value between 0 and 86399 inclusive or None')
+
+    @only_on_master
+    def get_sleep_timer(self):
+        """Retrieves remaining sleep time, if any
+
+        Returns:
+            int or NoneType: Number of seconds left in timer. If there is no
+                sleep timer currently set it will return None.
+
+        Raises SoCoException (or a subclass) upon errors.
+
+        """
+        resp = self.avTransport.GetRemainingSleepTimerDuration([
+            ('InstanceID', 0),
+        ])
+        if resp['RemainingSleepTimerDuration']:
+            times = resp['RemainingSleepTimerDuration'].split(':')
+            return (int(times[0]) * 3600 +
+                    int(times[1]) * 60 +
+                    int(times[2]))
         else:
             return None
 
@@ -1892,12 +1955,14 @@ class SoCo(_SocoSingletonBase):
 
 RADIO_STATIONS = 0
 RADIO_SHOWS = 1
+SONOS_FAVORITES = 2
 
 NS = {'dc': '{http://purl.org/dc/elements/1.1/}',
       'upnp': '{urn:schemas-upnp-org:metadata-1-0/upnp/}',
       '': '{urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/}'}
 # Valid play modes
-PLAY_MODES = ('NORMAL', 'SHUFFLE_NOREPEAT', 'SHUFFLE', 'REPEAT_ALL')
+PLAY_MODES = ('NORMAL', 'SHUFFLE_NOREPEAT', 'SHUFFLE', 'REPEAT_ALL',
+              'SHUFFLE_REPEAT_ONE', 'REPEAT_ONE')
 
 if config.SOCO_CLASS is None:
     config.SOCO_CLASS = SoCo

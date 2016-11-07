@@ -467,7 +467,7 @@ class Sonos():
         return self._send_cmd(SonosCommand.refresh_media_library(display_option))
 
     def version(self):
-        return "v1.8b\t2016-03-05"
+        return "v1.8b4\t2016-11-07"
 
     def discover(self):
         return self._send_cmd(SonosCommand.discover())

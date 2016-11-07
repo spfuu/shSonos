@@ -1,15 +1,8 @@
 # -*- coding: utf-8 -*-
-import base64
-import io
-import pickle
 import logging
-import queue
-import tempfile
-import urllib
 import requests
 from lib_sonos.utils import NotifyList
 from soco.alarms import get_alarms
-from soco.exceptions import SoCoUPnPException
 import threading
 import time
 import json
@@ -42,6 +35,9 @@ class SonosSpeaker(object):
         logger.debug("DESTRUCTOR !!! Speaker object destructed")
 
     def __init__(self, soco):
+
+        info = soco.get_speaker_info(timeout=5)
+
         self._fade_in = False
         self._balance = 0
         self._saved_music_item = None
@@ -85,16 +81,16 @@ class SonosSpeaker(object):
         self._loudness = self.soco.loudness
         self._playmode = self.soco.play_mode
         self._ip = self.soco.ip_address
-        self._model = self.soco.speaker_info['model_name']
+        self._model = info['model_name']
         self._household_id = self.soco.household_id
-        self._display_version = self.soco.speaker_info['display_version']
-        self._model_number = self.soco.speaker_info['model_number']
-        self._zone_icon = self.soco.speaker_info['player_icon']
-        self._zone_name = soco.speaker_info['zone_name']
-        self._serial_number = self.soco.speaker_info['serial_number']
-        self._software_version = self.soco.speaker_info['software_version']
-        self._hardware_version = self.soco.speaker_info['hardware_version']
-        self._mac_address = self.soco.speaker_info['mac_address']
+        self._display_version = info['display_version']
+        self._model_number = info['model_number']
+        self._zone_icon = info['player_icon']
+        self._zone_name = info['zone_name']
+        self._serial_number = info['serial_number']
+        self._software_version = info['software_version']
+        self._hardware_version = info['hardware_version']
+        self._mac_address = info['mac_address']
         self._wifi_state = self.get_wifi_state(force_refresh=True)
         self._sonos_playlists = self.soco.get_sonos_playlists()
 

@@ -255,4 +255,4 @@ class Snapshot(object):
             # Now loop around all the queue entries adding them
             for queue_group in self.queue:
                 for queue_item in queue_group:
-                    self.device.add_uri_to_queue(queue_item.resources[0].uri)
+                    self.device.add_uri_to_queue(queue_item.uri)

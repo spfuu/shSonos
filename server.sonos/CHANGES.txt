@@ -1,3 +1,9 @@
+v0.8b4  (2016-11-07)
+
+    -- SoCo framework changes (v0.12) with some bugfixes
+    -- added command 'favorite_radio_station' to Sonos-Broker commandline tool
+    -- removed unused functions
+
 v0.8b3
     -- GoogleTTS changes
 

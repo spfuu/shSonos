@@ -344,17 +344,6 @@ class SonosServerService():
             else:
                 SonosServerService.set_music_data(speaker, variables)
 
-    @staticmethod
-    def get_model_name(ip):
-
-        response = requests.get('http://' + ip + ':1400/xml/device_description.xml')
-        dom = XML.fromstring(response.content)
-
-        if dom.findtext('.//{urn:schemas-upnp-org:device-1-0}modelName') is not None:
-            return dom.findtext('.//{urn:schemas-upnp-org:device-1-0}modelName')
-
-        return ""
-
     def handle_AlarmClock_event(self, speaker, variables):
         """
         There seems no additional info in variables. The event only gives us the event subscription id.

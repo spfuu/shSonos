@@ -1,6 +1,12 @@
 ## Release
 
-v0.8b3
+v0.8b4  (2016-11-07)
+    
+    -- SoCo framework changes (v0.12) with some bugfixes
+    -- added command 'favorite_radio_station' to Sonos-Broker commandline tool 
+    -- removed unused functions
+
+v0.8b3  (2016-07-01)
 
     -- GoogleTTS changes
     
@@ -12,13 +18,12 @@ v0.8b1  (2016-03-26)
     
     -- small bugfixes
     -- Deezer tracks and their metadata are handled correctly now
-    -- Sonos-Broker commandline tools now with parameters (type "sonos_cmd -h" for help)
+    -- Sonos-Broker commandline tools has now parameters (type "sonos_cmd -h" for help)
     
 v0.8b0   (2016-02-23)
 
     -- ATTENTION: commands "get_playlist" and "set_playlist" removed. I decided to stick with 
-       the internal Sonos 
-       playlists.
+       the internal Sonos playlists.
     -- new implementation Google TTS: Captcha and other issues should now be solved (for this time) 
     -- ATTENTION: parameter "force_stream_mode" removed for command "play_tts" caused by the new 
        implementation for Google TTS. The possibility for an additional TTS "stream mode" was removed. 

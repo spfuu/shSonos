@@ -329,12 +329,11 @@ def scan():
 
     for speaker in soco_speakers:
         try:
-            model = SonosServerService.get_model_name(speaker.ip_address)
             print("\n{}".format(speaker.uid))
             print("-" * len(speaker.uid))
             print("\tip   :\t{}".format(speaker.ip_address))
             print("\tname :\t{}".format(speaker.player_name))
-            print("\tmodel:\t{}".format(model))
+            print("\tmodel:\t{}".format(speaker.model))
         except requests.ConnectionError:
             print("Speaker '{uid}' seems to be offline.".format(uid=speaker.uid))
             continue

@@ -12,7 +12,7 @@ import fcntl
 import requests
 from threading import Thread
 import sys
-
+import json
 
 def normalize_output(command, range, default_value):
     command = "{command} ({range})".format(range=range, command=command).ljust(25)
@@ -800,21 +800,6 @@ class SonosSpeakerCmd(cmd.Cmd):
             return
         print("is_coordinator: {}".format(self.is_coordinator))
 
-    def help_tts_local_mode(self):
-        print("tts_local_mode: Returns the status whether the Google TTS 'local mode' is enabled or not.")
-        print("tts_local_mode [get]: Forces the Broker to retrieve the GoogleTTS 'local mode' status.")
-
-    def do_tts_local_mode(self, line):
-        line = line.lower()
-        if not line:
-            pass
-        elif line == "get":
-            self.commands.tts_local_mode(self.uid)
-        else:
-            print("unknown argument")
-            return
-        print("tts_local_mode: {}".format(self.tts_local_mode))
-
     def help_wifi_state(self):
         print("wifi_state      : Gets the current wifi state.")
         print("wifi_state [get]: Forces the Broker to retrieve the speakers wifi state.")
@@ -864,6 +849,50 @@ class SonosSpeakerCmd(cmd.Cmd):
             print("unknown argument")
             return
         print("wifi_state: {}".format(self.wifi_state))
+
+    def help_favorite_radio_stations(self):
+        print("favorite_radio_stations: Gets the favorite radio stations.")
+
+    def do_favorite_radio_stations(self, line):
+        default_start_item = 1  # just for output, internally we're using 0
+        default_max_items = 10
+        start_item = input(normalize_output("start item", "", default_start_item))
+
+        if not start_item:
+            start_item = default_start_item - 1
+        else:
+            try:
+                start_item = int(start_item) - 1
+                if start_item < 0:
+                    print("'start item' has to be greater than 0. Using default value {default}.".format(
+                        default=default_start_item
+                    ))
+                    start_item = default_start_item - 1
+            except:
+                print("'start item' has to be an integer. Using default value {default}.".format(
+                    default=default_start_item
+                ))
+                start_item = default_start_item - 1
+
+        max_items = input(normalize_output("max items", "", default_max_items))
+
+        if not max_items:
+            max_items = default_max_items
+        else:
+            try:
+                max_items = int(max_items)
+                if max_items < 0:
+                    print("'max items' has to be greater than 0. Using default value {default}.".format(
+                        default=default_max_items
+                    ))
+                    max_items = default_max_items
+            except:
+                print("'max items' has to be an integer. U(sing default value {default}.".format(
+                    default=default_max_items
+                ))
+                max_items = default_max_items
+
+        print(self.commands.get_favorite_radio_stations(start_item, max_items)[1])
 
     def help_sonos_playlists(self):
         print("sonos_playlists      : Gets the current sonos playlists.")
@@ -1415,16 +1444,6 @@ class Commands():
             }
         )
 
-    def tts_local_mode(self, uid):
-        return self.send(
-            {
-                'command': 'tts_local_mode',
-                'parameter': {
-                    'uid': uid.lower(),
-                }
-            }
-        )
-
     def refresh_media_library(self, display_option):
         return self.send(
             {
@@ -1480,6 +1499,18 @@ class Commands():
                 }
             }
         )
+
+    def get_favorite_radio_stations(self, start_item, max_items):
+        return self.send(
+            {
+                'command': 'get_favorite_radio_stations',
+                'parameter': {
+                'start_item': start_item,
+                'max_items': max_items
+                }
+            }
+        )
+
 
 def get_interface_ip(ifname):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
