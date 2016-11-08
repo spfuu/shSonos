@@ -1827,7 +1827,7 @@ No special parameter needed.
 | parameter | required / optional | valid values | description |     
 | :-------- | :------------------ | :----------- | :---------- |
 | uid | required | | The UID of the Sonos speaker. |
-| station_name | required | | A radio station. TThe more accurate the name, the better is the result. |
+| station_name | required | | A radio station. The first found station is played. The more accurate the name, the better is the result. |
 
 
 ######Example
