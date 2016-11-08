@@ -1,3 +1,9 @@
+v0.8b5  (2016-11-08)
+
+    -- command 'play_tunein' added
+        -- Play any TuneIn radio station by a given name
+    -- added command 'play_tunein' to Sonos-Broker commandline tool
+
 v0.8b4  (2016-11-07)
 
     -- SoCo framework changes (v0.12) with some bugfixes

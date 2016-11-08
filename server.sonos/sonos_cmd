@@ -733,6 +733,18 @@ class SonosSpeakerCmd(cmd.Cmd):
             return
         self.commands.play_url(self.uid, url)
 
+    def help_play_tunein(self):
+        print("play_tunein: Plays the given TuneIn radio station if found.")
+
+    def do_play_tunein(self, line):
+        line = line.lower()
+        if not line:
+            pass
+        station_name = input(normalize_output("Station name", "TuneIn station name", ""))
+        if not station_name:
+            return
+        self.commands.play_tunein(self.uid, station_name)
+
     def help_play_snippet(self):
         print("play_snippet: Plays a audio snippet. After the snippet was played (maximum 60 seconds, longer snippets "
               "will be truncated) the previous played song will be resumed. You can queue up to 10 snippets. They're "
@@ -1401,6 +1413,17 @@ class Commands():
                 'parameter': {
                     'uid': uid.lower(),
                     'uri': url
+                }
+            }
+        )
+
+    def play_tunein(self, uid, station_name):
+        return self.send(
+            {
+                'command': 'play_tunein',
+                'parameter': {
+                    'uid': uid.lower(),
+                    'station_name': station_name
                 }
             }
         )

@@ -1,5 +1,11 @@
 ## Release
 
+v0.8b5  (2016-11-08)
+
+    -- command 'play_tunein' added
+        -- Play any TuneIn radio station by a given name
+    -- added command 'play_tunein' to Sonos-Broker commandline tool
+
 v0.8b4  (2016-11-07)
     
     -- SoCo framework changes (v0.12) with some bugfixes
@@ -406,6 +412,7 @@ Click on the links below to get a detailed command descriptions and their usage.
 ###### [join](#s_join)
 ###### [unjoin](#s_unjoin)
 ###### [partymode](#s_partymode)
+###### [play_tunein](#p_tunein)
 ###### [play_uri](#p_uri)
 ###### [play_snipptet](#p_snippet)
 ###### [play_tts](#p_tts)
@@ -1812,6 +1819,44 @@ No special parameter needed.
     }
     
     All values for a new track will be sent, but only new and/or different values.
+
+----
+#### <a name="p_tunein">play_tunein
+ Plays a radio station by a give name.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| station_name | required | | A radio station. TThe more accurate the name, the better is the result. |
+
+
+######Example
+    JSON format:
+    {
+        'command': 'play_tunein',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410',
+            'station_name': '98.8 KISS FM'
+        }   
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {
+        ...
+        "radio_show": "Die BJ Barry Show",
+        "radio_station": "98.8 KISS FM",
+        "track_album_art": "http://192.168.178.21:1400/getaa?s=1&u=x-sonosapi-stream%3as16523%3fsid%3d254%26sn%3d0",
+        "track_artist": "Sia Feat. Kendrick Lamar",
+        "track_title": "Sia Feat. Kendrick Lamar - The Greatest",
+        "uid": "rincon_000e58c3892e01410"
+        ...
+    }
+    
+    All values for a radio station will be sent, but only new and/or different values.
 
 ----
 #### <a name="p_snippet">play_snippet
