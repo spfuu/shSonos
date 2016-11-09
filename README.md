@@ -1,5 +1,10 @@
 ## Release
 
+v0.8b6  (2016-11-09)
+
+    -- command 'clear_queue' added
+    -- added command 'clear_queue' to Sonos-Broker commandline tool
+
 v0.8b5  (2016-11-08)
 
     -- command 'play_tunein' added
@@ -330,6 +335,7 @@ In almost any cases, you'll get the appropriate response in the following JSON f
         "radio_station": "",
         "serial_number": "00-0E-58-C3-89-2E:7",
         "software_version": "27.2-80271",
+        "sonos_playlists": "DepecheMode,my_fav-list2,my-fav-list2",
         "status": true,
         "stop": 1,
         "streamtype": "music",
@@ -414,6 +420,7 @@ Click on the links below to get a detailed command descriptions and their usage.
 ###### [partymode](#s_partymode)
 ###### [play_tunein](#p_tunein)
 ###### [play_uri](#p_uri)
+###### [clear_queue](#clear_queue)
 ###### [play_snipptet](#p_snippet)
 ###### [play_tts](#p_tts)
 ###### [get_alarms](#g_alarms)
@@ -1819,6 +1826,37 @@ No special parameter needed.
     }
     
     All values for a new track will be sent, but only new and/or different values.
+
+----
+#### <a name="clear_queue">clear_queue
+ Clears the queue.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+
+######Example
+    JSON format:
+    {
+        'command': 'clear_queue',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }   
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    { 
+        ...
+        "track_title": "",
+        "uid": "rincon_000e58c3892e01410",
+        ...
+    }
+    
 
 ----
 #### <a name="p_tunein">play_tunein

@@ -1732,6 +1732,73 @@ class LoadSonosPlaylist(JsonCommandBase):
         finally:
             return self._status, self._response
 
+### QUEUE ##############################################################################################################
+
+class ClearQueue(JsonCommandBase):
+    def __init__(self, parameter):
+        super().__init__(parameter)
+
+    def run(self):
+        try:
+            logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
+                                                                                  attributes=utils.dump_attributes(
+                                                                                      self)))
+            sonos_speaker.sonos_speakers[self.uid].clear_queue()
+            self._status = True
+        except requests.ConnectionError:
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
+                format(uid=self.uid)
+        except AttributeError as err:
+            self._response = JsonCommandBase.missing_param_error(err)
+        except Exception as err:
+            self._response = err
+        finally:
+            return self._status, self._response
+
+
+# PLAYLIST #############################################################################################################
+
+class LoadSonosPlaylist(JsonCommandBase):
+    def __init__(self, parameter):
+        super().__init__(parameter)
+
+    def run(self):
+        try:
+            logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
+                                                                                  attributes=utils.dump_attributes(
+                                                                                      self)))
+            play_after_insert = 0
+            if hasattr(self, 'play_after_insert'):
+                if self.play_after_insert in [1, True, '1', 'True', 'yes']:
+                    play_after_insert = 1
+                elif self.play_after_insert in [0, False, '0', 'False', 'no']:
+                    play_after_insert = 0
+                else:
+                    raise Exception('The parameter \'play_after_insert\' has to be 0|1 or True|False !')
+
+            clear_queue = 0
+            if hasattr(self, 'clear_queue'):
+                if self.clear_queue in [1, True, '1', 'True', 'yes']:
+                    clear_queue = 1
+                elif self.clear_queue in [0, False, '0', 'False', 'no']:
+                    clear_queue = 0
+                else:
+                    raise Exception('The parameter \'clear_queue\' has to be 0|1 or True|False !')
+
+            self._response = sonos_speaker.sonos_speakers[self.uid].load_sonos_playlist(self.sonos_playlist,
+                                                                                        play_after_insert, clear_queue)
+            self._status = True
+
+        except requests.ConnectionError:
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
+                format(uid=self.uid)
+        except AttributeError as err:
+            self._response = JsonCommandBase.missing_param_error(err)
+        except Exception as err:
+            self._response = err
+        finally:
+            return self._status, self._response
+
 
 class GetSonosPlaylists(JsonCommandBase):
     def __init__(self, parameter):
@@ -1756,6 +1823,8 @@ class GetSonosPlaylists(JsonCommandBase):
         finally:
             return self._status, self._response
 
+
+### MEDIA LIBRARY ######################################################################################################
 
 class RefreshMediaLibrary(JsonCommandBase):
     def __init__(self, parameter):

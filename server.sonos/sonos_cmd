@@ -941,6 +941,12 @@ class SonosSpeakerCmd(cmd.Cmd):
             print("unknown argument")
             return
 
+    def help_clear_queue(self):
+        print("clear_queue: Clears the queue.")
+
+    def do_clear_queue(self, line):
+        self.commands.clear_queue(self.uid)
+
 
 class Commands():
     @property
@@ -1504,6 +1510,16 @@ class Commands():
         return self.send(
             {
                 'command': 'get_sonos_playlists',
+                'parameter': {
+                    'uid': uid.lower()
+                }
+            }
+        )
+
+    def clear_queue(self, uid):
+        return self.send(
+            {
+                'command': 'clear_queue',
                 'parameter': {
                     'uid': uid.lower()
                 }

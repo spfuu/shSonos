@@ -1,3 +1,9 @@
+v0.8b6  (2016-11-09)
+
+    -- command 'clear_queue' added
+    -- added command 'clear_queue' to Sonos-Broker commandline tool
+
+
 v0.8b5  (2016-11-08)
 
     -- command 'play_tunein' added

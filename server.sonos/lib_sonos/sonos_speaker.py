@@ -111,55 +111,6 @@ class SonosSpeaker(object):
         """
         return self._soco
 
-    ### Play TuneIn Radio ##############################################################################################
-
-    def play_tunein(self, station_name):
-
-        """
-        Plays a tunein radio uri
-        :param station_name: the give name is searched in all TuneIn music stations. The first match is chosen.
-        :return: True, if the the station was found and played.
-        """
-
-        if not self.is_coordinator:
-            logger.debug("forwarding play_tunein_radio command to coordinator with uid {uid}".
-                         format(uid=self.zone_coordinator.uid))
-            self.zone_coordinator.play_tunein_url(station_name)
-        else:
-
-            tunein = MusicService('TuneIn')
-            result = tunein.search(category='stations', term=station_name)
-            if not result:
-                logger.warning("No radio station found for search string '{term}'.".format(term=station_name))
-                return
-
-            if result['count'] == "1":
-                item_id = result['mediaMetadata']['id']
-            else:
-                item_id = result['mediaMetadata'][0]['id']
-
-            service = MusicService('TuneIn')
-            item_id = quote_url(item_id.encode('utf-8'))
-            account = service.account
-            uri = "x-sonosapi-stream:{0}?sid={1}&sn={2}".format(item_id, service.service_id, account.serial_number)
-            didl = DidlItem(title="DUMMY", parent_id="DUMMY", item_id="DUMMY", desc=service.desc)
-            meta = to_didl_string(didl)
-            self.soco.avTransport.SetAVTransportURI([('InstanceID', 0),
-                                                     ('CurrentURI', uri), ('CurrentURIMetaData', meta)])
-            self.soco.play()
-
-    ### Sonos Playlists ################################################################################################
-
-    @property
-    def sonos_playlists(self):
-        """
-        Returns all Sonos playlist as string, delimited by ','
-        :return:
-        """
-        playlists = ','.join(str(playlist.title) for playlist in self.soco.get_sonos_playlists())
-        if not playlists:
-            playlists = ''
-        return playlists
 
     ### MODEL ##########################################################################################################
 
@@ -1055,7 +1006,6 @@ class SonosSpeaker(object):
         self._wifi_state = value
         self.dirty_property('wifi_state')
 
-
     ### LAOD SONOS PLAYLIST ############################################################################################
 
     def load_sonos_playlist(self, sonos_playlist_name, play_after_insert=False, clear_queue=False):
@@ -1070,6 +1020,64 @@ class SonosSpeaker(object):
                 self.soco.play_from_queue(0, play_after_insert)
         except Exception:
             raise Exception("No Sonos playlist found with title '{title}'.".format(title=sonos_playlist_name))
+
+    ### Clear Queue ####################################################################################################
+
+    def clear_queue(self):
+        """
+        Removes all tracks from the queue.
+        :rtype : object
+        """
+        self.soco.clear_queue()
+
+    ### Play TuneIn Radio ##############################################################################################
+
+    def play_tunein(self, station_name):
+
+        """
+        Plays a tunein radio uri
+        :param station_name: the give name is searched in all TuneIn music stations. The first match is chosen.
+        """
+
+        if not self.is_coordinator:
+            logger.debug("forwarding play_tunein_radio command to coordinator with uid {uid}".
+                         format(uid=self.zone_coordinator.uid))
+            self.zone_coordinator.play_tunein_url(station_name)
+        else:
+
+            tunein = MusicService('TuneIn')
+            result = tunein.search(category='stations', term=station_name)
+            if not result:
+                logger.warning("No radio station found for search string '{term}'.".format(term=station_name))
+                return
+
+            if result['count'] == "1":
+                item_id = result['mediaMetadata']['id']
+            else:
+                item_id = result['mediaMetadata'][0]['id']
+
+            service = MusicService('TuneIn')
+            item_id = quote_url(item_id.encode('utf-8'))
+            account = service.account
+            uri = "x-sonosapi-stream:{0}?sid={1}&sn={2}".format(item_id, service.service_id, account.serial_number)
+            didl = DidlItem(title="DUMMY", parent_id="DUMMY", item_id="DUMMY", desc=service.desc)
+            meta = to_didl_string(didl)
+            self.soco.avTransport.SetAVTransportURI([('InstanceID', 0),
+                                                     ('CurrentURI', uri), ('CurrentURIMetaData', meta)])
+            self.soco.play()
+
+    ### Sonos Playlists ################################################################################################
+
+    @property
+    def sonos_playlists(self):
+        """
+        Returns all Sonos playlist as string, delimited by ','
+        :return:
+        """
+        playlists = ','.join(str(playlist.title) for playlist in self.soco.get_sonos_playlists())
+        if not playlists:
+            playlists = ''
+        return playlists
 
     def dirty_music_metadata(self):
 

@@ -193,7 +193,8 @@ Edit file with this sample of mine:
         [[play_tunein]]
             # 'play_tunein' expects a radio station name
             # The name will be searched within TuneIn and the first match is played.
-            # To make sure the correct radio station is played provide the full radio station showing in the Sonos app.
+            # To make sure the correct radio station is played provide the full radio station 
+            # showing in the Sonos app.
             type = str
             enforce_updates = True
             sonos_send = play_tunein
