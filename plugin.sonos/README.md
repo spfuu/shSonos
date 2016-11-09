@@ -11,9 +11,9 @@ v1.7b0  (2016-11-09)
         -- optional parameters: play_after_insert, clear_queue
         
     -- command "play_tunein" added
-        -- 'play_tunein' expects a radio station name. The name will be searched within TuneIn and the first match 
-            is played. To make sure the correct radio station is played provide the full radio station showing in the 
-            Sonos app.
+        -- 'play_tunein' expects a radio station name. The name will be searched within TuneIn and the 
+            first match is played. To make sure the correct radio station is played provide the full radio 
+            station showing in the Sonos app.
       
 v1.61   (2016-01-03)
         
@@ -487,7 +487,7 @@ get_favorite_radiostations(<start_item>, <max_items>)
 
     Parameter max_items can only be used, if start_item is set (positional argument)
 
-    It's a good idea to check to see if the total number of favorites is greater than the amount you
+    It's a good idea to check to see if the total number of favorites is greater than the amount of
     requested ('max_items'), if it is, use `start` to page through and  get the entire list of favorites.
 
     Response:
