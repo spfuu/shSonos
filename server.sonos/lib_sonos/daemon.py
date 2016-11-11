@@ -9,7 +9,6 @@ import signal
 import resource
 import logging
 import atexit
-from logging import handlers
 
 logger = logging.getLogger('')
 

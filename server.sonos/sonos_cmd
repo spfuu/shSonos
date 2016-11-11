@@ -947,6 +947,12 @@ class SonosSpeakerCmd(cmd.Cmd):
     def do_clear_queue(self, line):
         self.commands.clear_queue(self.uid)
 
+    def help_sonos_broker_version(self):
+        print("sonos_broker_version: Prints the Sonos Broker version.")
+
+    def do_sonos_broker_version(self, line):
+        print(self.commands.sonos_broker_version()[1])
+
 
 class Commands():
     @property
@@ -1525,6 +1531,15 @@ class Commands():
                 }
             }
         )
+
+    def sonos_broker_version(self):
+        return self.send(
+            {
+                'command': 'sonos_broker_version'
+
+            }
+        )
+
 
     def load_sonos_playlist(self, uid, sonos_playlist, play_after_insert, clear_queue):
         return self.send(

@@ -1,5 +1,10 @@
 ## Release
 
+v0.8b7  (2016-11-11)
+
+    -- command "sonos_broker_version" added
+    -- added command 'sonos_broker_version' to Sonos-Broker commandline tool
+
 v0.8b6  (2016-11-09)
 
     -- command 'clear_queue' added
@@ -434,6 +439,7 @@ Click on the links below to get a detailed command descriptions and their usage.
 ###### [get_wifi_state](#get_wifi)
 ###### [set_wifi_state](#set_wifi)
 ###### [discover](#discover)
+###### [sonos_broker_version](#sonos_broker_version)
 
 ----
 #### <a name="cl_subs"></a>client_subscribe
@@ -2350,6 +2356,26 @@ This has some disadvantages. Please read the Google TTS section in this document
 ###### UDP Response sent to subscribed clients:
     No UDP response
 
+
+----
+#### <a name="sonos_broker_version">sonos_broker_version
+ Gets the Sonos Broker version.
+ 
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| no parameters  |
+
+######Example
+    JSON format:
+    {
+        'command': 'sonos_broker_version'
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######HTTP Response
+    Sonos Broker version string.
 
 ----
 #### <a name="discover>discover
