@@ -3,23 +3,20 @@ Smarthome.py framework (https://github.com/mknx/smarthome).
 
 ##Release
 
-v1.7  (2016-11-11)
+v1.8  (2016-11-11)
     
     -- ATTENTION: commands 'get_playlist' and 'set_playlist' removed  and replaced by 'sonos_playlists' and
        'load_sonos_playlist'
-
     --command "load_sonos_playlist" with parameter added. The commands loads a Sonos playlist by its name.
         -- optional parameters: play_after_insert, clear_queue
-        
     -- command "play_tunein" added
         -- 'play_tunein' expects a radio station name. The name will be searched within TuneIn and the 
             first match is played. To make sure the correct radio station is played provide the full radio 
             station showing in the Sonos app.
-    
     -- 'clear_queue' command added. The command clears the current queue.
     -- version check against Sonos Broker to identify an out-dated plugin or Broker
     
-v1.61   (2016-01-03)
+v1.7   (2016-01-03)
         
     --  bug: discover function call now working
     --  command "balance" added; documentation updated 
