@@ -1,3 +1,24 @@
+v0.8    (2016-11-11)
+
+    -- **ATTENTION:** commands "get_playlist" and "set_playlist" removed. I decided to stick with
+       the internal Sonos playlists.
+    -- new implementation Google TTS: Captcha and other issues should now be solved (for this time)
+    -- **ATTENTION:** parameter "force_stream_mode" removed for command "play_tts" caused by the new
+       implementation for Google TTS. The possibility for an additional TTS "stream mode" was removed.
+       (see documentation Google TTS for setup)
+    -- **ATTENTION:** property "tts_local_mode" removed
+    -- new commands "get_sonos_playlists" and "load_sonos_playlist". See documentation for implementation
+    -- command "sonos_broker_version" added
+    -- command 'clear_queue' added
+    -- command 'play_tunein' added. Play any TuneIn radio station by a given name
+    -- SoCo framework changes (v0.12) with some bugfixes
+    -- removed some unused functions
+    -- fixed error when calling sonos_broker with 'l' (scan only flag)
+    -- small bugfixes
+    -- Deezer tracks and their metadata are handled correctly now
+    -- Sonos-Broker commandline tools has now parameters (type "sonos_cmd -h" for help)
+
+
 v0.7    (2016-01-04)
 
     -- command "discover" added to force a manual scan for Sonos speaker in the network

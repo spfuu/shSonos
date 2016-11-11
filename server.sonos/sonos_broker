@@ -17,7 +17,6 @@ import threading
 import configparser
 import signal
 import time
-from soco import discover
 from lib_sonos import utils
 from lib_sonos import definitions
 from lib_sonos.sonos_service import SonosServerService
@@ -27,6 +26,8 @@ from lib_sonos import sonos_commands
 # ####################################################################
 # GLOBALS
 # ####################################################################
+import requests
+
 command_service = None
 homedir = os.path.dirname(os.path.realpath(__file__))
 logger = logging.getLogger('')
@@ -253,10 +254,11 @@ class SonosBroker():
                         'Not enough disk space left on \'{}\'. At least {} mb of free diskspace required!'.format(
                             self._save_path,
                             self._quota))
-                    self._tts_local_mode = False
+                    logger.warning("\nIgnore this  warning, if the snippet directoy is a smb or cifs mounted "
+                                   "directory.")
 
         if not self._tts_local_mode:
-            logger.debug("Google-TTS 'local mode' disabled! Only streaming mode available.")
+            logger.debug("Google-TTS disabled!")
         else:
             logger.debug("Google-TTS 'local mode' enabled!")
             logger.debug('server_url: {}'.format(self._server_url))
@@ -269,7 +271,7 @@ class SonosBroker():
             "Starting server with ip address {ip} ... be sure this is correct.".format(ip=self._server_ip))
         time.sleep(1)
         self._sonos_service = SonosServerService(self._server_ip, self._port, self._server_url, self._save_path,
-                                                 self._quota, self._tts_local_mode)
+                                                 self._quota)
         self._http_server = ThreadedHTTPServer((self._host, self._port), SonosHttpHandler)
         logger.info('Starting http server, use <Ctrl-C> to stop')
 
@@ -326,15 +328,17 @@ def scan():
 
     for speaker in soco_speakers:
         try:
-            model = SonosServerService.get_model_name(speaker.ip_address)
             print("\n{}".format(speaker.uid))
             print("-" * len(speaker.uid))
             print("\tip   :\t{}".format(speaker.ip_address))
             print("\tname :\t{}".format(speaker.player_name))
-            print("\tmodel:\t{}".format(model))
-        except ConnectionError:
+            print("\tmodel:\t{}".format(speaker.model))
+        except requests.ConnectionError:
             print("Speaker '{uid}' seems to be offline.".format(uid=speaker.uid))
             continue
+        except Exception as ex:
+            print('unknown error')
+            print(ex)
 
 if __name__ == '__main__':
     argparser = argparse.ArgumentParser()

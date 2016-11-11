@@ -14,6 +14,8 @@ import urllib
 import urllib.request
 import logging
 import sys
+from lib_sonos.tts import gTTS
+
 
 if os.name != "nt":
     import fcntl
@@ -120,6 +122,10 @@ def get_folder_size(folder):
     return total_size
 
 
+def stream_google_tts(tts_string, tts_language):
+    tts = gTTS(text=tts_string, lang=tts_language)
+    tts.stream()
+
 def save_google_tts(local_share, tts_string, tts_language, quota):
     size = int(get_folder_size(local_share) / 1024 / 1024)
     if size == 0:
@@ -130,31 +136,17 @@ def save_google_tts(local_share, tts_string, tts_language, quota):
         tts_language = 'en'
         tts_string = 'Cannot save file. File size quota exceeded!'
 
-    url = "http://translate.google.com/translate_tts?ie=UTF-8&tl={tts_language}&q={tts_string}"
-    url = url.format(tts_language=tts_language, tts_string=urllib.request.quote(tts_string))
+    tts = gTTS(text=tts_string, lang=tts_language)
     base64_name = base64.urlsafe_b64encode('{}__{}'.format(tts_language, tts_string).encode('utf-8')).decode('ascii', '')
-
     fname = '{}.mp3'.format(base64_name)
     abs_fname = os.path.join(local_share, fname)
 
     # check if file exists, no need to browse google tts
     if os.path.exists(abs_fname):
         return fname
-
     try:
-        params = {
-            "User-agent": "Mozilla/5.0 (Linux; Android 4.2.2)",
-            "Referer": "http://translate.google.com/"
-        }
-
-        response = requests.get(url, params=params)
-        if response and response.status_code == 200:
-            with open(abs_fname, 'wb') as file:
-                file.write(response.content)
-            os.chmod(abs_fname, 0o444)
-            return fname
-        else:
-            raise requests.RequestException('Status code: {}'.format(response.status_code))
+        tts.save(abs_fname)
+        return os.path.split(abs_fname)[1]
     except requests.RequestException as e:
         raise ("Couldn't obtain TTS from Google.\nError: {}".format(e.errno))
 

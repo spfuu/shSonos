@@ -86,6 +86,12 @@ def from_didl_string(string):
     for elt in root:
         if elt.tag.endswith('item') or elt.tag.endswith('container'):
             item_class = elt.findtext(ns_tag('upnp', 'class'))
+
+            # In case this class has an # specified unofficial
+            # subclass, ignore it by stripping it from item_class
+            if '.#' in item_class:
+                item_class = item_class[:item_class.find('.#')]
+
             try:
                 cls = _DIDL_CLASS_TO_CLASS[item_class]
             except KeyError:
@@ -474,6 +480,12 @@ class DidlObject(with_metaclass(DidlMetaClass, object)):
                     tag, cls.item_class))
         # and that the upnp matches what we are expecting
         item_class = element.find(ns_tag('upnp', 'class')).text
+
+        # In case this class has an # specified unofficial
+        # subclass, ignore it by stripping it from item_class
+        if '.#' in item_class:
+            item_class = item_class[:item_class.find('.#')]
+
         if item_class != cls.item_class:
             raise DIDLMetadataError(
                 "UPnP class is incorrect. Expected '{0}',"
@@ -858,9 +870,8 @@ class DidlMusicAlbum(DidlAlbum):
     item_class = 'object.container.album.musicAlbum'
     # According to the spec, all musicAlbums should be represented in
     # XML by a <container> tag. Sonos sometimes uses <container> and
-    # sometimes uses <item>. Set the tag type to '' to indicate that
-    # either is allowed.
-    tag = ''
+    # sometimes uses <item>. <container> seems to work here for the moment.
+    tag = 'container'
     # name: (ns, tag)
     # pylint: disable=protected-access
     #:
@@ -996,6 +1007,12 @@ class DidlSameArtist(DidlPlaylistContainer):
     # Not in the DIDL-Lite spec. Sonos specific?
     # the DIDL Lite class for this object.
     item_class = 'object.container.playlistContainer.sameArtist'
+
+
+class DidlPlaylistContainerFavorite(DidlPlaylistContainer):
+
+    """Class that represents a Sonos favorite play list."""
+    item_class = 'object.container.playlistContainer.sonos-favorite'
 
 
 class DidlGenre(DidlContainer):

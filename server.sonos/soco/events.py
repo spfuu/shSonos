@@ -10,12 +10,12 @@ import socket
 import threading
 import time
 import weakref
+
 import requests
-from requests.adapters import HTTPAdapter
 
 from . import config
 from .compat import (
-    Queue, SimpleHTTPRequestHandler, URLError, socketserver, urlopen
+    Queue, BaseHTTPRequestHandler, URLError, socketserver, urlopen
 )
 from .data_structures import from_didl_string
 from .exceptions import SoCoException
@@ -200,7 +200,7 @@ class EventServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     allow_reuse_address = True
 
 
-class EventNotifyHandler(SimpleHTTPRequestHandler):
+class EventNotifyHandler(BaseHTTPRequestHandler):
     """Handles HTTP ``NOTIFY`` Verbs sent to the listener server."""
 
     def do_NOTIFY(self):  # pylint: disable=invalid-name
@@ -220,28 +220,27 @@ class EventNotifyHandler(SimpleHTTPRequestHandler):
         # find the relevant service from the sid
         with _sid_to_service_lock:
             service = _sid_to_service.get(sid)
-
-        service_id = service.id
-        if not service_id:
-            service_id = 0
-
-        log.info(
-            "Event %s received for %s service on thread %s at %s", seq,
-            service_id, threading.current_thread(), timestamp)
-        log.debug("Event content: %s", content)
-        variables = parse_event_xml(content)
-        # Build the Event object
-        event = Event(sid, seq, service, timestamp, variables)
-        # pass the event details on to the service so it can update its cache.
-        if service is not None:  # It might have been removed by another thread
+        # It might have been removed by another thread
+        if service:
+            log.info(
+                "Event %s received for %s service on thread %s at %s", seq,
+                service.service_id, threading.current_thread(), timestamp)
+            log.debug("Event content: %s", content)
+            variables = parse_event_xml(content)
+            # Build the Event object
+            event = Event(sid, seq, service, timestamp, variables)
+            # pass the event details on to the service so it can update its
+            # cache.
             # pylint: disable=protected-access
             service._update_cache_on_event(event)
-        # Find the right queue, and put the event on it
-        with _sid_to_event_queue_lock:
-            try:
-                _sid_to_event_queue[sid].put(event)
-            except KeyError:  # The key have been deleted in another thread
-                pass
+            # Find the right queue, and put the event on it
+            with _sid_to_event_queue_lock:
+                try:
+                    _sid_to_event_queue[sid].put(event)
+                except KeyError:  # The key have been deleted in another thread
+                    pass
+        else:
+            log.info("No service registered for %s", sid)
         self.send_response(200)
         self.end_headers()
 
@@ -291,6 +290,7 @@ class EventListener(object):
         super(EventListener, self).__init__()
         #: `bool`: Indicates whether the server is currently running
         self.is_running = False
+        self._start_lock = threading.Lock()
         self._listener_thread = None
         #: `tuple`: The address (ip, port) on which the server is
         #: configured to listen.
@@ -315,18 +315,20 @@ class EventListener(object):
 
         # Find our local network IP address which is accessible to the
         # Sonos net, see http://stackoverflow.com/q/166506
-
-        temp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        temp_sock.connect((any_zone.ip_address, config.EVENT_LISTENER_PORT))
-        ip_address = temp_sock.getsockname()[0]
-        temp_sock.close()
-        # Start the event listener server in a separate thread.
-        self.address = (ip_address, config.EVENT_LISTENER_PORT)
-        self._listener_thread = EventServerThread(self.address)
-        self._listener_thread.daemon = True
-        self._listener_thread.start()
-        self.is_running = True
-        log.info("Event listener started")
+        with self._start_lock:
+            if not self.is_running:
+                temp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                temp_sock.connect((any_zone.ip_address,
+                                   config.EVENT_LISTENER_PORT))
+                ip_address = temp_sock.getsockname()[0]
+                temp_sock.close()
+                # Start the event listener server in a separate thread.
+                self.address = (ip_address, config.EVENT_LISTENER_PORT)
+                self._listener_thread = EventServerThread(self.address)
+                self._listener_thread.daemon = True
+                self._listener_thread.start()
+                self.is_running = True
+                log.info("Event listener started")
 
     def stop(self):
         """Stop the event listener."""
@@ -450,7 +452,7 @@ class Subscription(object):
             headers["TIMEOUT"] = "Second-{0}".format(requested_timeout)
         response = requests.request(
             'SUBSCRIBE', service.base_url + service.event_subscription_url,
-            headers=headers, timeout=3)
+            headers=headers)
         response.raise_for_status()
         self.sid = response.headers['sid']
         timeout = response.headers['timeout']
@@ -525,7 +527,7 @@ class Subscription(object):
         response = requests.request(
             'SUBSCRIBE',
             self.service.base_url + self.service.event_subscription_url,
-            headers=headers, timeout=3)
+            headers=headers)
         response.raise_for_status()
         timeout = response.headers['timeout']
         # According to the spec, timeout can be "infinite" or "second-123"
@@ -543,9 +545,6 @@ class Subscription(object):
             self.sid)
 
     def unsubscribe(self):
-        s = requests.Session()
-        s.mount('http://', HTTPAdapter(max_retries=3))
-
         """Unsubscribe from the service's events.
 
         Once unsubscribed, a Subscription instance should not be reused
@@ -567,7 +566,7 @@ class Subscription(object):
         response = requests.request(
             'UNSUBSCRIBE',
             self.service.base_url + self.service.event_subscription_url,
-            headers=headers, timeout=2)
+            headers=headers)
         response.raise_for_status()
         self.is_subscribed = False
         self._timestamp = None
