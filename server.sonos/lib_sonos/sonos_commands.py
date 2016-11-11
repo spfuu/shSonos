@@ -12,6 +12,7 @@ from soco.exceptions import SoCoUPnPException
 from lib_sonos import sonos_speaker
 from lib_sonos import utils
 from lib_sonos.utils import underscore_to_camel
+from lib_sonos import definitions
 
 logger = logging.getLogger('')
 
@@ -1655,6 +1656,27 @@ class GetFavoriteRadioStations(JsonCommandBase):
         except requests.ConnectionError:
             self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
                 format(uid=self.uid)
+        except AttributeError as err:
+            self._response = JsonCommandBase.missing_param_error(err)
+        except Exception as err:
+            self._response = err
+        finally:
+            return self._status, self._response
+
+
+### GET SONOS BROKER VERSION ###########################################################################################
+
+class SonosBrokerVersion(JsonCommandBase):
+    def __init__(self, parameter):
+        super().__init__(parameter)
+
+    def run(self):
+        try:
+            logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
+                                                                                  attributes=utils.dump_attributes(
+                                                                                      self)))
+            self._response = definitions.VERSION
+            self._status = True
         except AttributeError as err:
             self._response = JsonCommandBase.missing_param_error(err)
         except Exception as err:
