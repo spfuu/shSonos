@@ -2,6 +2,12 @@ This sub-project is a client implementation fpr the Sonos Broker. It is a plugin
 Smarthome.py framework (https://github.com/mknx/smarthome).
 
 ##Release
+
+v1.7b1  (2101-11-11)
+
+    'clear_queue' command added. The command clears the current queue.
+    -- version check against Sonos Broker to identify an out-dated plugin or Broker
+    
 v1.7b0  (2016-11-09)
     
     -- ATTENTION: commands 'get_playlist' and 'set_playlist' removed  and replaced by 'sonos_playlists' and
@@ -417,7 +423,7 @@ Edit file with this sample of mine:
             [[[clear_queue]]]
                 type = bool
                 value = 1
-
+        
         [[balance]]
             type = num
             visu_acl = rw
@@ -427,6 +433,21 @@ Edit file with this sample of mine:
             [[[group_command]]]
                 type = bool
                 value = 0
+        
+        [[wifi_state]]
+            type = bool
+            visu_acl = rw
+            sonos_recv = wifi_state
+            sonos_send = wifi_state
+
+            [[[persistent]]]
+                type = bool
+                value = 0
+            
+        [[clear_queue]]    
+                type = bool
+                enforce_updates = True
+                sonos_send = clear_queue
         
         
  This sonos.conf file implements most of the commands to interact with the Sonos Broker. Please follow the detailed

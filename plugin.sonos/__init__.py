@@ -31,6 +31,7 @@ import fcntl
 import struct
 import requests
 
+EXPECTED_BROKER_VERSION = 0.8
 logger = logging.getLogger('')
 sonos_speaker = {}
 
@@ -100,6 +101,20 @@ class Sonos():
         # normalize broker url
         if not self._broker_url.startswith('http://'):
             self._broker_url = "http://{url}".format(url=self._broker_url)
+
+        # version check against Sonos Broker
+
+        broker_version = self._send_cmd(SonosCommand.sonos_broker_version())
+        logger.debug("Sonos broker version: {version}".format(version=broker_version))
+        try:
+            if EXPECTED_BROKER_VERSION != float(broker_version):
+                logger.warning("This plugin is desgined to work with Sonos Broker version {version}. "
+                               "Your plugin version is probably out-of-date or too new. "
+                               "Please update your plugin and/or the Sonos Broker Server".format(
+                    version=EXPECTED_BROKER_VERSION))
+        except Exception:
+            logger.warning("Unknown Sonos broker version string '{version_string}.'".
+                         format(version_string=broker_version))
 
         # ini vars
         self._listen_host = listen_host
@@ -314,8 +329,6 @@ class Sonos():
                     cmd = self._command.play_uri(uid, value)
 
                 if command == 'play_tunein':
-                    logger.debug('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-                    logger.debug(value)
                     cmd = self._command.play_tunein(uid, value)
 
                 if command == 'play_snippet':
@@ -408,6 +421,10 @@ class Sonos():
                             break
                     cmd = self._command.volume_down(uid, group_command)
 
+                if command == 'clear_queue':
+                    if value in ['y', '1', 'Y', 1, 'yes']:
+                        cmd = self._command.clear_queue(uid)
+
                 if command == 'wifi_state':
                     if isinstance(value, bool):
                         persistent_item_name = '{}.persistent'.format(item._name)
@@ -474,6 +491,10 @@ class Sonos():
                 "Could not send sonos notification: {0}. Error: {1}".format(cmd, e))
 
         logger.debug("Sending request: {0}".format(cmd))
+
+    def load_sonos_playlist(self, uid, sonos_playlist, play_after_insert=0, clear_queue=0):
+        return self._send_cmd(SonosCommand.load_sonos_playlist(uid, sonos_playlist, play_after_insert,
+                                                                        clear_queue))
 
     def get_favorite_radiostations(self, start_item=0, max_items=50):
         return self._send_cmd_response(SonosCommand.favradio(start_item, max_items))
@@ -817,6 +838,15 @@ class SonosCommand:
         }
 
     @staticmethod
+    def sonos_playlists(uid):
+        return {
+            'command': 'sonos_playlists',
+            'parameter': {
+                'uid': uid.lower(),
+                }
+        }
+
+    @staticmethod
     def wifi_state(uid, wifi_state, persistent):
         return {
             'command': 'set_wifi_state',
@@ -837,6 +867,12 @@ class SonosCommand:
                 'play_after_insert': play_after_insert,
                 'clear_queue': clear_queue
             }
+        }
+
+    @staticmethod
+    def sonos_broker_version():
+        return {
+            'command': 'sonos_broker_version'
         }
 
     @staticmethod
@@ -876,6 +912,15 @@ class SonosCommand:
     @staticmethod
     def discover():
         return {'command': 'discover'}
+
+    @staticmethod
+    def clear_queue(uid):
+        return {
+            'command': 'clear_queue',
+            'parameter': {
+                'uid': uid.lower()
+            }
+        }
 
 
 #######################################################################
