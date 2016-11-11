@@ -17,7 +17,6 @@ import threading
 import configparser
 import signal
 import time
-from soco import discover
 from lib_sonos import utils
 from lib_sonos import definitions
 from lib_sonos.sonos_service import SonosServerService

@@ -1,52 +1,25 @@
 ## Release
 
-v0.8b7  (2016-11-11)
-
+v0.8    (2016-11-11)
+ 
+    -- **ATTENTION:** commands "get_playlist" and "set_playlist" removed. I decided to stick with 
+       the internal Sonos playlists.
+    -- new implementation Google TTS: Captcha and other issues should now be solved (for this time) 
+    -- **ATTENTION:** parameter "force_stream_mode" removed for command "play_tts" caused by the new 
+       implementation for Google TTS. The possibility for an additional TTS "stream mode" was removed. 
+       (see documentation Google TTS for setup)
+    -- **ATTENTION:** property "tts_local_mode" removed 
+    -- new commands "get_sonos_playlists" and "load_sonos_playlist". See documentation for implementation
     -- command "sonos_broker_version" added
-    -- added command 'sonos_broker_version' to Sonos-Broker commandline tool
-
-v0.8b6  (2016-11-09)
-
     -- command 'clear_queue' added
-    -- added command 'clear_queue' to Sonos-Broker commandline tool
-
-v0.8b5  (2016-11-08)
-
-    -- command 'play_tunein' added
-        -- Play any TuneIn radio station by a given name
-    -- added command 'play_tunein' to Sonos-Broker commandline tool
-
-v0.8b4  (2016-11-07)
-    
+    -- command 'play_tunein' added. Play any TuneIn radio station by a given name
     -- SoCo framework changes (v0.12) with some bugfixes
-    -- added command 'favorite_radio_station' to Sonos-Broker commandline tool 
-    -- removed unused functions
-
-v0.8b3  (2016-07-01)
-
-    -- GoogleTTS changes
-    
-v0.8b2  (2016-06-21)
-
+    -- removed some unused functions
     -- fixed error when calling sonos_broker with 'l' (scan only flag)
-
-v0.8b1  (2016-03-26)
-    
     -- small bugfixes
     -- Deezer tracks and their metadata are handled correctly now
     -- Sonos-Broker commandline tools has now parameters (type "sonos_cmd -h" for help)
     
-v0.8b0   (2016-02-23)
-
-    -- ATTENTION: commands "get_playlist" and "set_playlist" removed. I decided to stick with 
-       the internal Sonos playlists.
-    -- new implementation Google TTS: Captcha and other issues should now be solved (for this time) 
-    -- ATTENTION: parameter "force_stream_mode" removed for command "play_tts" caused by the new 
-       implementation for Google TTS. The possibility for an additional TTS "stream mode" was removed. 
-       (see documentation Google TTS for setup)
-    -- ATTENTION: property "tts_local_mode" removed 
-    -- new commands "get_sonos_playlists" and "load_sonos_playlist". See documentation for implementation
-          
 v0.7    (2016-01-04)
 
     -- command "discover" added to force a manual scan for Sonos speaker in the network
@@ -95,9 +68,19 @@ smart home environment (https://github.com/mknx/smarthome/).
 
 ## Requirements
 
-Server:	python3 (with library 'requests')
+#### Server-side
 
-Client-side: nothing special, just send your commands over http (JSON format) or use the Smarthome.py plugin to control 
+python3.4
+python3 libraries 'requests' and 'xmltodict' 
+
+```
+pip3 install requests
+pip3 install xmltodict
+```
+
+#### Client-side 
+
+Nothing special, just send your commands over http (JSON format) or use the Smarthome.py plugin to control
 the speakers within Smarthome.py.
 
 

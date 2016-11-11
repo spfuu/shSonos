@@ -32,4 +32,7 @@ soco/snapshot.py
 soco/soap.py
 soco/utils.py
 soco/xml.py
+soco/music_services/__init__.py
+soco/music_services/accounts.py
+soco/music_services/music_service.py
 test/test_parse_status.py
