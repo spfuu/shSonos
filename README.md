@@ -8,8 +8,7 @@ v0.8    (2016-11-11)
     -- **ATTENTION:** parameter "force_stream_mode" removed for command "play_tts" caused by the new 
        implementation for Google TTS. The possibility for an additional TTS "stream mode" was removed. 
        (see documentation Google TTS for setup)
-    -- **ATTENTION:** property "tts_local_mode" removed 
-    -- new commands "get_sonos_playlists" and "load_sonos_playlist". See documentation for implementation
+    -- new command "load_sonos_playlist". See documentation for implementation.
     -- command "sonos_broker_version" added
     -- command 'clear_queue' added
     -- command 'play_tunein' added. Play any TuneIn radio station by a given name
