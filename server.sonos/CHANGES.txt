@@ -1,3 +1,8 @@
+v.0.8.2 (2016-11-14)
+
+    -- fixed bug in GoogleTTS
+
+
 v.0.8.1 (2016-11-14)
 
     -- changed commandline arguments to control the Sonos Broker.

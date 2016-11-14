@@ -1261,7 +1261,7 @@ class SoCo(_SocoSingletonBase):
                                                                 **kwargs)
 
     @only_on_master
-    def add_uri_to_queue(self, uri):
+    def add_uri_to_queue(self, uri, title=''):
         """Adds the URI to the queue.
 
         :param uri: The URI to be added to the queue
@@ -1270,7 +1270,7 @@ class SoCo(_SocoSingletonBase):
         # FIXME: The res.protocol_info should probably represent the mime type
         # etc of the uri. But this seems OK.
         res = [DidlResource(uri=uri, protocol_info="x-rincon-playlist:*:*:*")]
-        item = DidlObject(resources=res, title='', parent_id='', item_id='')
+        item = DidlObject(resources=res, title=title, parent_id='', item_id='')
         return self.add_to_queue(item)
 
     @only_on_master
