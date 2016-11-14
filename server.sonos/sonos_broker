@@ -94,7 +94,7 @@ class SonosBroker():
     def list_only(self, value):
         self._list_only = value
 
-    def __init__(self, debug=False):
+    def __init__(self, debug=False, config=None):
         global command_service
         global homedir
         global logger
@@ -114,6 +114,7 @@ class SonosBroker():
         self._sonos_service = None
         self._server_active = True
         self._list_only = False
+        self._config = config
 
         # ############################################################
         # Signal Handling
@@ -124,7 +125,12 @@ class SonosBroker():
         signal.signal(signal.SIGTERM, self.stop)
 
         config = configparser.ConfigParser()
-        config_path = os.path.join(homedir, definitions.DEFAULT_CFG)
+
+        if self._config is None:
+            config_path = os.path.join(homedir, definitions.DEFAULT_CFG)
+        else:
+            config_path = self._config
+
         config.read(config_path)
 
         # ############################################################
@@ -317,7 +323,7 @@ def kill(pid, wait=10):
 
 
 def scan():
-    print('Scanning for Sonos speaker in the network ...\n')
+    print('\n\nScanning for Sonos speaker in the network ...')
     soco_speakers = SonosServerService._discover()
     suffix = ''
 
@@ -328,11 +334,12 @@ def scan():
 
     for speaker in soco_speakers:
         try:
+            info = speaker.get_speaker_info(timeout=5)
             print("\n{}".format(speaker.uid))
             print("-" * len(speaker.uid))
             print("\tip   :\t{}".format(speaker.ip_address))
             print("\tname :\t{}".format(speaker.player_name))
-            print("\tmodel:\t{}".format(speaker.model))
+            print("\tmodel:\t{}\n".format(info['model_name']))
         except requests.ConnectionError:
             print("Speaker '{uid}' seems to be offline.".format(uid=speaker.uid))
             continue
@@ -342,21 +349,34 @@ def scan():
 
 if __name__ == '__main__':
     argparser = argparse.ArgumentParser()
-    group = argparser.add_mutually_exclusive_group()
+    subparsers = argparser.add_subparsers(dest="subparser_name")
 
-    group.add_argument('-d', '--debug', help='Debug Mode: Broker stays in foreground with verbose output',
+    start_parser = subparsers.add_parser(name='start', help="Starts the Sonos Broker. ")
+    start_parser.add_argument('-d', '--debug', help='Debug Mode: Broker stays in foreground with verbose output',
                            action='store_true')
-    group.add_argument('-s', '--stop', help='Stops the Sonos Broker', action='store_true')
-    group.add_argument('-l', '--list', help='Lists all Sonos speaker in the network.', action='store_true')
+    start_parser.add_argument('-c', '--config', help='[Optional] path to a config file.')
+
+    stop_parser = subparsers.add_parser(name='stop', help="Stops the Sonos Broker.")
+    stop_parser = subparsers.add_parser(name='list', help="Lists all Sonos speaker in the network.")
+
     args = argparser.parse_args()
 
-    if args.stop:
+    if args.subparser_name == "stop":
         print('Shutting down Sonos Broker ...')
         kill(daemon.get_pid(__file__))
-    elif args.list:
+    elif args.subparser_name == "list":
         scan()
-    else:
-        broker = SonosBroker(args.debug)
+    elif args.subparser_name == "start":
+
+        config_path = definitions.DEFAULT_CFG
+
+        if args.config:
+            config_path = os.path.abspath(args.config)
+        if not os.path.exists(config_path):
+            print("Config file not found [** {path} **]".format(path=os.path.abspath(config_path)))
+            exit()
+
+        broker = SonosBroker(args.debug, config=config_path)
 
         if locale.getdefaultlocale() == (None, None):
             locale.setlocale(locale.LC_ALL, 'C')
@@ -369,3 +389,6 @@ if __name__ == '__main__':
             d.start()
         else:
             broker.start()
+    else:
+        print("Unknown command!")
+        exit()
