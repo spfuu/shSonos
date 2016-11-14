@@ -1,3 +1,15 @@
+v.0.8.1 (2016-11-14)
+
+    -- changed commandline arguments to control the Sonos Broker.
+        Available arguments:
+
+        start [-d] [-c] [-h] (-d=debug mode, -c=user-specified config file, -h=help)
+        stop
+        list
+
+    -- fixed an issue when executing sonos_broker with '-l' parameter
+
+
 v0.8    (2016-11-11)
 
     -- **ATTENTION:** commands "get_playlist" and "set_playlist" removed. I decided to stick with
