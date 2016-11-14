@@ -1,5 +1,16 @@
 ## Release
 
+v.0.8.1 (2016-11-14)
+
+    -- changed commandline arguments to control the Sonos Broker. 
+        Available arguments:
+        
+        start [-d] [-c] [-h] (-d=debug mode, -c=user-specified config file, -h=help)
+        stop
+        list
+
+    -- fixed an issue when executing sonos_broker with '-l' parameter
+    
 v0.8    (2016-11-11)
  
     -- **ATTENTION:** commands "get_playlist" and "set_playlist" removed. I decided to stick with 
@@ -33,22 +44,6 @@ v0.7    (2016-01-04)
     -- bugfixes in command-line tool
     -- command 'balance' (especially for sonos amp and stereo paired sonos speaker) added
 
-v0.6        (2015-04-11)
-    
-    --  bug fix: error while restoring a playlist
-    --  fixed a resource leak (thx @hoggle)
-    --  commands added: set_wifi_state, get_wifi_state
-        --  now you can activate or deactivate the speakers wireless network interface 
-            (e.g. if you use the speaker with an ethernet connection)
-        --  commands integrated in sonos command line client 
-    --  some changes handling event subscriptions
-    --  increased event subscription period to 240 sec
-    --  new command: RefreshMediaLibrary (updates / refreshs the media library)
-        --  RefreshMediaLibrary added to sonos command line client
-    --  bug: parsing error while playing some radio stations
-    --  added radio parser for Alsterradio 106.8
-    --  some minor bugfixes in Sonos Broker
-    --  some minor bugfixes in Cmd client
     
 
 ## Overview
@@ -122,28 +117,37 @@ Readme.
 
 If you start the sonos broker with
 ```
-sonos_broker
+sonos_broker start
 ```
 the server will be automatically daemonized.
 
 You can add the -d (--debug) parameter to hold the process in the foreground.
 ```
-sonos_broker -d
+sonos_broker start -d
+```
+
+An user-specified config file can be passed with the '-c' flag
+```
+sonos_broker start -c
 ```
 
 You can stop the server with
 ```
-sonos_broker -s
+sonos_broker stop
 ```
 
 To get a short overview of your speakers in the network start the server with
 ```
-sonos_broker -l
+sonos_broker list
 ```
 
 To get an overview of all parameters type
 ```
 sonos_broker -h
+```
+or
+```
+sonos_broker {command} -h
 ```
 
 To autostart the service on system boot, please follow the instruction for your linux distribution and put this
@@ -258,14 +262,6 @@ This is an example of a google_tts section in the sonos_broker.cfg file:
     save_path =/your/path/here
     server_url = http://192.168.0.2/tts
 
-
-## Raspberry Pi User
-
-For raspberry pi user, please follow these instruction prior the Broker installation:
-
-    sudo apt-get update
-    sudo apt-get upgrade
-    sudo easy_install3 requests
 
 ## Implementation:
 
