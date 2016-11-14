@@ -31,7 +31,7 @@ import fcntl
 import struct
 import requests
 
-EXPECTED_BROKER_VERSION = 0.8
+EXPECTED_BROKER_VERSION = 0.8.1
 logger = logging.getLogger('')
 sonos_speaker = {}
 
@@ -503,7 +503,7 @@ class Sonos():
         return self._send_cmd(SonosCommand.refresh_media_library(display_option))
 
     def version(self):
-        return "v1.8\t2016-11-11"
+        return "v0.8.1\t2016-11-14"
 
     def discover(self):
         return self._send_cmd(SonosCommand.discover())
