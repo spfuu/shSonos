@@ -17,7 +17,6 @@ from threading import Lock
 from soco.data_structures import DidlAudioBroadcast
 from soco.services import zone_group_state_shared_cache
 from lib_sonos import utils
-import requests
 
 try:
     import xml.etree.cElementTree as XML
