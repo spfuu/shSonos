@@ -45,14 +45,14 @@ class SonosServerService():
     _sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     _sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
 
-    def __init__(self, host, port, remote_folder, local_folder, quota):
+    def __init__(self, host, port, remote_folder, local_folder, quota, tts_enabled):
         self.event_lock = Lock()
         self.lock = Lock()
         self.host = host
         self.port = port
 
         SonosSpeaker.event_queue = queue.Queue()
-        SonosSpeaker.set_tts(local_folder, remote_folder, quota)
+        SonosSpeaker.set_tts(local_folder, remote_folder, quota, tts_enabled)
 
         p_t = threading.Thread(target=self.process_events)
         p_t.daemon = True

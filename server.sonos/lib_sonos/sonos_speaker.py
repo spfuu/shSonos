@@ -27,15 +27,17 @@ sonos_speakers = {}
 _sonos_lock = threading.Lock()
 
 class SonosSpeaker(object):
+    tts_enabled = False
     event_queue = None
     local_folder = ''
     remote_folder = ''
 
     @classmethod
-    def set_tts(self, local_folder, remote_folder, quota):
+    def set_tts(self, local_folder, remote_folder, quota, tts_enabled):
         SonosSpeaker.local_folder = local_folder
         SonosSpeaker.remote_folder = remote_folder
         SonosSpeaker.quota = quota
+        SonosSpeaker.tts_enabled = tts_enabled
 
     def __del__(self):
         logger.debug("DESTRUCTOR !!! Speaker object destructed")
@@ -1227,7 +1229,13 @@ class SonosSpeaker(object):
                 try:
                     _saved_music_item = Snapshot(device=self.soco, snapshot_queue=False)
                     _saved_music_item.snapshot()
-                    snippet_index = self.soco.add_uri_to_queue(uri)
+
+                    for prefix in ('http://', 'https://'):
+                        if uri.startswith(prefix):
+                            # Replace only the first instance
+                            uri = uri.replace(prefix, 'x-rincon-mp3radio://', 1)
+
+                    snippet_index = self.soco.add_uri_to_queue(uri, title='Sonos Ansage')
 
                     if snippet_index > 0:
                         snippet_index -= 1
@@ -1251,8 +1259,8 @@ class SonosSpeaker(object):
                     # maximum snippet length is 60 sec
                     if seconds > 60:
                         seconds = 60
-                    if seconds < 5:
-                        seconds = 5
+                    if seconds < 3:
+                        seconds = 3
 
                     logger.debug('Waiting {seconds} seconds until snippet has finished playing.'.format(seconds=seconds))
                     time.sleep(seconds)
@@ -1276,6 +1284,11 @@ class SonosSpeaker(object):
     def play_tts(self, tts, volume, language='en', group_command=False, fade_in=False):
         # we do not need any code here to get the zone coordinator.
         # The play_snippet function does the necessary work.
+
+        if not SonosSpeaker.tts_enabled:
+            print("Google TTS disabled. Check your config.")
+            return
+
         filename = utils.save_google_tts(SonosSpeaker.local_folder, tts, language, SonosSpeaker.quota)
         if SonosSpeaker.local_folder.endswith('/'):
             SonosSpeaker.local_folder = SonosSpeaker.local_folder[:-1]
