@@ -3,10 +3,11 @@ Smarthome.py framework (https://github.com/mknx/smarthome).
 
 ##Release
 
-v0.8.2  (2016-11-16)
+v0.9  (2016-11-20)
     
     -- added missing 'track_album' property
-    -- change expected Sonos Broker version to 0.8.3
+    -- add new property 'playlist_total_tracks'
+    -- change expected Sonos Broker version to 0.9
 
 v0.8.2  (2016-11-14)
 
@@ -183,6 +184,10 @@ Edit file with this sample of mine:
             type = num
             sonos_recv = playlist_position
             visu_acl = rw
+
+        [[playlist_total_tracks]]
+            type = num
+            sonos_recv = playlist_total_tracks
     
         [[streamtype]]
             type = str
