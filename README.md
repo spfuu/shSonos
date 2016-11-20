@@ -417,8 +417,8 @@ Click on the links below to get a detailed command descriptions and their usage.
 ###### [get_track_artist](#g_track_artist)
 ###### [get_track_album_art](#g_track_album_art)
 ###### [get_track_uri](#g_track_uri)
-###### [get_playlist_position](#get_playlist_position)
-###### [get_playlist_total_tracks](#get_playlist_total_tracks)
+###### [get_playlist_position](#g_playlist_position)
+###### [get_playlist_total_tracks](#g_playlist_total_tracks)
 ###### [get_radio_station](#g_radio_station)
 ###### [get_radio_show](#g_radio_show)
 ###### [join](#s_join)
@@ -1668,7 +1668,7 @@ No special parameter needed.
     All URIs can be passed to the play_uri and play_snippet functions.
 
 ----
-#### <a name="get_playlist_position">get_playlist_position
+#### <a name="g_playlist_position">get_playlist_position
  Returns the position of the currently played track in the playlist.
  In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
  about 'playlist_position'-status changes.
@@ -1701,7 +1701,7 @@ No special parameter needed.
     }
 
 ----
-#### <a name="get_playlist_total_tracks">get_playlist_total_tracks
+#### <a name="g_playlist_total_tracks">get_playlist_total_tracks
  Returns the total number of tracks in the current playlist.
  In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
  about 'playlist_total_tracks'-status changes.
