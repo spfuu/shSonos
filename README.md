@@ -1,5 +1,19 @@
 ## Release
 
+v.0.9 (2016-11-20)
+
+    -- added missing 'track_album' property
+    -- added missing 'track_album' to Sonos-Broker commandline
+    -- added "get_playlist_position" command and "playlist_position" property to Sonos Broker and
+       Sonos Broker commandline tool
+    -- added "get_playlist_total_tracks" command and "playlist_total_tracks" property to Sonos Broker and 
+       Sonos Broker commandline tool
+    -- added missing 'track_album_art' property to Sonos Broker commandline tool
+    -- bug: 'playlist_position' was not handled correctly
+    -- changed maximum snippet length to 15 seconds
+    -- bugfixed: Sonos Broker user-specific server port was ignored
+    -- updated documentation
+    
 v.0.8.2 (2016-11-14)
 
     -- fixed bug in GoogleTTS
@@ -316,7 +330,8 @@ In almost any cases, you'll get the appropriate response in the following JSON f
         "mute": "0",
         "pause": 0,
         "play": 0,
-        "playlist_position": 0,
+        "playlist_position": "1",
+        "playlist_total_tracks": "10",
         "playmode": "normal",
         "radio_show": "",
         "radio_station": "",
@@ -326,6 +341,7 @@ In almost any cases, you'll get the appropriate response in the following JSON f
         "status": true,
         "stop": 1,
         "streamtype": "music",
+        "track_album": "Feuerwehrmann Sam 02",
         "track_album_art": "http://192.168.0.4:1400/getaa?s=1&u=x-sonos-spotify%3aspotify%253atrack%253a3xCk8npVehdV55KuPdjrmZ%3fsid%3d9%26flags%3d32",
         "track_artist": "Feuerwehrmann Sam & Clemens Gerhard",
         "track_duration": "0:10:15",
@@ -396,10 +412,13 @@ Click on the links below to get a detailed command descriptions and their usage.
 ###### [set_playmode](#s_playmode)
 ###### [get_track_position](#g_track_position)
 ###### [set_track_position](#s_track_position)
+###### [get_track_album](#g_track_album)
 ###### [get_track_title](#g_track_title)
 ###### [get_track_artist](#g_track_artist)
 ###### [get_track_album_art](#g_track_album_art)
 ###### [get_track_uri](#g_track_uri)
+###### [get_playlist_position](#get_playlist_position)
+###### [get_playlist_total_tracks](#get_playlist_total_tracks)
 ###### [get_radio_station](#g_radio_station)
 ###### [get_radio_show](#g_radio_show)
 ###### [join](#s_join)
@@ -1496,6 +1515,36 @@ No special parameter needed.
     
     The response is only sent if the new value is different from the old value.
 
+#### <a name="g_track_album">get_track_album
+ Returns the album title of the currently played track.
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'track_album'-status changes.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_track_album',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        "track_album": "Delta Machine",
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+
 #### <a name="g_track_title">get_track_title
  Returns the title of the currently played track.
  In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
@@ -1618,6 +1667,73 @@ No special parameter needed.
     
     All URIs can be passed to the play_uri and play_snippet functions.
 
+----
+#### <a name="get_playlist_position">get_playlist_position
+ Returns the position of the currently played track in the playlist.
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'playlist_position'-status changes.
+
+| parameter | required / optional | valid values | description |
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | string | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_playlist_position',
+        'parameter': {
+            'uid': 'rincon_b8e91111d11111400'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK
+        or
+    Exception with HTTP status 400 and the specific error message.
+
+###### UDP Response sent to subscribed clients:
+    JSON format:
+    {
+        ...
+        "uid": "rincon_b8e91111d11111400",
+        "playlist_position": "3"
+        ...
+    }
+
+----
+#### <a name="get_playlist_total_tracks">get_playlist_total_tracks
+ Returns the total number of tracks in the current playlist.
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'playlist_total_tracks'-status changes.
+
+| parameter | required / optional | valid values | description |
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | string | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_playlist_total_tracks',
+        'parameter': {
+            'uid': 'rincon_b8e91111d11111400'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK
+        or
+    Exception with HTTP status 400 and the specific error message.
+
+###### UDP Response sent to subscribed clients:
+    JSON format:
+    {
+        ...
+        "uid": "rincon_b8e91111d11111400",
+        "playlist_total_tracks": "13"
+        ...
+    }
+    
+----
 #### <a name="g_radio_station">get_radio_station
  Returns the title of the currently played radio station. 
  In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
@@ -2048,7 +2164,8 @@ No special parameter needed.
         "mute": 0,
         "pause": 1,
         "play": 0,
-        "playlist_position": 0,
+        "playlist_position": "1",
+        "playlist_total_tracks": "10",
         "playmode": "normal",
         "radio_show": "",
         "radio_station": "",

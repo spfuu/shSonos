@@ -3,6 +3,11 @@ Smarthome.py framework (https://github.com/mknx/smarthome).
 
 ##Release
 
+v0.8.2  (2016-11-16)
+    
+    -- added missing 'track_album' property
+    -- change expected Sonos Broker version to 0.8.3
+
 v0.8.2  (2016-11-14)
 
     -- change expected Sonos Broker version to 0.8.2
@@ -25,25 +30,10 @@ v1.8    (2016-11-11)
     -- 'clear_queue' command added. The command clears the current queue.
     -- version check against Sonos Broker to identify an out-dated plugin or Broker
     
-v1.7   (2016-01-03)
-        
-    --  bug: discover function call now working
-    --  command "balance" added; documentation updated 
-    
-v1.6    (2015-12-23)
-    
-    -- function 'discover' added to perform a manual scan for new Sonos speaker
-  
-v1.5    (2015-10-30)
-  
-    -- property 'display_version' added
-    -- property 'model_number' added
-    -- property 'household_id' added (a unique identifier for all players in a household)
-
 
 ## Requirements:
 
-  sonos_broker server v0.8
+  sonos_broker server v0.8.3
   (https://github.com/pfischi/shSonos)
 
   SmarthomeNG 
@@ -161,6 +151,10 @@ Edit file with this sample of mine:
         [[track_title]]
             type = str
             sonos_recv = track_title
+        
+        [[track_album]]
+            type = str
+            sonos_recv = track_album
     
         [[track_duration]]
             type = str
