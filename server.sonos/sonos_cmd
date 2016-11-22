@@ -562,6 +562,38 @@ class SonosSpeakerCmd(cmd.Cmd):
             return
         print("playmode: {}".format(self.playmode))
 
+    def help_playlist_total_tracks(self):
+        print("playlist_total_tracks: Gets the total number of tracks in the current playlist.")
+        print("playlist_total_tracks [get]: Forces the Broker to retrieve the total number of tracks in the current "
+              "playlist.")
+
+    def do_playlist_total_tracks(self, line):
+        line = line.lower()
+        if not line:
+            pass
+        elif line == "get":
+            self.commands.get_playlist_total_tracks(self.uid)
+        else:
+            print("unknown argument")
+            return
+        print("playlist_total_tracks: {}".format(self.playlist_total_tracks))
+
+
+    def help_playlist_position(self):
+        print("playlist_position: Gets the current playlist position.")
+        print("playlist_position [get]: Forces the Broker to retrieve the current playlist position.")
+
+    def do_playlist_position(self, line):
+        line = line.lower()
+        if not line:
+            pass
+        elif line == "get":
+            self.commands.get_playlist_position(self.uid)
+        else:
+            print("unknown argument")
+            return
+        print("playlist_position: {}".format(self.playlist_position))
+
     def help_track_position(self):
         print("track_position: Gets the current track position.")
         print("track_position [get]: Forces the Broker to retrieve the current track position.")
@@ -661,6 +693,21 @@ class SonosSpeakerCmd(cmd.Cmd):
             return
         print("track_url: {}".format(self.track_uri))
 
+    def help_track_album(self):
+        print("track_album: Gets the current track album title.")
+        print("track_album [get]: Forces the Broker to retrieve the current album title.")
+
+    def do_track_album(self, line):
+        line = line.lower()
+        if not line:
+            pass
+        elif line == "get":
+            self.commands.get_track_album(self.uid)
+        else:
+            print("unknown argument")
+            return
+        print("track_album: {}".format(self.track_album))
+
     def help_track_title(self):
         print("track_title: Gets the current track title.")
         print("track_title [get]: Forces the Broker to retrieve the current track title.")
@@ -690,6 +737,21 @@ class SonosSpeakerCmd(cmd.Cmd):
             print("unknown argument")
             return
         print("track_artist: {}".format(self.track_artist))
+
+    def help_track_album_art(self):
+        print("track_album_art: Gets the current track album art/cover.")
+        print("track_album_art [get]: Forces the Broker to retrieve the current track album art/cover.")
+
+    def do_track_album_art(self, line):
+        line = line.lower()
+        if not line:
+            pass
+        elif line == "get":
+            self.commands.get_track_album_art(self.uid)
+        else:
+            print("unknown argument")
+            return
+        print("track_album_art: {}".format(self.track_album_art))
 
     def help_radio_station(self):
         print("radio_station: Gets the current radio station.")
@@ -1388,10 +1450,50 @@ class Commands():
             }
         )
 
+    def get_track_album(self, uid):
+        return self.send(
+            {
+                'command': 'get_track_album',
+                'parameter': {
+                    'uid': uid.lower()
+                }
+            }
+        )
+
+    def get_playlist_position(self, uid):
+        return self.send(
+            {
+                'command': 'get_playlist_position',
+                'parameter': {
+                    'uid': uid.lower()
+                }
+            }
+        )
+
+    def get_playlist_total_tracks(self, uid):
+        return self.send(
+            {
+                'command': 'get_playlist_total_tracks',
+                'parameter': {
+                    'uid': uid.lower()
+                }
+            }
+        )
+
     def get_track_artist(self, uid):
         return self.send(
             {
                 'command': 'get_track_artist',
+                'parameter': {
+                    'uid': uid.lower()
+                }
+            }
+        )
+
+    def get_track_album_art(self, uid):
+        return self.send(
+            {
+                'command': 'get_track_album_art',
                 'parameter': {
                     'uid': uid.lower()
                 }
@@ -1614,5 +1716,6 @@ if __name__ == '__main__':
 
     client_ip = get_lan_ip()
 
-    broker_cmd = SonosBrokerCmd(client_hostname=client_ip, client_port=client_port, server_hostname=server_ip)
+    broker_cmd = SonosBrokerCmd(client_hostname=client_ip, client_port=client_port, server_hostname=server_ip,
+                                server_port=server_port)
     broker_cmd.cmdloop()

@@ -44,6 +44,7 @@ class SonosSpeaker(object):
 
     def __init__(self, soco):
         info = soco.get_speaker_info(timeout=5)
+
         self._fade_in = False
         self._balance = 0
         self._saved_music_item = None
@@ -55,6 +56,7 @@ class SonosSpeaker(object):
         self._alarms = ''
         self._mute = 0
         self._track_uri = ''
+        self._track_album = ''
         self._track_duration = "00:00:00"
         self._track_position = "00:00:00"
         self._streamtype = ''
@@ -69,6 +71,7 @@ class SonosSpeaker(object):
         self._led = 1
         self._max_volume = -1
         self._playlist_position = 0
+        self._playlist_total_tracks = 0
         self._model = ''
         self._status = True
         self._metadata = ''
@@ -112,7 +115,6 @@ class SonosSpeaker(object):
         :return: SoCo instance
         """
         return self._soco
-
 
     ### MODEL ##########################################################################################################
 
@@ -558,7 +560,7 @@ class SonosSpeaker(object):
         if not self.is_coordinator:
             logger.debug("forwarding track_position getter to coordinator with uid {uid}".
                          format(uid=self.zone_coordinator.uid))
-            return self.zone_coordinator.get_trackposition(force_refresh=True)
+            return self.zone_coordinator.get_trackposition(force_refresh=force_refresh)
 
         if force_refresh:
             track_info = self.soco.get_current_track_info()
@@ -600,6 +602,7 @@ class SonosSpeaker(object):
             logger.debug("forwarding playlist_position getter to coordinator with uid {uid}".
                          format(uid=self.zone_coordinator.uid))
             return self.zone_coordinator.playlist_position
+
         return self._playlist_position
 
     @playlist_position.setter
@@ -613,6 +616,27 @@ class SonosSpeaker(object):
         if self.is_coordinator:
             for speaker in self._zone_members:
                 speaker.dirty_property('playlist_position')
+
+    ### PLAYLIST TOTAL NUMBER TRACKS ###################################################################################
+
+    @property
+    def playlist_total_tracks(self):
+        if not self.is_coordinator:
+            logger.debug("forwarding playlist_position getter to coordinator with uid {uid}".
+                         format(uid=self.zone_coordinator.uid))
+            return self.zone_coordinator.playlist_total_tracks
+        return self._playlist_total_tracks
+
+    @playlist_total_tracks.setter
+    def playlist_total_tracks(self, value):
+        if self._playlist_total_tracks == value:
+            return
+        self._playlist_total_tracks = value
+        self.dirty_property('playlist_total_tracks')
+        # dirty properties for all zone members, if coordinator
+        if self.is_coordinator:
+            for speaker in self._zone_members:
+                speaker.dirty_property('playlist_total_tracks')
 
     ### STREAMTYPE #####################################################################################################
 
@@ -746,6 +770,29 @@ class SonosSpeaker(object):
         if self.is_coordinator:
             for speaker in self._zone_members:
                 speaker.dirty_property('pause', 'play', 'stop')
+
+
+    ### TRACK ALBUM ####################################################################################################
+
+    @property
+    def track_album(self):
+        if not self.is_coordinator:
+            logger.debug("forwarding track_album getter to coordinator with uid {uid}".
+                         format(uid=self.zone_coordinator.uid))
+            return self.zone_coordinator.track_album
+        return self._track_album
+
+    @track_album.setter
+    def track_album(self, value):
+        if self._track_album == value:
+            return
+        self._track_album = value
+        self.dirty_property('track_album')
+
+        # dirty properties for all zone members, if coordinator
+        if self.is_coordinator:
+            for speaker in self._zone_members:
+                speaker.dirty_property('track_album')
 
     ### RADIO STATION ##################################################################################################
 
@@ -1095,6 +1142,7 @@ class SonosSpeaker(object):
             'track_artist',
             'track_uri',
             'track_duration',
+            'track_album',
             'stop',
             'play',
             'pause',
@@ -1102,6 +1150,7 @@ class SonosSpeaker(object):
             'radio_station',
             'radio_show',
             'playlist_position',
+            'playlist_total_tracks',
             'streamtype',
             'playmode',
             'zone_icon',
@@ -1136,7 +1185,7 @@ class SonosSpeaker(object):
             'alarms',
             'is_coordinator',
             'wifi_state',
-            'balance'
+            'balance',
         )
 
     @property
@@ -1178,6 +1227,7 @@ class SonosSpeaker(object):
             self._track_duration = "00:00:00"
             self._track_position = "00:00:00"
             self._playlist_position = 0
+            self._playlist_total_tracks = 0
             self._track_uri = ''
             self._track_album_art = ''
             self._radio_show = ''
@@ -1257,8 +1307,8 @@ class SonosSpeaker(object):
                     logger.debug('Estimated snippet length: {seconds}'.format(seconds=seconds))
 
                     # maximum snippet length is 60 sec
-                    if seconds > 60:
-                        seconds = 60
+                    if seconds > 10:
+                        seconds = 10
                     if seconds < 3:
                         seconds = 3
 

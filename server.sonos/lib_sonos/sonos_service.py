@@ -312,6 +312,12 @@ class SonosServerService():
         if 'current_track_uri' in variables:
             speaker.track_uri = variables['current_track_uri']
 
+        if 'current_track' in variables:
+            speaker.playlist_position = variables['current_track']
+
+        if 'number_of_tracks' in variables:
+            speaker.playlist_total_tracks = variables['number_of_tracks']
+
         if 'current_playmode' in variables:
             speaker.playmode = variables['current_playmode'].lower()
 
