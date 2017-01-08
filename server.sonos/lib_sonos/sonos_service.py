@@ -1,10 +1,15 @@
 from __future__ import unicode_literals
 
 # -*- coding: utf-8 -*-
+import json
+import os
 import queue
+import socketserver
 import weakref
 from collections import namedtuple
 import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from lib_sonos import definitions
 from lib_sonos import sonos_speaker
 from lib_sonos.sonos_speaker import SonosSpeaker
 from lib_sonos.definitions import SCAN_TIMEOUT
@@ -23,7 +28,7 @@ try:
 except ImportError:
     import xml.etree.ElementTree as XML
 
-logger = logging.getLogger('')
+logger = logging.getLogger('sonos_broker')
 
 NS = {
     'r': 'urn:schemas-rinconnetworks-com:metadata-1-0/',
@@ -39,134 +44,146 @@ for key_, value_ in NS.items():
 log = logging.getLogger(__name__)
 Argument = namedtuple('Argument', 'name, vartype')
 Action = namedtuple('Action', 'name, in_args, out_args')
+event_lock = Lock()
 
-# noinspection PyProtectedMember
-class SonosServerService():
-    _sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-    _sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
 
-    def __init__(self, host, port, remote_folder, local_folder, quota, tts_enabled):
-        self.event_lock = Lock()
-        self.lock = Lock()
-        self.host = host
-        self.port = port
+class WebserviceHttpHandler(BaseHTTPRequestHandler):
+    webroot = None
 
-        SonosSpeaker.event_queue = queue.Queue()
-        SonosSpeaker.set_tts(local_folder, remote_folder, quota, tts_enabled)
+    def do_GET(self):
 
-        p_t = threading.Thread(target=self.process_events)
-        p_t.daemon = True
-        p_t.start()
-        g_t = threading.Thread(target=self.get_speakers_periodically)
-        g_t.daemon = True
-        g_t.start()
+        file_handler = None
 
-    def unsubscribe_speaker_events(self):
-        for speaker in sonos_speaker.sonos_speakers.values():
-            speaker.event_unsubscribe()
+        try:
+            if WebserviceHttpHandler.webroot is None:
+                self.send_error(404, 'Service Not Enabled')
+                return
+
+            # prevent path traversal
+            file_path = os.path.normpath('/' + self.path).lstrip('/')
+            file_path = os.path.join(WebserviceHttpHandler.webroot, file_path)
+
+            if not os.path.exists(file_path):
+                self.send_error(404, 'File Not Found: %s' % self.path)
+                return
+
+            # get registered mime-type
+            mime_type = utils.get_mime_type_by_filetype(file_path)
+
+            if mime_type is None:
+                self.send_error(406, 'File With Unsupported Media-Type : %s' % self.path)
+                return
+
+            client = "{ip}:{port}".format(ip=self.client_address[0], port=self.client_address[1])
+            logger.debug("Webservice: delivering file '{path}' to client ip {client}.".format(path=file_path,
+                                                                                              client=client))
+            self.send_response(200)
+            self.send_header('Content-type', mime_type)
+            self.end_headers()
+
+            file_handler = open(file_path, 'rb')
+            for chunk in utils.read_in_chunks(file_handler):
+                self.wfile.write(chunk)
+        finally:
+            if file_handler is not None:
+                file_handler.close()
+            self.connection.close()
+
+    def do_POST(self):
+        try:
+            size = int(self.headers["Content-length"])
+            command = self.rfile.read(size).decode('utf-8')
+
+            try:
+                from lib_sonos.sonos_commands import MyDecoder
+                cmd_obj = json.loads(command, cls=MyDecoder)
+            except AttributeError as err:
+                err_command = list(filter(None, err.args[0].split("'")))[-1]
+                self.make_response(False, "No command '{command}' found!".format(command=err_command))
+                return
+            status, response = cmd_obj.run()
+            self.make_response(status, response)
+            logger.debug('Server response -- status: {status} -- response: {response}'.format(status=status,
+                                                                                              response=response))
+        finally:
+            self.connection.close()
+
+    def make_response(self, status, response):
+        if status:
+            self.send_response(definitions.HTTP_SUCCESS, 'OK')
+        else:
+            self.send_response(definitions.HTTP_ERROR, 'Bad request')
+        self.send_header("Content-type", "text/html")
+        self.end_headers()
+        self.wfile.write("<html><head><title>Sonos Broker</title></head>".encode('utf-8'))
+        self.wfile.write("<body>{response}".format(response=response).encode('utf-8'))
+        self.wfile.write("</body></html>".encode('utf-8'))
+
+
+class ThreadedHTTPServer(socketserver.ThreadingMixIn, HTTPServer):
+    allow_reuse_address = True
+
+    def shutdown(self):
+        self.socket.close()
+        HTTPServer.shutdown(self)
+
+
+class SimpleHttpServer():
+    def __init__(self, ip, port, root_path):
+        self.server = ThreadedHTTPServer((ip, port), WebserviceHttpHandler)
+        WebserviceHttpHandler.webroot = root_path
+
+    def start(self):
+        self.server_thread = threading.Thread(target=self.server.serve_forever)
+        self.server_thread.daemon = True
+        self.server_thread.start()
+
+    def waitForThread(self):
+        self.server_thread.join()
+
+    def stop(self):
+        self.server.shutdown()
+        self.waitForThread()
+
+
+class GetSonosSpeakerThread(threading.Thread):
+    def __init__(self):
+        self._running_flag = False
+        self.stop = threading.Event()
+        threading.Thread.__init__(self, target=self.get_speakers_periodically, daemon=True)
 
     def get_speakers_periodically(self):
-
-        sleep_scan = SCAN_TIMEOUT
-
-        while 1:
-            try:
+        try:
+            while not self.stop.wait(1):
+                self._running_flag = True
                 logger.debug('active threads: {}'.format(len(threading.enumerate())))
                 logger.info('scan devices ...')
                 zone_group_state_shared_cache.clear()
                 SonosServerService.discover()
-
-            except Exception as err:
-                logger.exception(err)
-            finally:
-                sleep(sleep_scan)
-
-    @staticmethod
-    def _discover():
-        return discover(timeout=2, include_invisible=False)
-
-    @classmethod
-    def discover(cls):
-        try:
-            with sonos_speaker._sonos_lock:
-
-                active_uids = []
-                soco_speakers = SonosServerService._discover()
-
-                if soco_speakers is None:
-                    return
-
-                speaker_to_remove = []
-
-                for soco_speaker in soco_speakers:
-                    uid = soco_speaker.uid.lower()
-
-                    # new speaker found, update it
-                    if uid not in sonos_speaker.sonos_speakers:
-                        try:
-                            soco_speaker.get_speaker_info(refresh=True)
-                            active_uids.append(uid)
-                        except Exception:
-                            # !! sometimes an offline speaker is cached and will be found by the discover function
-                            speaker_to_remove.append(uid)
-                            continue
-                        try:
-                            _sp = SonosSpeaker(soco_speaker)
-                            sonos_speaker.sonos_speakers[uid] = _sp
-                        except Exception as ex:
-                            speaker_to_remove.append(uid)
-                            continue  # speaker maybe deleted by another thread
-                    else:
-                        try:
-                            sonos_speaker.sonos_speakers[uid].soco.get_speaker_info(refresh=True)
-                            active_uids.append(uid)
-                        except Exception:
-                            speaker_to_remove.append(uid)
-                            continue  # speaker maybe deleted by another thread
-                try:
-                    offline_uids = set(list(sonos_speaker.sonos_speakers.keys())) - set(active_uids)
-                    offline_uids = set(list(offline_uids) + speaker_to_remove)
-                except KeyError as err:
-                    print(err)
-                    pass  # speaker maybe deleted by another thread
-
-                for uid in offline_uids:
-                    logger.info("offline speaker: {uid} -- removing from list (maybe cached)".format(uid=uid))
-                    try:
-                        sonos_speaker.sonos_speakers[uid].status = False
-                        sonos_speaker.sonos_speakers[uid].send()
-                        sonos_speaker.sonos_speakers[uid].terminate()
-                    except KeyError:
-                        continue  # speaker maybe deleted by another thread
-                    finally:
-                        try:
-                            del sonos_speaker.sonos_speakers[uid]
-                        except:
-                            pass
-
-                # register events for all speaker, this has to be the last step due to some logics in the event
-                # handling routine
-
-                for speaker in sonos_speaker.sonos_speakers.values():
-                    try:
-                        speaker.set_zone_coordinator()
-                        speaker.set_group_members()
-                        speaker.event_subscription()
-                    except KeyError:
-                        pass  # speaker maybe deleted by another thread
-
-        except ReferenceError:
-            pass
+                logger.debug('Start wait')
+                self.stop.wait(SCAN_TIMEOUT)
+                logger.debug('Done waiting')
         except Exception as err:
-            logger.exception('Error in method discover()!\nError: {err}'.format(err=err))
+            logger.exception(err)
         finally:
-            pass
+            self._running_flag = False
+
+    def terminate(self):
+        self.stop.set()
+        logger.debug("GetSonosSpeakerThread terminated")
+
+
+class SonosEventThread(threading.Thread):
+    def __init__(self):
+        self._running_flag = False
+        self.stop = threading.Event()
+        threading.Thread.__init__(self, target=self.process_events, daemon=True)
 
     def process_events(self):
         speakers = []
-        while True:
+        while not self.stop.wait(1):
             try:
-                event = SonosSpeaker.event_queue.get()
+                event = SonosSpeaker.event_queue.get(True, 0.5)
                 if event is None:
                     return
 
@@ -211,100 +228,17 @@ class SonosServerService():
                 if event.service.service_type == 'AlarmClock':
                     self.handle_AlarmClock_event(speaker, event.variables)
 
+                SonosSpeaker.event_queue.task_done()
+
             except queue.Empty:
                 pass
-            except KeyboardInterrupt:
-                break
             finally:
-                self.event_lock.acquire()
-                SonosSpeaker.event_queue.task_done()
                 if not SonosSpeaker.event_queue.unfinished_tasks:
                     for speaker in speakers:
                         speaker.send()
                     del speakers[:]
-                self.event_lock.release()
 
-    @staticmethod
-    def set_radio_data(speaker, variables):
-
-        speaker.streamtype = "radio"
-        speaker.track_duration = "00:00:00"
-        speaker.radio_station = ''
-        speaker.radio_show = ''
-
-        radio_station_title = variables['enqueued_transport_uri_meta_data']
-        radio_data = variables['current_track_meta_data']
-
-        if hasattr(radio_station_title, 'title'):
-            speaker.radio_station = radio_station_title.title
-
-        if hasattr(radio_data, 'radio_show'):
-            # the format of a radio_show item seems to be this format:
-            # <radioshow><,p123456> --> rstrip ,p....
-            radio_show = radio_data.radio_show
-            if radio_show:
-                radio_show = radio_show.split(',p', 1)
-                if len(radio_show) > 1:
-                    speaker.radio_show = radio_show[0]
-
-        if hasattr(radio_data, 'album_art_uri'):
-            speaker.track_album_art = ''
-            album_art = radio_data.album_art_uri
-            if album_art:
-                if not album_art.startswith(('http:', 'https:')):
-                    album_art = 'http://' + speaker.ip + ':1400' + album_art
-                speaker.track_album_art = album_art
-
-        if hasattr(radio_data, 'stream_content'):
-            ignore_title_string = ('ZPSTR_BUFFERING', 'ZPSTR_BUFFERING', 'ZPSTR_CONNECTING', 'x-sonosapi-stream')
-            artist = ''
-            title = ''
-
-            stream_content = radio_data.stream_content
-
-            if stream_content:
-                if not stream_content.startswith(ignore_title_string):
-                    # if radio, in most cases the following format is used: artist - title
-                    # if stream_content is not null, radio is assumed
-
-                    artist, title = title_artist_parser(speaker.radio_station if speaker.radio_station else '',
-                                                        stream_content)
-            speaker.track_artist = artist
-            speaker.track_title = title
-
-    @staticmethod
-    def set_music_data(speaker, variables):
-        speaker.streamtype = "music"
-        speaker.radio_show = ''
-        speaker.radio_station = ''
-
-        if 'current_track_duration' in variables:
-            speaker.track_duration = variables['current_track_duration']
-
-        ml_track = variables['current_track_meta_data']
-        if ml_track:
-            if hasattr(ml_track, 'album_art_uri'):
-                if ml_track.album_art_uri:
-                    if not ml_track.album_art_uri.startswith(('http:', 'https:')):
-                        album_art_uri = 'http://' + speaker.ip + ':1400' + ml_track.album_art_uri
-                    speaker.track_album_art = album_art_uri
-            else:
-                speaker.track_album_art = ''
-
-            if hasattr(ml_track, 'album'):
-                speaker.track_album = ml_track.album
-            else:
-                speaker.track_album = ''
-
-            if hasattr(ml_track, 'title'):
-                speaker.track_title = ml_track.title
-            else:
-                speaker.title = ''
-
-            if hasattr(ml_track, 'creator'):
-                speaker.track_artist = ml_track.creator
-            else:
-                speaker.track_artist = ''
+        self._running_flag = False
 
     def handle_AVTransport_event(self, speaker, variables):
 
@@ -388,3 +322,206 @@ class SonosServerService():
 
         if 'loudness' in variables:
             speaker.loudness = int(variables['loudness']['Master'])
+
+    def terminate(self):
+        self.stop.set()
+        logger.debug("SonosEventThread terminated")
+
+
+# noinspection PyProtectedMember
+class SonosServerService(object):
+
+    _sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+    _sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
+
+    def __init__(self, host, port, server_url, local_folder, quota, tts_enabled, webservice_path):
+        self.lock = Lock()
+        self.host = host
+        self.port = port
+
+        self.webservice = SimpleHttpServer(self.host, self.port, webservice_path)
+        SonosSpeaker.event_queue = queue.Queue()
+        SonosSpeaker.set_tts(local_folder, server_url, quota, tts_enabled)
+
+        self.sonos_events_thread = SonosEventThread()
+        self.sonos_events_thread.start()
+        self.sonos_speakers_thread = GetSonosSpeakerThread()
+        self.sonos_speakers_thread.start()
+
+        'HTTP Server Running...........'
+        self.webservice.start()
+        self.webservice.waitForThread()
+
+    def terminate_threads(self):
+        self.webservice.stop()
+        self.sonos_speakers_thread.terminate()
+        self.sonos_events_thread.terminate()
+        self.sonos_speakers_thread.join(2)
+        self.sonos_events_thread.join(2)
+
+    def unsubscribe_speaker_events(self):
+        for speaker in sonos_speaker.sonos_speakers.values():
+            speaker.event_unsubscribe()
+
+    @staticmethod
+    def _discover():
+        return discover(timeout=10, include_invisible=False)
+
+    @classmethod
+    def discover(cls):
+        try:
+            with sonos_speaker._sonos_lock:
+
+                active_uids = []
+                soco_speakers = SonosServerService._discover()
+
+                if soco_speakers is None:
+                    return
+
+                speaker_to_remove = []
+
+                for soco_speaker in soco_speakers:
+                    uid = soco_speaker.uid.lower()
+
+                    # new speaker found, update it
+                    if uid not in sonos_speaker.sonos_speakers:
+                        try:
+                            soco_speaker.get_speaker_info(refresh=True)
+                            active_uids.append(uid)
+                        except Exception:
+                            # !! sometimes an offline speaker is cached and will be found by the discover function
+                            speaker_to_remove.append(uid)
+                            continue
+                        try:
+                            _sp = SonosSpeaker(soco_speaker)
+                            sonos_speaker.sonos_speakers[uid] = _sp
+                        except Exception as ex:
+                            speaker_to_remove.append(uid)
+                            continue  # speaker maybe deleted by another thread
+                    else:
+                        try:
+                            sonos_speaker.sonos_speakers[uid].soco.get_speaker_info(refresh=True)
+                            active_uids.append(uid)
+                        except Exception:
+                            speaker_to_remove.append(uid)
+                            continue  # speaker maybe deleted by another thread
+                try:
+                    offline_uids = set(list(sonos_speaker.sonos_speakers.keys())) - set(active_uids)
+                    offline_uids = set(list(offline_uids) + speaker_to_remove)
+                except KeyError as err:
+                    print(err)
+                    pass  # speaker maybe deleted by another thread
+
+                for uid in offline_uids:
+                    logger.info("offline speaker: {uid} -- removing from list (maybe cached)".format(uid=uid))
+                    try:
+                        sonos_speaker.sonos_speakers[uid].status = False
+                        sonos_speaker.sonos_speakers[uid].send()
+                        sonos_speaker.sonos_speakers[uid].terminate()
+                    except KeyError:
+                        continue  # speaker maybe deleted by another thread
+                    finally:
+                        try:
+                            del sonos_speaker.sonos_speakers[uid]
+                        except:
+                            pass
+
+                # register events for all speaker, this has to be the last step due to some logics in the event
+                # handling routine
+
+                for speaker in sonos_speaker.sonos_speakers.values():
+                    try:
+                        speaker.set_zone_coordinator()
+                        speaker.set_group_members()
+                        speaker.event_subscription()
+                    except KeyError:
+                        pass  # speaker maybe deleted by another thread
+
+        except ReferenceError:
+            pass
+        except Exception as err:
+            logger.exception('Error in method discover()!\nError: {err}'.format(err=err))
+        finally:
+            pass
+
+    @staticmethod
+    def set_radio_data(speaker, variables):
+
+        speaker.streamtype = "radio"
+        speaker.track_duration = "00:00:00"
+        speaker.radio_station = ''
+        speaker.radio_show = ''
+
+        radio_station_title = variables['enqueued_transport_uri_meta_data']
+        radio_data = variables['current_track_meta_data']
+
+        if hasattr(radio_station_title, 'title'):
+            speaker.radio_station = radio_station_title.title
+
+        if hasattr(radio_data, 'radio_show'):
+            # the format of a radio_show item seems to be this format:
+            # <radioshow><,p123456> --> rstrip ,p....
+            radio_show = radio_data.radio_show
+            if radio_show:
+                radio_show = radio_show.split(',p', 1)
+                if len(radio_show) > 1:
+                    speaker.radio_show = radio_show[0]
+
+        if hasattr(radio_data, 'album_art_uri'):
+            speaker.track_album_art = ''
+            album_art = radio_data.album_art_uri
+            if album_art:
+                if not album_art.startswith(('http:', 'https:')):
+                    album_art = 'http://' + speaker.ip + ':1400' + album_art
+                speaker.track_album_art = album_art
+
+        if hasattr(radio_data, 'stream_content'):
+            ignore_title_string = ('ZPSTR_BUFFERING', 'ZPSTR_BUFFERING', 'ZPSTR_CONNECTING', 'x-sonosapi-stream')
+            artist = ''
+            title = ''
+
+            stream_content = radio_data.stream_content
+
+            if stream_content:
+                if not stream_content.startswith(ignore_title_string):
+                    # if radio, in most cases the following format is used: artist - title
+                    # if stream_content is not null, radio is assumed
+
+                    artist, title = title_artist_parser(speaker.radio_station if speaker.radio_station else '',
+                                                        stream_content)
+            speaker.track_artist = artist
+            speaker.track_title = title
+
+    @staticmethod
+    def set_music_data(speaker, variables):
+        speaker.streamtype = "music"
+        speaker.radio_show = ''
+        speaker.radio_station = ''
+
+        if 'current_track_duration' in variables:
+            speaker.track_duration = variables['current_track_duration']
+
+        ml_track = variables['current_track_meta_data']
+        if ml_track:
+            if hasattr(ml_track, 'album_art_uri'):
+                if ml_track.album_art_uri:
+                    if not ml_track.album_art_uri.startswith(('http:', 'https:')):
+                        album_art_uri = 'http://' + speaker.ip + ':1400' + ml_track.album_art_uri
+                    speaker.track_album_art = album_art_uri
+            else:
+                speaker.track_album_art = ''
+
+            if hasattr(ml_track, 'album'):
+                speaker.track_album = ml_track.album
+            else:
+                speaker.track_album = ''
+
+            if hasattr(ml_track, 'title'):
+                speaker.track_title = ml_track.title
+            else:
+                speaker.title = ''
+
+            if hasattr(ml_track, 'creator'):
+                speaker.track_artist = ml_track.creator
+            else:
+                speaker.track_artist = ''

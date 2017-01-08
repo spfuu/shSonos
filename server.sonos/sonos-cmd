@@ -348,6 +348,64 @@ class SonosSpeakerCmd(cmd.Cmd):
             return
         print("balance: {}".format(self.balance))
 
+    def help_join(self):
+        print("join: Gets the current join state (with zone members, zone_name and is_coordinator).")
+        print("join [get]: Gets the current join state (with zone members, zone_name and is_coordinator).")
+        print("join [set]: Joins the speaker to a group.")
+
+    def do_join(self, line):
+        line = line.lower()
+        if not line:
+            pass
+        elif line == "get":
+            pass
+        elif line == "set":
+            uid_to_join = input(normalize_output("Sonos uid to join", "rincon_xxxx", None))
+            if uid_to_join:
+                self.commands.join(self.uid, uid_to_join)
+                sleep(1)
+        else:
+            print("unknown argument")
+            return
+        print("in zone: {0}".format(self.zone_name))
+        print("zone member: {0}".format(self.additional_zone_members))
+        print("is coordinator: {0}".format(self.is_coordinator))
+
+        joined_group = False
+        if self.additional_zone_members:
+            joined_group = True
+        print("joined group: {0}".format(joined_group))
+
+    def help_unjoin(self):
+        print("unjoin: Gets the current join state (with zone members, zone_name and is_coordinator).")
+        print("unjoin [get]: Gets the current join state (with zone members, zone_name and is_coordinator).")
+        print("unjoin [set]: Unjoins the speaker from a group.")
+
+    def do_unjoin(self, line):
+        line = line.lower()
+        if not line:
+            pass
+        elif line == "get":
+            pass
+        elif line == "set":
+            default_play = 0
+            play = input(normalize_output("Play after unjoin", "0|1", default_play))
+            if not play:
+                play = default_play
+            self.commands.unjoin(self.uid, play=play)
+            sleep(1)
+        else:
+            print("unknown argument")
+            return
+        print("in zone: {0}".format(self.zone_name))
+        print("zone member: {0}".format(self.additional_zone_members))
+        print("is coordinator: {0}".format(self.is_coordinator))
+
+        joined_group = False
+        if self.additional_zone_members:
+            joined_group = True
+        print("joined group: {0}".format(joined_group))
+
     def help_bass(self):
         print("bass: Gets the current bass level.")
         print("bass [get]: Forces the Broker to retrieve the speakers bass level.")
@@ -1121,6 +1179,16 @@ class Commands():
             }
         )
 
+    def get_zone_members(self, uid):
+        return self.send(
+            {
+                'command': 'zone_members',
+                'parameter': {
+                    'uid': uid.lower()
+                }
+            }
+        )
+
     def get_balance(self, uid):
         return self.send(
             {
@@ -1639,6 +1707,28 @@ class Commands():
             {
                 'command': 'sonos_broker_version'
 
+            }
+        )
+
+    def join(self, uid, join_uid):
+        return self.send(
+            {
+                'command': 'join',
+                'parameter': {
+                    'uid': uid.lower(),
+                    'join_uid': join_uid
+                }
+            }
+        )
+
+    def unjoin(self, uid, play=0):
+        return self.send(
+            {
+                'command': 'unjoin',
+                'parameter': {
+                    'uid': uid.lower(),
+                    'play': play
+                }
             }
         )
 

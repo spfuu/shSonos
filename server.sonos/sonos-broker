@@ -4,88 +4,39 @@
 # ####################################################################
 # Imports
 # ####################################################################
-import json
-
 import os
 import argparse
-from http.server import BaseHTTPRequestHandler, HTTPServer
 import locale
-import socketserver
 import logging
 import logging.handlers
-import threading
 import configparser
 import signal
 import time
+import pwd
 from lib_sonos import utils
 from lib_sonos import definitions
 from lib_sonos.sonos_service import SonosServerService
-from lib_sonos import daemon
-from lib_sonos import sonos_commands
+import requests
+import sys
+import io
+
+# ####################################################################
+# HOTFIX ENCODING
+# ####################################################################
+
+# we want to make sure the right encoding is used; don't trust the system settings
+for s in ("stdin", "stdout", "stderr"):
+    setattr(sys, s, io.TextIOWrapper(getattr(sys, s).detach(), encoding="utf8"))
 
 # ####################################################################
 # GLOBALS
 # ####################################################################
-import requests
 
-command_service = None
 homedir = os.path.dirname(os.path.realpath(__file__))
-logger = logging.getLogger('')
-
-class SonosHttpHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        try:
-            global command_service
-            result, response = command_service.do_work(self.client_address[0], self.path)
-            if result:
-                self.send_response(definitions.HTTP_SUCCESS, 'OK')
-            else:
-                self.send_response(definitions.HTTP_ERROR, 'Bad request')
-            self.send_header("Content-type", "text/html")
-            self.end_headers()
-            self.wfile.write("{}".format(response).encode('utf-8'))
-        finally:
-            self.connection.close()
-
-    def do_POST(self):
-        try:
-            size = int(self.headers["Content-length"])
-            command = self.rfile.read(size).decode('utf-8')
-
-            try:
-                cmd_obj = json.loads(command, cls=sonos_commands.MyDecoder)
-            except AttributeError as err:
-                err_command = list(filter(None, err.args[0].split("'")))[-1]
-                self.make_response(False, "No command '{command}' found!".format(command=err_command))
-                return
-            status, response = cmd_obj.run()
-            self.make_response(status, response)
-            logger.debug('Server response -- status: {status} -- response: {response}'.format(status=status,
-                                                                                              response=response))
-
-        finally:
-            self.connection.close()
-
-    def make_response(self, status, response):
-        if status:
-            self.send_response(definitions.HTTP_SUCCESS, 'OK')
-        else:
-            self.send_response(definitions.HTTP_ERROR, 'Bad request')
-        self.send_header("Content-type", "text/html")
-        self.end_headers()
-        self.wfile.write("<html><head><title>Sonos Broker</title></head>".encode('utf-8'))
-        self.wfile.write("<body>{response}".format(response=response).encode('utf-8'))
-        self.wfile.write("</body></html>".encode('utf-8'))
-
-class ThreadedHTTPServer(socketserver.ThreadingMixIn, HTTPServer):
-    """Handle requests in a separate thread."""
+logger = logging.getLogger('sonos_broker')
 
 
-class SonosBroker():
-    @property
-    def loghandler(self):
-        return self._loghandler
-
+class SonosBroker(object):
     @property
     def list_only(self):
         return self._list_only
@@ -95,26 +46,25 @@ class SonosBroker():
         self._list_only = value
 
     def __init__(self, debug=False, config=None):
-        global command_service
         global homedir
         global logger
+        self.stopped = False
         self._debug = debug
         self._loghandler = None
-        self._http_server = None
         self._host = ''
         self._port = ''
         self._tts_local_mode = False
         self._save_path = None
         self._server_url = None
         self._quota = None
-        self._server_ip = None
         self._logfile = None
-        self._port = definitions.DEFAULT_PORT
-        self._host = definitions.DEFAULT_HOST
+        self._port = None
+        self._host = None
         self._sonos_service = None
         self._server_active = True
         self._list_only = False
         self._config = config
+        self._webservice_root_path = None
 
         # ############################################################
         # Signal Handling
@@ -161,8 +111,8 @@ class SonosBroker():
                 if not os.path.exists(os.path.dirname(self._logfile)):
                     os.makedirs(os.path.dirname(self._logfile))
             except Exception:
-                logger.error("Couldn't create logfile path '{path}'. Using default path {'def_path}'!".format(
-                    path=os.path.dirname(self._logfile, def_path=definitions.DEFAULT_LOG)))
+                logger.error("Couldn't create logfile path '{path}'. Using default path '{default_path}'!".format(
+                    path=os.path.dirname(self._logfile, default_path=definitions.DEFAULT_LOG)))
 
             numeric_level = getattr(logging, loglevel.upper(), None)
 
@@ -207,20 +157,8 @@ class SonosBroker():
                     print("Error creating logfile {}: {}".format(self._logfile, e))
 
         if config.has_section('sonos_broker'):
-            if config.has_option('sonos_broker', 'server_ip'):
-                self._server_ip = config.get('sonos_broker', 'server_ip')
-
-            if config.has_option('sonos_broker', 'host'):
-                self._host = config.get('sonos_broker', 'host')
-
-            if config.has_option('sonos_broker', 'port'):
-                self._port = config.getint('sonos_broker', 'port')
-
-        if not self._server_ip:
-            self._server_ip = utils.get_lan_ip()
-            if not self._server_ip:
-                raise Exception("Could not detect the internal server ip automatically! Set the ip address "
-                                "manually (see config file)")
+            self._host = config.get('sonos_broker', 'host', fallback=definitions.DEFAULT_BROKER_LISTENING_IP)
+            self._port = config.getint('sonos_broker', 'port', fallback=definitions.DEFAULT_BROKER_PORT)
 
         if config.has_section('google_tts'):
             if config.has_option('google_tts', 'enabled'):
@@ -270,56 +208,56 @@ class SonosBroker():
             logger.debug('server_url: {}'.format(self._server_url))
             logger.debug('save_path: {}'.format(self._save_path))
 
+        # ############################################################
+        # Web Service
+        # ############################################################
+
+        if config.has_section('webservice'):
+            if config.has_option('webservice', 'enabled'):
+                if config.getboolean('webservice', 'enabled', fallback=False):
+                    # check server root path
+                    # exists ?
+                    server_root_path = config.get('webservice', 'root_path', fallback='')
+                    if server_root_path:
+                        logger.debug("Web server root-path set to '{path}'.".format(path=server_root_path))
+                        if os.path.exists(server_root_path):
+                            # check for permissions
+                            if os.access(server_root_path, os.R_OK):
+                                logger.debug(
+                                    "Web server root path '{path}' permission ok.".format(path=server_root_path))
+                                # if all checks passed, then we set the variable
+                                self._webservice_root_path = server_root_path
+                            else:
+                                user_name = pwd.getpwuid(os.getuid()).pw_name
+                                logger.error(
+                                    "User '{user}' has no read permissions for path '{path}'. Web server functionality "
+                                    "disabled.".format(user=user_name, path=server_root_path))
+                        else:
+                            logger.error("Web server root directory '{path}' not exists. Web server functionality "
+                                         "disabled.".format(path=server_root_path))
+                    else:
+                        logger.error("No server root-path set. Web server functionality disabled.")
+                else:
+                    logger.debug("Integrated web-server functionality not enabled in config.")
+
     def start(self):
-        global command_service
+
+        signal.signal(signal.SIGHUP, self.stop)
+        signal.signal(signal.SIGINT, self.stop)
+        signal.signal(signal.SIGTERM, self.stop)
+
         logger.info("Sonos Broker v{version}".format(version=definitions.VERSION))
-        logger.info(
-            "Starting server with ip address {ip} ... be sure this is correct.".format(ip=self._server_ip))
         time.sleep(1)
-        self._sonos_service = SonosServerService(self._server_ip, self._port, self._server_url, self._save_path,
-                                                 self._quota, self._tts_local_mode)
-        self._http_server = ThreadedHTTPServer((self._host, self._port), SonosHttpHandler)
-        logger.info('Starting http server, use <Ctrl-C> to stop')
+        self._sonos_service = SonosServerService(self._host, self._port, self._server_url, self._save_path,
+                                                 self._quota, self._tts_local_mode, self._webservice_root_path)
 
-        while self._server_active:
-            self._http_server.serve_forever()
-
-    def stop(self):
+    def stop(self, *args):
+        logger.debug('Shutting down Sonos Broker ...')
         logger.debug('unsubscribing from sonos speakers ...')
         if self._sonos_service is not None:
             self._sonos_service.unsubscribe_speaker_events()
-        if self._http_server:
-            self._server_active = False
-            logger.debug('closing http server ...')
-            self._http_server.socket.close()
-        for thread in threading.enumerate():
-            try:
-                thread.join(2)
-            except:
-                pass
-        if threading.active_count() > 1:
-            for thread in threading.enumerate():
-                logger.info("Thread: {}, still alive".format(thread.name))
-        else:
-            logger.info("Sonos Broker stopped")
-
-
-def kill(pid, wait=10):
-    delay = 0.25
-    waited = 0
-    if pid:
-        os.kill(pid, signal.SIGTERM)
-        while waited < wait:
-            try:
-                os.kill(pid, 0)
-            except OSError:
-                os._exit(0)
-            waited += delay
-            time.sleep(delay)
-        try:
-            os.kill(pid, signal.SIGKILL)
-        except OSError:
-            os._exit(0)
+            self._sonos_service.terminate_threads()
+        exit()
 
 
 def scan():
@@ -347,29 +285,23 @@ def scan():
             print('unknown error')
             print(ex)
 
+
 if __name__ == '__main__':
     argparser = argparse.ArgumentParser()
     subparsers = argparser.add_subparsers(dest="subparser_name")
-
     start_parser = subparsers.add_parser(name='start', help="Starts the Sonos Broker. ")
-    start_parser.add_argument('-d', '--debug', help='Debug Mode: Broker stays in foreground with verbose output',
-                           action='store_true')
-    start_parser.add_argument('-c', '--config', help='[Optional] path to a config file.')
-
-    stop_parser = subparsers.add_parser(name='stop', help="Stops the Sonos Broker.")
-    stop_parser = subparsers.add_parser(name='list', help="Lists all Sonos speaker in the network.")
+    start_parser.add_argument('-d', '--debug', help='Debug Mode: Broker starts with verbose output',
+                              action='store_true')
+    start_parser.add_argument('-c', '--config', help='[Optional] path to a config file.', dest='config')
+    list_parser = subparsers.add_parser(name='list', help="Lists all Sonos speaker in the network.")
 
     args = argparser.parse_args()
 
-    if args.subparser_name == "stop":
-        print('Shutting down Sonos Broker ...')
-        kill(daemon.get_pid(__file__))
-    elif args.subparser_name == "list":
+    if args.subparser_name == "list":
         scan()
+
     elif args.subparser_name == "start":
-
         config_path = definitions.DEFAULT_CFG
-
         if args.config:
             config_path = os.path.abspath(args.config)
         if not os.path.exists(config_path):
@@ -383,12 +315,7 @@ if __name__ == '__main__':
         else:
             locale.setlocale(locale.LC_ALL, '')
 
-        if not args.debug:
-            d = daemon.Daemonize(app=__name__, pid=definitions.DEFAULT_PID, action=broker.start,
-                                 keep_fds=[broker.loghandler.stream.fileno()])
-            d.start()
-        else:
-            broker.start()
+        broker.start()
+
     else:
-        print("Unknown command!")
-        exit()
+        argparser.print_help()

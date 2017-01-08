@@ -3,7 +3,13 @@ Smarthome.py framework (https://github.com/mknx/smarthome).
 
 ##Release
 
-v0.9  (2016-11-20)
+v1.0b1  (2017-01-02)
+    
+    -- added attribute 'play' to 'unjoin'
+        -- resumes the last played track / radio before join to another group
+    -- change expected Sonos Broker version to v1.0b1
+
+v0.9    (2016-11-20)
     
     -- added missing 'track_album' property
     -- add new property 'playlist_total_tracks'
@@ -18,23 +24,10 @@ v0.8.1  (2016-11-14)
     -- switching versioning to the current Sonos Broker version
     -- change expected Sonos Broker version to 0.8.1
     
-v1.8    (2016-11-11)
-    
-    -- ATTENTION: commands 'get_playlist' and 'set_playlist' removed  and replaced by 'sonos_playlists' and
-       'load_sonos_playlist'
-    --command "load_sonos_playlist" with parameter added. The commands loads a Sonos playlist by its name.
-        -- optional parameters: play_after_insert, clear_queue
-    -- command "play_tunein" added
-        -- 'play_tunein' expects a radio station name. The name will be searched within TuneIn and the 
-            first match is played. To make sure the correct radio station is played provide the full radio 
-            station showing in the Sonos app.
-    -- 'clear_queue' command added. The command clears the current queue.
-    -- version check against Sonos Broker to identify an out-dated plugin or Broker
-    
-
+   
 ## Requirements:
 
-  sonos_broker server v0.8.3
+  sonos_broker server v1.0b1
   (https://github.com/pfischi/shSonos)
 
   SmarthomeNG 
@@ -325,6 +318,10 @@ Edit file with this sample of mine:
             enforce_updates = True
             sonos_send = unjoin
             visu_acl = rw
+            
+            [[[play]]]
+                type = bool
+                value = 1
     
         [[partymode]]
             type = foo

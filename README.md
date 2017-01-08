@@ -1,6 +1,28 @@
 ## Release
 
-v.0.9 (2016-11-20)
+v1.0b1 (2017-01-08)
+    
+    -- integrated webservice to serve audio files for the Sonos speakers
+    -- improved 'play_snippet' and 'play_tts' functionality
+        -- the length of a snippet will now be estimated by pre-loading the audio file
+    -- bug: the 'volume' of all zone members will now be restored correctly after playing the snippet
+    -- command optional parameter 'play' added to command "unjoin"
+        -- with 'play' set to true, the prevoiusly played track (before joining a group) will resumed
+    -- changed executable name from "sonos_broker" to "sonos-broker"
+    -- changed command line tool from "sonos_cmd" to "sonos-cmd"
+    -- changed default installation path of sonos_broker.cfg to /etc/default/sonos-broker
+    -- stopping a running Sonos Broker instance is handled a bit more gracefully
+    -- updated setup script
+    -- auto-start scripts for systemd and upstart automatically placed in the appropriate folder by the 
+       installation script  
+    -- 'daemonize' behaviour removed
+    -- unnecessary parameter 'stop' removed
+    -- updated documentation
+    -- added "zone_member" command to Sonos Broker (to retrieve this value actively)
+    -- added commands 'join' and 'unjoin' to Sonos Broker commandline tool
+    -- bug: error when trying to decode non-ascii chars and the systems stdout was no set to utf8
+
+v0.9   (2016-11-20)
 
     -- added missing 'track_album' property
     -- added missing 'track_album' to Sonos-Broker commandline
@@ -13,55 +35,6 @@ v.0.9 (2016-11-20)
     -- changed maximum snippet length to 15 seconds
     -- bugfixed: Sonos Broker user-specific server port was ignored
     -- updated documentation
-    
-v.0.8.2 (2016-11-14)
-
-    -- fixed bug in GoogleTTS
-    
-v.0.8.1 (2016-11-14)
-
-    -- changed commandline arguments to control the Sonos Broker. 
-        Available arguments:
-        
-        start [-d] [-c] [-h] (-d=debug mode, -c=user-specified config file, -h=help)
-        stop
-        list
-
-    -- fixed an issue when executing sonos_broker with '-l' parameter
-    
-v0.8    (2016-11-11)
- 
-    -- **ATTENTION:** commands "get_playlist" and "set_playlist" removed. I decided to stick with 
-       the internal Sonos playlists.
-    -- new implementation Google TTS: Captcha and other issues should now be solved (for this time) 
-    -- **ATTENTION:** parameter "force_stream_mode" removed for command "play_tts" caused by the new 
-       implementation for Google TTS. The possibility for an additional TTS "stream mode" was removed. 
-       (see documentation Google TTS for setup)
-    -- new command "load_sonos_playlist". See documentation for implementation.
-    -- command "sonos_broker_version" added
-    -- command 'clear_queue' added
-    -- command 'play_tunein' added. Play any TuneIn radio station by a given name
-    -- SoCo framework changes (v0.12) with some bugfixes
-    -- removed some unused functions
-    -- fixed error when calling sonos_broker with 'l' (scan only flag)
-    -- small bugfixes
-    -- Deezer tracks and their metadata are handled correctly now
-    -- Sonos-Broker commandline tools has now parameters (type "sonos_cmd -h" for help)
-    
-v0.7    (2016-01-04)
-
-    -- command "discover" added to force a manual scan for Sonos speaker in the network
-    -- command "balance" can now take the optional parameter "group_command"; documentation updated
-    -- property "status" now triggers a value change notification to all connected clients 
-    -- bugfix: setting play, pause, stop could lead to an infinite loop (play-pause-play ...)
-    -- added a valid user-agent for Google TTS requests, this should solve the captcha issue
-    -- property 'model_number' added
-    -- property 'display_version' added
-    -- property 'household_id' added (a unique identifier for all players in a household)
-    -- some changes in SoCo framework
-    -- bugfixes in command-line tool
-    -- command 'balance' (especially for sonos amp and stereo paired sonos speaker) added
-
     
 
 ## Overview
@@ -80,78 +53,86 @@ smart home environment (https://github.com/mknx/smarthome/).
 
 ## Requirements
 
+#### Deleting old files
+
+If're updating the Broker it may be a good idea to delete old files. Please adapt the paths to your system.
+
+```
+sudo rm -rf /usr/local/bin/sonos*
+sudo rm -rf /usr/local/lib/python3.5/site-packages/*sonos*
+sudo rm -rf /usr/local/lib/python3.5/site-packages/soco
+```
+
 #### Server-side
 
 python3.4
 python3 libraries 'requests' and 'xmltodict' 
 
-```
-pip3 install requests
-pip3 install xmltodict
-```
 
 #### Client-side 
 
 Nothing special, just send your commands over http (JSON format) or use the Smarthome.py plugin to control
 the speakers within Smarthome.py.
+You can use the included built-in implementation, the [Sonos Broker commandline tool](#cmd_tool) 
 
 
 ## Installation
 
 #### Setup
 
-Under the github folder "server.sonos/dist/" you'll find the actual release as a tar.gz file.
-Unzip this file with:
+Under the github folder "server.sonos/dist/" you'll find the actual release as a tar.gz file. Here are two ways to 
+install the Sonos Broker:
 
-    tar -xvf sonos_broker_release.tar.gz
+##### 1. pip
 
-(adjust the filename to your needs)
+If python3-pip is installed, you can simply call
 
-Go to the unpacked folder and run setup.py with:
+    python3 -m pip -v install sonos-broker-{release-version}.tar.gz
 
-    sudo python3 setup.py install
+Every dependency should be installed automatically. 
+    
+##### 2. manually 
 
-This command will install all the python packages and places the start script to the python folder
-"/user/local/bin"
+Untar the file with and install it manually. 
 
-Make the file executable and run the sonos_broker with:
+    tar -xvf sonos-broker-{release}.tar.gz
+    cd sonos-broker-{release}
+    sudo python3 setup.py install --force
 
-    chmod +x sonos_broker
-    ./sonos_broker
+If an error occurred, you should try to (re)-install all necessary dependencies:
+  
+    pip3 install requests
+    pip3 install xmltodict
 
-Normally, the script finds the internal ip address of your computer. If not, you have to edit your sonos_broker.cfg.
+Both methods will install ```sonos-broker``` and ```sonos-cmd``` under ```/usr/local/bin``` to make both commands 
+system-wide executable. 
+The default config file is installed under ```/etc/default/sonos-broker``.
+
+The internal ip address should be set up automatically. If not, you have to edit ```/etc/default/sonos-broker```
 
     [sonos_broker]
-    server_ip = x.x.x.x
-
-(x.x.x.x means your ip: run ifconfig - a to find it out)
+    server_ip = x.x.x.x #your ip here
 
 
 #### Configuration / Start options
 
-You can edit the settings of Sonos Broker. Open 'sonos_broker.cfg' with your favorite editor and edit the file.
-All values within the config file should be self-explaining. For Google-TTS options, see the appropriate section in this
-Readme.
+You can edit the settings of Sonos Broker. Open '/etc/default/sonos-broker' (by default) with your favorite editor and 
+edit the file. All values within the config file should be self-explaining. For Google-TTS options, see the appropriate 
+section in this Readme.
 
-If you start the sonos broker with
+You can start the sonos broker with
 ```
 sonos_broker start
 ```
-the server will be automatically daemonized.
 
-You can add the -d (--debug) parameter to hold the process in the foreground.
+You can add the -d (--debug) parameter to get more output
 ```
 sonos_broker start -d
 ```
 
-An user-specified config file can be passed with the '-c' flag
+An user-specified config file can be passed with the '-c' flag. Default: /etc/default/sonos-broker
 ```
-sonos_broker start -c
-```
-
-You can stop the server with
-```
-sonos_broker stop
+sonos_broker start -c /your/config/file/path/here
 ```
 
 To get a short overview of your speakers in the network start the server with
@@ -163,23 +144,39 @@ To get an overview of all parameters type
 ```
 sonos_broker -h
 ```
-or
+and / or
 ```
 sonos_broker {command} -h
 ```
 
-To autostart the service on system boot, please follow the instruction for your linux distribution and put this
-script in the right place.
+After the successful installation with ```sudo python3 setup.py install --force``` an autostart script should be placed 
+automatically in your systems autostart directory. The autostart implementations are integrated for systems based on 
+'SYSTEMD' and 'UPSTART'. 'SYSVINIT' is NOT supported because of there are too many different sysvinit implementations. 
+To control the Broker via the system service control, see the commands below:
+ 
+<b>SYSTEMD:</b>
+```sudo systemctl [start|stop|restart] sonos-broker```
 
-To get some debug output, please edit the sonos_broker.cfg and uncomment this line in the logging section (or use the 
--d start parameter):
+For autostart:
+```sudo systemctl enable sonos-broker```
+
+
+<b>UPSTART:</b>
+```sudo service sonos-broker [start|stop|restart]```
+
+For autostart uncomment following line in ```/etc/init/sonos-broker.conf```:
+```#start on runlevel [2345]```
+
+
+To get some more debug output when running the Broker as a service, please edit the Sonos Broker config file 
+(default: /etc/default/sonos-broker) and uncomment this line in the logging section:
 
     loglevel = debug
 
 You can set the debug level to debug, info, warning, error, critical.
 Additionally, you can specify a file to pipe the debug log to this file.
 
-    logfile = log.txt
+    logfile = /path/to/your/log.txt
 
 
 ## Interactive Command Line
@@ -187,7 +184,7 @@ Additionally, you can specify a file to pipe the debug log to this file.
 You can control the Broker and your speakers without implementing your own client. To start the interactive
 command line (the Broker must be running) type
 ```
-./sonos_cmd
+sonos-cmd
 ```
 in the root folder of the Sonos Broker.
 
@@ -231,6 +228,15 @@ exit
 redirects you to the first command line level.
  
 
+## Integrated webservice for audio files
+
+Sonos Broker integrates an internal webservice to serve audio files for Sonos speakers. You can enable this feature in
+the \[webservice\] section of the Sonos Broker configuration. If enabled, you can store audio files in the configurable
+web root path (valid extensions: aac, mp4, mp3, ogg, wav, web) and they can be played with the 
+[play_snippet](#p_snippet) command. The URL is available via http://SONOS_BROKER_IP:SONOS_BROKER_PORT/. 
+This service is also helpful for the Google TTS functionality.
+
+
 ## Google TTS Support
 
 Sonos broker features the Google Text-To-Speech API. You can play any text limited to 100 chars.
@@ -240,45 +246,44 @@ Sonos broker features the Google Text-To-Speech API. You can play any text limit
 
 - local / remote mounted folder or share with read/write access
 - http access to this local folder (e.g. /var/www)
-- settings configured in sonos_broker.conf
+- settings configured in sonos-broker configuration file (default: /etc/default/sonos-broker)
+- running a webservice
 
 #### Internals
 
-If a text is given to the google tts function, sonos broker makes a http request to the Google API. The response is 
-stored as a mp3-file to the local / remote folder. 
+If a text is given to the google tts function, the Sonos Broker makes a http request to the Google API. The response is 
+stored as a mp3-file to a local / remote folder. 
     
-Before the request is made ('local mode'), the broker checks whether a file exists
-with the same name. The file name of a tts-file is always:  BASE64(<tts_txt>_<tts_language>).mp3
-You can set a file quota in the config file. This limits the amount of disk space the broker can use to save tts files. 
-If the quota exceeds, you will receive a message. By default the quota is set to 100 mb.
-
-    sonos_broker.cfg:
+Before the request is made, the broker checks whether a file exists with the same name. The file name of a tts-file 
+is always:  BASE64(<tts_txt>_<tts_language>).mp3. You can set a file quota in the config file. This limits the amount 
+of disk space the broker can use to save tts files. If the quota exceeds, you will receive a message. By default the 
+quota is set to 100 mb.
 
     [google_tts]
     quota = 200
 
-By default, Google TTS support is disabled. To enable the service, add following line to sonos_broker.cfg:
-
-    sonos_broker.cfg:
+By default, Google TTS support is disabled. To enable the service, add following line to your sonos-broker 
+configuration:
 
     [google_tts]
     enable = true
 
-You have to set the local save path (where the mp3 is stored) and the accessible local url:
-
-    sonos_broker.cfg
-
+You have to set the local save path (where the mp3 is stored) and an accessible url. If're using the integrated
+webservice, 'save_path' and 'root_path' in the \[webservice\] section should be the same value.     
+The server url must point to a webservice that handles the Sonos speaker requests, e.g. a nginx or apache server. By 
+enabling the integrated webservice, this is done by the Sonos Broker.
+ 
     [google_tts]
-    save_path =/your/path/here
+    save_path = /var/www/tts
     server_url = http://192.168.0.2/tts
 
-This is an example of a google_tts section in the sonos_broker.cfg file:
+This is an example of a google_tts section in Sonos Broker configuration file:
 
     [google_tts]
     enable=true
     quota=200
-    save_path =/your/path/here
-    server_url = http://192.168.0.2/tts
+    save_path = /var/www/tts
+    server_url = http://192.168.0.2:12900/tts
 
 
 ## Implementation:
@@ -437,6 +442,7 @@ Click on the links below to get a detailed command descriptions and their usage.
 ###### [get_sonos_playlists](#get_sonos_playlists)
 ###### [load_sonos_playlist](#load_sonos_playlist)
 ###### [refresh_media_library](#ref_lib)
+###### [zone_members](#zone_members)
 ###### [get_wifi_state](#get_wifi)
 ###### [set_wifi_state](#set_wifi)
 ###### [discover](#discover)
@@ -1833,13 +1839,15 @@ No special parameter needed.
 | parameter | required / optional | valid values | description |     
 | :-------- | :------------------ | :----------- | :---------- |
 | uid | required | | The UID of the Sonos speaker. |
+| play | optional | True/False, 0/1 | Should the speaker automatically start playing after unjoin. |
 
 ######Example
     JSON format:
     {
         'command': 'unjoin',
         'parameter': {
-            'uid': 'rincon_b8e93730d19801410'
+            'uid': 'rincon_b8e93730d19801410',
+            'play': False
         }
     }
 
@@ -2389,6 +2397,39 @@ This has some disadvantages. Please read the Google TTS section in this document
 ###### UDP Response sent to subscribed clients:
     No UDP response
     
+
+----
+#### <a name="zone_members">zone_members
+ Gets all additional zone members of the group the current speaker is part of. If the speaker is the only member of the
+ group, the response is empty.
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'zone_members'-status changes.
+
+| parameter | required / optional | valid values | description |
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'zone_members',
+        'parameter': {
+            'uid': rincon_b8e91111d11111400
+    }
+   
+######HTTP Response
+    HTTP 200 OK
+        or
+    Exception with HTTP status 400 and the specific error message.
+
+###### UDP Response sent to subscribed clients:
+    JSON format: 
+    {
+        ...
+        "zone_members": ["rincon_c4441111d11111400", "rincon_d5ee1111d11111400"]
+        "uid": "rincon_b8e91111d11111400"
+        ...
+    }
 
 ----
 #### <a name="get_wifi">get_wifi_state

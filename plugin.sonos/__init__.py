@@ -31,7 +31,7 @@ import fcntl
 import struct
 import requests
 
-EXPECTED_BROKER_VERSION = "0.9"
+EXPECTED_BROKER_VERSION = "1.0b1"
 logger = logging.getLogger('')
 sonos_speaker = {}
 
@@ -398,7 +398,13 @@ class Sonos():
                     cmd = self._command.join(uid, value)
 
                 if command == 'unjoin':
-                    cmd = self._command.unjoin(uid)
+                    play_item_name = '{}.play'.format(item._name)
+                    play = 0
+                    for child in item.return_children():
+                        if child._name.lower() == play_item_name.lower():
+                            play = child()
+                            break
+                    cmd = self._command.unjoin(uid, play)
 
                 if command == 'partymode':
                     cmd = self._command.partymode(uid)
@@ -598,11 +604,12 @@ class SonosCommand:
         }
 
     @staticmethod
-    def unjoin(uid):
+    def unjoin(uid, play=0):
         return {
             'command': 'unjoin',
             'parameter': {
-                'uid': '{uid}'.format(uid=uid)
+                'uid': '{uid}'.format(uid=uid),
+                'play': play
             }
         }
 
@@ -958,4 +965,3 @@ def get_lan_ip_fallback():
     except Exception as err:
         logger.critical(err)
         return None
-

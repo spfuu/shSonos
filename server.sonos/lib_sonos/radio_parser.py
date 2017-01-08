@@ -1,7 +1,7 @@
 import re
 import logging
 
-logger = logging.getLogger('')
+logger = logging.getLogger('sonos_broker')
 
 # dictionary: pattern_station : [ pattern_track_artist_1, pattern_track_artist_2, ...]
 # ALWAYS use a named group for track and artist

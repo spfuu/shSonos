@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
-
-from soco.data_structures import DidlItem, DidlResource
+import os
 from soco.compat import quote_url
+import queue
 from soco.data_structures import DidlItem, to_didl_string
-
 import logging
 import requests
 from lib_sonos.utils import NotifyList
@@ -22,13 +21,14 @@ try:
 except ImportError:
     import xml.etree.ElementTree as XML
 
-logger = logging.getLogger('')
+logger = logging.getLogger('sonos_broker')
+
 sonos_speakers = {}
 _sonos_lock = threading.Lock()
+event_queue = queue.Queue()
 
 class SonosSpeaker(object):
     tts_enabled = False
-    event_queue = None
     local_folder = ''
     remote_folder = ''
 
@@ -38,9 +38,6 @@ class SonosSpeaker(object):
         SonosSpeaker.remote_folder = remote_folder
         SonosSpeaker.quota = quota
         SonosSpeaker.tts_enabled = tts_enabled
-
-    def __del__(self):
-        logger.debug("DESTRUCTOR !!! Speaker object destructed")
 
     def __init__(self, soco):
         info = soco.get_speaker_info(timeout=5)
@@ -335,7 +332,8 @@ class SonosSpeaker(object):
         return self._zone_members
 
     def zone_member_changed(self):
-        self.dirty_property('additional_zone_members')
+        self.current_state(group_command=True)
+        # self.dirty_property('additional_zone_members')
 
     @property
     def additional_zone_members(self):
@@ -348,13 +346,13 @@ class SonosSpeaker(object):
             members = ''
         return members
 
-    ### IP #############################################################################################################
+    # IP ###############################################################################################################
 
     @property
     def ip(self):
         return self._ip
 
-    ### BALANCE ########################################################################################################
+    # BALANCE ##########################################################################################################
     def get_balance(self):
         return self._balance
 
@@ -771,7 +769,6 @@ class SonosSpeaker(object):
             for speaker in self._zone_members:
                 speaker.dirty_property('pause', 'play', 'stop')
 
-
     ### TRACK ALBUM ####################################################################################################
 
     @property
@@ -952,19 +949,24 @@ class SonosSpeaker(object):
             else:
                 speaker = sonos_speakers[join_uid]
             self.soco.join(speaker.soco)
-
+            sec_to_wait = 3
+            logger.debug("Waiting {sleep} seconds after join ...".format(sleep=sec_to_wait))
+            time.sleep(sec_to_wait)
         except Exception:
             raise Exception('No master speaker found for uid \'{uid}\'!'.format(uid=join_uid))
 
-    ### UNJOIN #########################################################################################################
+    # UNJOIN ###########################################################################################################
 
-    def unjoin(self):
+    def unjoin(self, play=False):
 
         """
         Unjoins the current speaker from a group.
         """
-
         self.soco.unjoin()
+        sec_to_wait = 3
+        logger.debug("Waiting {sleep} seconds after unjoin ...".format(sleep=sec_to_wait))
+        time.sleep(sec_to_wait)
+        self.set_play(play, trigger_action=True)
 
     ### CURRENT STATE ##################################################################################################
 
@@ -979,7 +981,6 @@ class SonosSpeaker(object):
         if group_command:
             for speaker in self._zone_members:
                 speaker.current_state(group_command=False)
-
 
     ### WIFI STATE #####################################################################################################
 
@@ -1257,7 +1258,7 @@ class SonosSpeaker(object):
         else:
             return self.soco.play_uri(uri)
 
-    def play_snippet(self, uri, volume=-1, group_command=False, fade_in=False):
+    def play_snippet(self, uri, volume=-1, group_command=False, fade_in=False, snippet_len=None):
 
         """
         Plays a audio snippet. This will pause the current audio track , plays the snippet and after that, the previous
@@ -1273,10 +1274,23 @@ class SonosSpeaker(object):
         if not self.is_coordinator:
             logger.debug("forwarding play_snippet command to coordinator with uid {uid}".
                          format(uid=self.zone_coordinator.uid))
-            self._zone_coordinator.play_snippet(uri, volume, group_command=group_command)
+            self._zone_coordinator.play_snippet(uri, volume, group_command=group_command, snippet_len=snippet_len)
         else:
             with self._snippet_queue_lock:
                 try:
+
+                    # determine the estimated snippet length
+                    if snippet_len is None:
+                        # we're trying to retrieve the snippet information from the mp3 file
+                        # we download the mp3 file, save this it temporary, getting the duration and remove this file
+                        # afterwards
+                        snippet_len = utils.get_mp3_length_by_stream(uri)
+
+                    volumes = {}
+                    # save all volumes from zone_member
+                    for member in self.zone_members:
+                        volumes[member] = member.volume
+
                     _saved_music_item = Snapshot(device=self.soco, snapshot_queue=False)
                     _saved_music_item.snapshot()
 
@@ -1301,32 +1315,42 @@ class SonosSpeaker(object):
 
                     self.soco.play_from_queue(snippet_index)
 
-                    time.sleep(1)
-                    h, m, s = self.track_duration.split(":")
-                    seconds = int(h) * 3600 + int(m) * 60 + int(s) + 1
-                    logger.debug('Estimated snippet length: {seconds}'.format(seconds=seconds))
+                    if snippet_len is None:
+                        # this is the last fallaback
+                        # we starting playing the snippet and trying to retrieve the duration from sonos api
+                        # this is not bullet-proof
+                        time.sleep(1)
+                        h, m, s = self.track_duration.split(":")
+                        seconds = int(h) * 3600 + int(m) * 60 + int(s) + 1
+                        logger.debug('Estimated snippet length: {seconds}'.format(seconds=seconds))
 
-                    # maximum snippet length is 60 sec
-                    if seconds > 10:
-                        seconds = 10
-                    if seconds < 3:
-                        seconds = 3
+                        # maximum snippet length is 30 sec
+                        if seconds > 30:
+                            seconds = 30
+                        if seconds < 3:
+                            seconds = 3
+                    else:
+                        seconds = int(snippet_len)
 
-                    logger.debug('Waiting {seconds} seconds until snippet has finished playing.'.format(seconds=seconds))
-                    time.sleep(seconds)
+                    logger.debug(
+                        'Waiting {seconds} seconds until snippet has finished playing.'.format(seconds=seconds))
+                    time.sleep(seconds + 3)
 
                     self.soco.remove_from_queue(snippet_index)
                     _saved_music_item.restore(fade=fade_in)
 
-                    if fade_in:
-                        for member in self.zone_members:
-                            vol_to_ramp = member.soco.volume
-                            member.soco.volume = 0
-                            member.soco.renderingControl.RampToVolume(
-                                [('InstanceID', 0), ('Channel', 'Master'),
-                                 ('RampType', 'SLEEP_TIMER_RAMP_TYPE'),
-                                 ('DesiredVolume', vol_to_ramp),
-                                 ('ResetVolumeAfter', False), ('ProgramURI', '')])
+                    for member in self.zone_members:
+                        if member in volumes:
+                            if fade_in:
+                                vol_to_ramp = volumes[member]
+                                member.soco.volume = 0
+                                member.soco.renderingControl.RampToVolume(
+                                    [('InstanceID', 0), ('Channel', 'Master'),
+                                     ('RampType', 'SLEEP_TIMER_RAMP_TYPE'),
+                                     ('DesiredVolume', vol_to_ramp),
+                                     ('ResetVolumeAfter', False), ('ProgramURI', '')])
+                            else:
+                                member.set_volume(volumes[member], trigger_action=True, group_command=False)
 
                 except Exception as err:
                     print(err)
@@ -1336,15 +1360,22 @@ class SonosSpeaker(object):
         # The play_snippet function does the necessary work.
 
         if not SonosSpeaker.tts_enabled:
-            print("Google TTS disabled. Check your config.")
+            logger.warning("Google TTS disabled. Check your config.")
             return
 
         filename = utils.save_google_tts(SonosSpeaker.local_folder, tts, language, SonosSpeaker.quota)
+
+        # try to get the snippet len
+        mp3 = os.path.join(SonosSpeaker.local_folder, filename)
+        logger.debug("Retrieving mp3 duration from file '{file}' ...".format(file=mp3))
+        snippet_len = utils.get_mp3_length_by_file(mp3)
+        logger.debug("mp3 snippet length is {seconds} seconds.".format(seconds=snippet_len))
+
         if SonosSpeaker.local_folder.endswith('/'):
             SonosSpeaker.local_folder = SonosSpeaker.local_folder[:-1]
         url = '{}/{}'.format(SonosSpeaker.remote_folder, filename)
 
-        self.play_snippet(url, volume, group_command, fade_in)
+        self.play_snippet(url, volume, group_command, fade_in, snippet_len=snippet_len)
 
     def set_add_to_queue(self, uri):
         self.soco.add_to_queue(uri)

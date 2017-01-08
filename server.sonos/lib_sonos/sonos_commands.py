@@ -14,7 +14,7 @@ from lib_sonos import utils
 from lib_sonos.utils import underscore_to_camel
 from lib_sonos import definitions
 
-logger = logging.getLogger('')
+logger = logging.getLogger('sonos_broker')
 
 
 class MyDecoder(json.JSONDecoder):
@@ -1478,7 +1478,7 @@ class Join(JsonCommandBase):
             return self._status, self._response
 
 
-### UNJOIN #############################################################################################################
+# UNJOIN ###############################################################################################################
 
 class Unjoin(JsonCommandBase):
     def __init__(self, parameter):
@@ -1492,7 +1492,16 @@ class Unjoin(JsonCommandBase):
             if self.uid not in sonos_speaker.sonos_speakers:
                 raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
 
-            sonos_speaker.sonos_speakers[self.uid].unjoin()
+            play = False
+            if hasattr(self, 'play'):
+                if self.play in [1, True, '1', 'True', 'yes']:
+                    play = True
+                elif self.play in [0, False, '0', 'False', 'no']:
+                    play = False
+                else:
+                    raise Exception('The parameter \'play\' has to be 0|1 or True|False !')
+
+            sonos_speaker.sonos_speakers[self.uid].unjoin(play)
             self._status = True
 
         except requests.ConnectionError:
@@ -1506,7 +1515,7 @@ class Unjoin(JsonCommandBase):
             return self._status, self._response
 
 
-### CLIENT LIST ########################################################################################################
+# CLIENT LIST ##########################################################################################################
 
 class ClientList(JsonCommandBase):
     def __init__(self, parameter):
@@ -1766,6 +1775,30 @@ class SonosBrokerVersion(JsonCommandBase):
         finally:
             return self._status, self._response
 
+### ZoneMembers ########################################################################################################
+
+class ZoneMembers(JsonCommandBase):
+    def __init__(self, parameter):
+        super().__init__(parameter)
+
+    def run(self):
+        try:
+            logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
+                                                                                  attributes=utils.dump_attributes(
+                                                                                      self)))
+            sonos_speaker.sonos_speakers[self.uid].dirty_property('zone_members')
+            sonos_speaker.sonos_speakers[self.uid].send()
+            self._status = True
+
+        except requests.ConnectionError:
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
+                format(uid=self.uid)
+        except AttributeError as err:
+            self._response = JsonCommandBase.missing_param_error(err)
+        except Exception as err:
+            self._response = err
+        finally:
+            return self._status, self._response
 
 ### IsCoordiantor ######################################################################################################
 

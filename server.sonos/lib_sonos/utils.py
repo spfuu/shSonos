@@ -4,9 +4,11 @@ from __future__ import unicode_literals
 import base64
 import ctypes
 import json
+import ntpath
 import os
 import platform
 import socket
+import tempfile
 import weakref
 import requests
 import re
@@ -15,6 +17,7 @@ import urllib.request
 import logging
 import sys
 from lib_sonos.tts import gTTS
+from lib_sonos.tinytag import TinyTag
 
 
 if os.name != "nt":
@@ -28,8 +31,7 @@ except ImportError:
     StringType = bytes
     UnicodeType = str
 
-logger = logging.getLogger('')
-
+logger = logging.getLogger('sonos_broker')
 
 class WeakMethod:
     def __init__(self, inst, method_name):
@@ -38,6 +40,104 @@ class WeakMethod:
 
     def __call__(self, *args):
         return getattr(self.proxy, self.method_name)(*args)
+
+def read_in_chunks(file_object, chunk_size=1024):
+    """Lazy function (generator) to read a file piece by piece.
+    Default chunk size: 1k."""
+    while True:
+        data = file_object.read(chunk_size)
+        if not data:
+            break
+        yield data
+
+def get_mime_type_by_filetype(file_path):
+    try:
+        mapping = {
+            "audio/aac": "aac",
+            "audio/mp4": "mp4",
+            "audio/mpeg": "mp3",
+            "audio/ogg": "ogg",
+            "audio/wav": "wav",
+            "audio/webm": "web"
+        }
+
+        filename, extension = os.path.splitext(file_path)
+        extension = extension.strip('.').lower()
+
+        for mime_type, key in mapping.items():
+            if extension == key:
+                return mime_type
+
+        raise Exception("Could not found mime-type for extension '{ext}'.".format(extension))
+
+    except Exception as err:
+        logger.warning(err)
+        return None
+
+def get_mp3_length_by_file(file_path):
+    try:
+        return TinyTag.get(file_path).duration
+    except Exception as err:
+        logger.error("Could not determine snippet length!")
+        logger.error(err)
+        return None
+
+def get_mp3_length_by_stream(url):
+    try:
+        # HTML5 Audio Types
+        mapping = {
+            "audio/aac": "aac",
+            "audio/mp4": "mp4",
+            "audio/mpeg": "mp3",
+            "audio/ogg": "ogg",
+            "audio/wav": "wav",
+            "audio/webm": "web"
+        }
+
+        if url.startswith("x-rincon-mp3radio"):
+            logger.debug("Replacing 'x-rincon-mp3radio' tag with 'http'.")
+            url = url.replace("x-rincon-mp3radio", "http")
+        logger.debug("Downloading mp3 from {url}".format(url=url))
+
+        response = requests.get(url, verify=False, stream=True, timeout=(5, 2))
+        response.raise_for_status()
+        content_type = response.headers['content-type']
+        logger.debug("Content_type found: {type}".format(type=content_type))
+        extension = None
+
+        # 1. try to guess the type by content-type
+        for type in mapping:
+            if type in content_type:
+                extension = mapping[type]
+                break
+
+        # 2. try to guess it by extension
+        if extension is None:
+            splitted_url = url.rsplit('.', 1)
+            if len(splitted_url) == 2:
+                for type in mapping:
+                    if mapping[type] == splitted_url[1].lower():
+                        extension = mapping[type]
+                        break
+
+        # 3. nothing found: try mp3 hardcoded
+        if extension is None:
+            extension = "mp3"
+
+        temp_file = tempfile.NamedTemporaryFile(suffix=".{ext}".format(ext=extension))
+        with temp_file as f:
+            for chunk in response.iter_content(chunk_size=4048):
+                if chunk:  # filter out keep-alive new chunks
+                    f.write(chunk)
+
+            duration = TinyTag.get(temp_file.name).duration
+
+        return duration
+
+    except Exception as err:
+        logger.error("Could not determine snippet length!")
+        logger.error(err)
+        return None
 
 
 def really_unicode(in_string):
@@ -329,3 +429,4 @@ class NotifyList(list):
                 return cb
         else:
             return None
+

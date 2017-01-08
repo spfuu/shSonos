@@ -1,3 +1,41 @@
+v1.0b1 (2017-01-02)
+
+    -- integrated webservice to serve audio files for the Sonos speakers
+    -- improved 'play_snippet' and 'play_tts' functionality
+        -- the length of a snippet will now be estimated by pre-loading the audio file
+    -- bug: the 'volume' of all zone members will now be restored correctly after playing the snippet
+    -- command optional parameter 'play' added to command "unjoin"
+        -- with 'play' set to true, the prevoiusly played track (before joining a group) will resumed
+    -- changed executable name from "sonos_broker" to "sonos-broker"
+    -- changed command line tool from "sonos_cmd" to "sonos-cmd"
+    -- changed default installation path of sonos_broker.cfg to /etc/default/sonos-broker
+    -- stopping a running Sonos Broker instance is handled a bit more gracefully
+    -- updated setup script
+    -- auto-start scripts for systemd and upstart automatically placed in the appropriate folder by the
+       installation script
+    -- 'daemonize' behaviour removed
+    -- unnecessary parameter 'stop' removed
+    -- updated documentation
+    -- added "zone_member" command to Sonos Broker (to retrieve this value actively)
+    -- added commands 'join' and 'unjoin' to Sonos Broker commandline tool
+    -- bug: error when trying to decode non-ascii chars and the systems stdout was no set to utf8
+
+
+v0.9   (2016-11-20)
+
+    -- added missing 'track_album' property
+    -- added missing 'track_album' to Sonos-Broker commandline
+    -- added "get_playlist_position" command and "playlist_position" property to Sonos Broker and
+       Sonos Broker commandline tool
+    -- added "get_playlist_total_tracks" command and "playlist_total_tracks" property to Sonos Broker and
+       Sonos Broker commandline tool
+    -- added missing 'track_album_art' property to Sonos Broker commandline tool
+    -- bug: 'playlist_position' was not handled correctly
+    -- changed maximum snippet length to 15 seconds
+    -- bugfixed: Sonos Broker user-specific server port was ignored
+    -- updated documentation
+
+
 v.0.8.2 (2016-11-14)
 
     -- fixed bug in GoogleTTS

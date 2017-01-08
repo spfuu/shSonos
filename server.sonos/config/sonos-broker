@@ -1,0 +1,57 @@
+# This is the config file for sonos broker. Adapt and uncomment the lines to your purpose
+
+########################################################################
+[logging]
+
+# Sets the log level for the server. WARNING is the default value.
+# Possible values are: debug, info, warning, error, critical
+# Default logfile path: /tmp/sonos-broker.log
+
+# loglevel = warning
+# logfile = /tmp/sonos-broker.log
+
+########################################################################
+[sonos_broker]
+
+# Binding host address. Default: 0.0.0.0
+# host = 0.0.0.0
+
+# Server port. Default: 12900
+# port = 12900
+
+########################################################################
+[google_tts]
+
+# Enable Google-Text-To-Speech. Default: false
+# enabled = true
+
+# Select the path where Sonos Broker will save the converted mp3 files
+# If your're using the built-in webserver (see webserver section), 'save_path' and 'root_path' should be set to the same
+# value.
+# save_path = /var/www
+
+# Specifies the destination url which Sonos Broker refers to the Sonos speakers. This must be the hosts IP address the
+# webservice is running on.
+# server_url = http://192.168.0.8:12900
+
+# Maximum file size quota in megabytes. Up to this size, the Sonos Broker will save files to 'save_path'.
+# Default: 100
+# quota = 200
+
+########################################################################
+[webservice]
+
+# Sonos Broker can start an own webservice that delivers stored audio files to the Sonos speakers. This is helpful for
+# playing audio snippets and the Google TTS functionality. E.g. every audio snippet under 'root_path' can be played via
+# 'play_snippet' command.
+# You can leave this option disabled if you're using another webserver (nginx, apache) or you don't want to use Google
+# TTS and/or the snippet command with local audio files. You can place all your snippet audio files in the web
+# root directory. The server handles these files by their extension. Valid extensions are: aac, mp4, mp3, ogg, wav, web.
+# This does not mean that the Sonos speakers can playback such a file.
+# Port and IP address are the same as the values 'host' and 'port' in the [sonos_broker] section.
+
+# Enables the webservice. Default: false
+# enabled = false
+
+# Web-root path. The directory must exists and readable (better writeable) for the current user. Default: /var/www
+# root_path = /var/www
