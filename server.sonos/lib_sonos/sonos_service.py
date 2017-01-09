@@ -128,29 +128,31 @@ class ThreadedHTTPServer(socketserver.ThreadingMixIn, HTTPServer):
         HTTPServer.shutdown(self)
 
 
-class SimpleHttpServer():
+class SimpleHttpServer:
     def __init__(self, ip, port, root_path):
         self.server = ThreadedHTTPServer((ip, port), WebserviceHttpHandler)
         WebserviceHttpHandler.webroot = root_path
 
     def start(self):
-        self.server_thread = threading.Thread(target=self.server.serve_forever)
-        self.server_thread.daemon = True
-        self.server_thread.start()
+        self.thread = threading.Thread(target=self.server.serve_forever)
+        self.thread.daemon = True
+        self.thread.start()
 
     def waitForThread(self):
-        self.server_thread.join()
+        self.thread.join()
 
     def stop(self):
         self.server.shutdown()
         self.waitForThread()
 
 
-class GetSonosSpeakerThread(threading.Thread):
+class GetSonosSpeakerThread:
     def __init__(self):
         self._running_flag = False
         self.stop = threading.Event()
-        threading.Thread.__init__(self, target=self.get_speakers_periodically, daemon=True)
+        self.thread = threading.Thread(target=self.get_speakers_periodically)
+        self.thread.daemon = True
+        self.thread.start()
 
     def get_speakers_periodically(self):
         try:
@@ -173,11 +175,13 @@ class GetSonosSpeakerThread(threading.Thread):
         logger.debug("GetSonosSpeakerThread terminated")
 
 
-class SonosEventThread(threading.Thread):
+class SonosEventThread:
     def __init__(self):
         self._running_flag = False
         self.stop = threading.Event()
-        threading.Thread.__init__(self, target=self.process_events, daemon=True)
+        self.thread = threading.Thread(target=self.process_events)
+        self.thread.daemon = True
+        self.thread.start()
 
     def process_events(self):
         speakers = []
@@ -344,9 +348,7 @@ class SonosServerService(object):
         SonosSpeaker.set_tts(local_folder, server_url, quota, tts_enabled)
 
         self.sonos_events_thread = SonosEventThread()
-        self.sonos_events_thread.start()
         self.sonos_speakers_thread = GetSonosSpeakerThread()
-        self.sonos_speakers_thread.start()
 
         'HTTP Server Running...........'
         self.webservice.start()
@@ -356,8 +358,6 @@ class SonosServerService(object):
         self.webservice.stop()
         self.sonos_speakers_thread.terminate()
         self.sonos_events_thread.terminate()
-        self.sonos_speakers_thread.join(2)
-        self.sonos_events_thread.join(2)
 
     def unsubscribe_speaker_events(self):
         for speaker in sonos_speaker.sonos_speakers.values():
