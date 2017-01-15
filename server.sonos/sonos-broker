@@ -296,15 +296,6 @@ if __name__ == '__main__':
         if not os.path.exists(config_path):
             print("Config file not found [** {path} **]".format(path=os.path.abspath(config_path)))
             exit()
-
-        broker = SonosBroker(args.debug, config=config_path)
-
-        if locale.getdefaultlocale() == (None, None):
-            locale.setlocale(locale.LC_ALL, 'C')
-        else:
-            locale.setlocale(locale.LC_ALL, '')
-
-        broker.start()
-
+        SonosBroker(args.debug, config=config_path).start()
     else:
         argparser.print_help()
