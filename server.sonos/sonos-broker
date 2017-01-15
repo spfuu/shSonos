@@ -17,16 +17,6 @@ from lib_sonos import utils
 from lib_sonos import definitions
 from lib_sonos.sonos_service import SonosServerService
 import requests
-import sys
-import io
-
-# ####################################################################
-# HOTFIX ENCODING
-# ####################################################################
-
-# we want to make sure the right encoding is used; don't trust the system settings
-for s in ("stdin", "stdout", "stderr"):
-    setattr(sys, s, io.TextIOWrapper(getattr(sys, s).detach(), encoding="utf8"))
 
 # ####################################################################
 # GLOBALS
@@ -34,7 +24,6 @@ for s in ("stdin", "stdout", "stderr"):
 
 homedir = os.path.dirname(os.path.realpath(__file__))
 logger = logging.getLogger('sonos_broker')
-
 
 class SonosBroker(object):
     @property
@@ -144,7 +133,7 @@ class SonosBroker(object):
                 try:
                     formatter = logging.Formatter(logformat, logdate)
                     self._loghandler = logging.handlers.TimedRotatingFileHandler(self._logfile, when='midnight',
-                                                                                 backupCount=7)
+                                                                                 backupCount=7, encoding='utf-8')
                     self._loghandler.setLevel(numeric_level)
                     self._loghandler.setFormatter(formatter)
                     if numeric_level == logging.DEBUG:  # clean log

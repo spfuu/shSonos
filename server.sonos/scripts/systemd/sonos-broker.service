@@ -4,8 +4,8 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/sbin/sonos_broker start
-#ExecStop=/usr/local/sbin/sonos_broker
+ExecStart=/usr/local/bin/sonos_broker start
+#ExecStop=/usr/local/bin/sonos_broker
 
 [Install]
 WantedBy=default.target

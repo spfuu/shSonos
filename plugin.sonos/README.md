@@ -3,6 +3,10 @@ Smarthome.py framework (https://github.com/mknx/smarthome).
 
 ##Release
 
+v1.0b2  (2017-01-15)
+
+    -- version string updated to v1.0b2
+    
 v1.0b1  (2017-01-02)
     
     -- added attribute 'play' to 'unjoin'

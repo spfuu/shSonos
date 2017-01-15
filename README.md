@@ -1,5 +1,10 @@
 ## Release
 
+v1.0b2  (2017-01-15)
+
+    -- bug: wrong path in systemd script
+    -- better unicode handling in logger? (testing)
+
 v1.0b1 (2017-01-08)
     
     -- integrated webservice to serve audio files for the Sonos speakers

@@ -31,7 +31,7 @@ import fcntl
 import struct
 import requests
 
-EXPECTED_BROKER_VERSION = "1.0b1"
+EXPECTED_BROKER_VERSION = "1.0b2"
 logger = logging.getLogger('')
 sonos_speaker = {}
 
