@@ -1,3 +1,6 @@
+v1.0b3  (2017-01-19)
+
+    -- much better event based  GoogleTTS handling
 
 v1.0b2 (2017-01-17)
 
@@ -7,8 +10,6 @@ v1.0b2 (2017-01-17)
 v1.0b1 (2017-01-02)
 
     -- integrated webservice to serve audio files for the Sonos speakers
-    -- improved 'play_snippet' and 'play_tts' functionality
-        -- the length of a snippet will now be estimated by pre-loading the audio file
     -- bug: the 'volume' of all zone members will now be restored correctly after playing the snippet
     -- command optional parameter 'play' added to command "unjoin"
         -- with 'play' set to true, the prevoiusly played track (before joining a group) will resumed

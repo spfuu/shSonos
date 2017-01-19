@@ -246,6 +246,11 @@ class SonosEventThread:
 
     def handle_AVTransport_event(self, speaker, variables):
 
+        # stop tts from restarting the track
+        if 'restart_pending' in variables:
+            if variables['restart_pending'] == "1":
+                speaker.stop_tts.set()
+
         # meta data for both types (radio, music)
         if 'current_track_uri' in variables:
             speaker.track_uri = variables['current_track_uri']

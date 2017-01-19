@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import os
 from soco.compat import quote_url
 import queue
 from soco.data_structures import DidlItem, to_didl_string
@@ -42,6 +41,7 @@ class SonosSpeaker(object):
     def __init__(self, soco):
         info = soco.get_speaker_info(timeout=5)
 
+        self.stop_tts = threading.Event()
         self._fade_in = False
         self._balance = 0
         self._saved_music_item = None
@@ -1242,27 +1242,26 @@ class SonosSpeaker(object):
 
         self.dirty_property('status')
 
-    def play_uri(self, uri, metadata=None):
+    def play_uri(self, uri):
 
         """
         Plays a song from a given uri
         :param uri: uri to be played
-        :param metadata: ATTENTION - currently not working due to a bug in SoCo framework
         :return: True, if the song is played.
         """
-
         if not self.is_coordinator:
             logger.debug("forwarding play_uri command to coordinator with uid {uid}".
                          format(uid=self.zone_coordinator.uid))
-            self.zone_coordinator.play_uri(uri, metadata)
+            self.zone_coordinator.play_uri(uri)
         else:
             return self.soco.play_uri(uri)
 
-    def play_snippet(self, uri, volume=-1, group_command=False, fade_in=False, snippet_len=None):
+    def play_snippet(self, uri, volume=-1, group_command=False, fade_in=False):
 
         """
         Plays a audio snippet. This will pause the current audio track , plays the snippet and after that, the previous
         track will be continued.
+        :param fade_in: Fade-In after the snippet was played. Default: false
         :param uri: uri to be played
         :param volume: Snippet volume [-1-100]. After the snippet was played, the previous/original volume is set. If
         volume is '-1', the current volume is used. Default: -1
@@ -1274,70 +1273,52 @@ class SonosSpeaker(object):
         if not self.is_coordinator:
             logger.debug("forwarding play_snippet command to coordinator with uid {uid}".
                          format(uid=self.zone_coordinator.uid))
-            self._zone_coordinator.play_snippet(uri, volume, group_command=group_command, snippet_len=snippet_len)
+            self._zone_coordinator.play_snippet(uri, volume, group_command=group_command)
         else:
             with self._snippet_queue_lock:
                 try:
-
-                    # determine the estimated snippet length
-                    if snippet_len is None:
-                        # we're trying to retrieve the snippet information from the mp3 file
-                        # we download the mp3 file, save this it temporary, getting the duration and remove this file
-                        # afterwards
-                        snippet_len = utils.get_mp3_length_by_stream(uri)
 
                     volumes = {}
                     # save all volumes from zone_member
                     for member in self.zone_members:
                         volumes[member] = member.volume
 
-                    _saved_music_item = Snapshot(device=self.soco, snapshot_queue=False)
-                    _saved_music_item.snapshot()
-
                     for prefix in ('http://', 'https://'):
                         if uri.startswith(prefix):
                             # Replace only the first instance
                             uri = uri.replace(prefix, 'x-rincon-mp3radio://', 1)
 
-                    snippet_index = self.soco.add_uri_to_queue(uri, title='Sonos Ansage')
+                    # Take a snapshot of the current sonos device state, we will want
+                    # to roll back to this when we are done
+                    logger.debug("Speech: Taking snapshot")
+                    snap = Snapshot(self.soco)
+                    snap.snapshot()
 
-                    if snippet_index > 0:
-                        snippet_index -= 1
+                    # Get the URI and play it
+                    logger.debug("Speech: Playing URI %s" % uri)
 
                     self.set_stop(1, trigger_action=True)
-                    time.sleep(1)
+
                     if volume == -1:
                         volume = self.volume
 
-                    logger.debug('Playing snippet \'{uri}\'. Volume: {volume}'.format(uri=uri, volume=volume))
                     if self.volume != volume:
                         self.set_volume(volume, trigger_action=True, group_command=group_command)
 
-                    self.soco.play_from_queue(snippet_index)
+                    self.play_uri(uri)
 
-                    if snippet_len is None:
-                        # this is the last fallaback
-                        # we starting playing the snippet and trying to retrieve the duration from sonos api
-                        # this is not bullet-proof
-                        time.sleep(1)
-                        h, m, s = self.track_duration.split(":")
-                        seconds = int(h) * 3600 + int(m) * 60 + int(s) + 1
-                        logger.debug('Estimated snippet length: {seconds}'.format(seconds=seconds))
+                    while not self.stop_tts.is_set():
+                        self.stop_tts.wait()
+                    self.stop_tts.clear()
 
-                        # maximum snippet length is 30 sec
-                        if seconds > 30:
-                            seconds = 30
-                        if seconds < 3:
-                            seconds = 3
-                    else:
-                        seconds = int(snippet_len)
+                    logger.debug("Speech: Stopping speech")
+                    # Stop the stream playing
+                    self.set_stop(1, trigger_action=True)
 
-                    logger.debug(
-                        'Waiting {seconds} seconds until snippet has finished playing.'.format(seconds=seconds))
-                    time.sleep(seconds + 3)
+                    logger.debug("Speech: Restoring snapshot")
 
-                    self.soco.remove_from_queue(snippet_index)
-                    _saved_music_item.restore(fade=fade_in)
+                    # Restore the sonos device back to it's previous state
+                    snap.restore()
 
                     for member in self.zone_members:
                         if member in volumes:
@@ -1365,17 +1346,11 @@ class SonosSpeaker(object):
 
         filename = utils.save_google_tts(SonosSpeaker.local_folder, tts, language, SonosSpeaker.quota)
 
-        # try to get the snippet len
-        mp3 = os.path.join(SonosSpeaker.local_folder, filename)
-        logger.debug("Retrieving mp3 duration from file '{file}' ...".format(file=mp3))
-        snippet_len = utils.get_mp3_length_by_file(mp3)
-        logger.debug("mp3 snippet length is {seconds} seconds.".format(seconds=snippet_len))
-
         if SonosSpeaker.local_folder.endswith('/'):
             SonosSpeaker.local_folder = SonosSpeaker.local_folder[:-1]
         url = '{}/{}'.format(SonosSpeaker.remote_folder, filename)
 
-        self.play_snippet(url, volume, group_command, fade_in, snippet_len=snippet_len)
+        self.play_snippet(url, volume, group_command, fade_in)
 
     def set_add_to_queue(self, uri):
         self.soco.add_to_queue(uri)
