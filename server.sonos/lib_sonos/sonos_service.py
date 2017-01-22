@@ -9,6 +9,8 @@ import weakref
 from collections import namedtuple
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
+
+import sys
 from lib_sonos import definitions
 from lib_sonos import sonos_speaker
 from lib_sonos.sonos_speaker import SonosSpeaker
@@ -77,16 +79,16 @@ class WebserviceHttpHandler(BaseHTTPRequestHandler):
             client = "{ip}:{port}".format(ip=self.client_address[0], port=self.client_address[1])
             logger.debug("Webservice: delivering file '{path}' to client ip {client}.".format(path=file_path,
                                                                                               client=client))
+            file = open(file_path, 'rb').read()
             self.send_response(200)
-            self.send_header('Content-type', mime_type)
+            self.send_header('Content-Type', mime_type)
+            self.send_header('Content-Length', sys.getsizeof(file))
             self.end_headers()
-
-            file_handler = open(file_path, 'rb')
-            for chunk in utils.read_in_chunks(file_handler):
-                self.wfile.write(chunk)
+            self.wfile.write(file)
+        except Exception as ex:
+            logger.error("Error delivering file {file}".format(file=file_path))
+            logger.error(ex)
         finally:
-            if file_handler is not None:
-                file_handler.close()
             self.connection.close()
 
     def do_POST(self):
@@ -249,7 +251,11 @@ class SonosEventThread:
         # stop tts from restarting the track
         if 'restart_pending' in variables:
             if variables['restart_pending'] == "1":
-                speaker.stop_tts.set()
+               speaker.stop_tts.set()
+
+        # stop tts thread if an transport error occurred
+        if "transport_error_description" in variables:
+            speaker.stop_tts.set()
 
         # meta data for both types (radio, music)
         if 'current_track_uri' in variables:

@@ -1283,11 +1283,6 @@ class SonosSpeaker(object):
                     for member in self.zone_members:
                         volumes[member] = member.volume
 
-                    for prefix in ('http://', 'https://'):
-                        if uri.startswith(prefix):
-                            # Replace only the first instance
-                            uri = uri.replace(prefix, 'x-rincon-mp3radio://', 1)
-
                     # Take a snapshot of the current sonos device state, we will want
                     # to roll back to this when we are done
                     logger.debug("Speech: Taking snapshot")
@@ -1307,14 +1302,12 @@ class SonosSpeaker(object):
 
                     self.play_uri(uri)
 
-                    while not self.stop_tts.is_set():
-                        self.stop_tts.wait()
+                    self.stop_tts.wait(timeout=120)  # wait max 120sec
                     self.stop_tts.clear()
 
                     logger.debug("Speech: Stopping speech")
                     # Stop the stream playing
                     self.set_stop(1, trigger_action=True)
-
                     logger.debug("Speech: Restoring snapshot")
 
                     # Restore the sonos device back to it's previous state

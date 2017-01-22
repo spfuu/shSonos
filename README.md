@@ -1,5 +1,9 @@
 ## Release
 
+v1.0b4  (2017-01-22)
+
+    -- bug: endless loop while trying to play a tarck from a non-existing url
+
 v1.0b3  (2017-01-19)
 
     -- much better event based  GoogleTTS handling
