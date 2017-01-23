@@ -915,7 +915,11 @@ class SonosSpeakerCmd(cmd.Cmd):
         if not group_command:
             group_command = 0
 
-        self.commands.play_tts(self.uid, tts, volume, language, fade_in, group_command)
+        force_stream_mode = input(normalize_output("force_stream_mode", "0|1", "0"))
+        if not force_stream_mode:
+            force_stream_mode = 0
+
+        self.commands.play_tts(self.uid, tts, volume, language, fade_in, group_command, force_stream_mode)
 
     def help_is_coordinator(self):
         print("is_coordinator: Returns the status whether the speaker is a group coordinator or not.")
@@ -1624,7 +1628,7 @@ class Commands():
             }
         )
 
-    def play_tts(self, uid, tts, volume, language, fade_in, group_command):
+    def play_tts(self, uid, tts, volume, language, fade_in, group_command, force_stream_mode):
         return self.send(
             {
                 'command': 'play_tts',
@@ -1634,7 +1638,8 @@ class Commands():
                     'volume': volume,
                     'fade_in': fade_in,
                     'group_command': group_command,
-                    'language': language
+                    'language': language,
+                    'force_stream_mode': force_stream_mode
                 }
             }
         )

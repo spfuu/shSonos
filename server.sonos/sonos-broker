@@ -25,6 +25,7 @@ import requests
 homedir = os.path.dirname(os.path.realpath(__file__))
 logger = logging.getLogger('sonos_broker')
 
+
 class SonosBroker(object):
     @property
     def list_only(self):
@@ -43,8 +44,6 @@ class SonosBroker(object):
         self._host = ''
         self._port = ''
         self._tts_local_mode = False
-        self._save_path = None
-        self._server_url = None
         self._quota = None
         self._logfile = None
         self._port = None
@@ -53,7 +52,8 @@ class SonosBroker(object):
         self._server_active = True
         self._list_only = False
         self._config = config
-        self._webservice_root_path = None
+        self._webservice_path = None
+        self._webservice_url = None
 
         # ############################################################
         # Signal Handling
@@ -145,89 +145,84 @@ class SonosBroker(object):
                 except IOError as e:
                     print("Error creating logfile {}: {}".format(self._logfile, e))
 
+        ##############################################################
+        # Sonos Broker
+        ##############################################################
+
         if config.has_section('sonos_broker'):
-            self._host = config.get('sonos_broker', 'host', fallback=definitions.DEFAULT_BROKER_LISTENING_IP)
-            self._port = config.getint('sonos_broker', 'port', fallback=definitions.DEFAULT_BROKER_PORT)
+            self._host = config.get('sonos_broker', 'host', fallback=definitions.DEFAULT_HOST)
+            self._port = config.getint('sonos_broker', 'port', fallback=definitions.DEFAULT_PORT)
 
-        if config.has_section('google_tts'):
-            if config.has_option('google_tts', 'enabled'):
-                self._tts_local_mode = config.getboolean('google_tts', 'enabled')
-
-            if self._tts_local_mode:
-                if config.has_option('google_tts', 'save_path'):
-                    self._save_path = config.get('google_tts', 'save_path')
-
-                if config.has_option('google_tts', 'server_url'):
-                    self._server_url = config.get('google_tts', 'server_url')
-
-                if config.has_option('google_tts', 'quota'):
-                    self._quota = config.getint('google_tts', 'quota')
-
-        if self._tts_local_mode and not self._save_path:
-            logger.warning('No local save path given!')
-            self._tts_local_mode = False
-
-        if self._tts_local_mode and not self._server_url:
-            logger.warning('No local server url given!')
-            self._tts_local_mode = False
-
-        if self._tts_local_mode and not self._quota:
-            self._quota = definitions.DEFAULT_QUOTA
-
-        if self._tts_local_mode:
-            if not utils.check_directory_permissions(self._save_path):
-                logger.warning('No sufficient folder permissions in \'{}\'!'.format(self._save_path))
-                self._tts_local_mode = False
-            else:
-                free_diskspace = utils.get_free_space_mb(self._save_path)
-                logger.info('Free diskspace: {} mb'.format(free_diskspace))
-
-                if free_diskspace < self._quota:
-                    logger.warning(
-                        'Not enough disk space left on \'{}\'. At least {} mb of free diskspace required!'.format(
-                            self._save_path,
-                            self._quota))
-                    logger.warning("\nIgnore this  warning, if the snippet directoy is a smb or cifs mounted "
-                                   "directory.")
-
-        if not self._tts_local_mode:
-            logger.debug("Google-TTS disabled!")
-        else:
-            logger.debug("Google-TTS 'local mode' enabled!")
-            logger.debug('server_url: {}'.format(self._server_url))
-            logger.debug('save_path: {}'.format(self._save_path))
-
-        # ############################################################
+        ##############################################################
         # Web Service
-        # ############################################################
+        ##############################################################
 
         if config.has_section('webservice'):
-            if config.has_option('webservice', 'enabled'):
-                if config.getboolean('webservice', 'enabled', fallback=False):
-                    # check server root path
-                    # exists ?
-                    server_root_path = config.get('webservice', 'root_path', fallback='')
-                    if server_root_path:
-                        logger.debug("Web server root-path set to '{path}'.".format(path=server_root_path))
-                        if os.path.exists(server_root_path):
-                            # check for permissions
-                            if os.access(server_root_path, os.R_OK):
-                                logger.debug(
-                                    "Web server root path '{path}' permission ok.".format(path=server_root_path))
-                                # if all checks passed, then we set the variable
-                                self._webservice_root_path = server_root_path
-                            else:
-                                user_name = pwd.getpwuid(os.getuid()).pw_name
-                                logger.error(
-                                    "User '{user}' has no read permissions for path '{path}'. Web server functionality "
-                                    "disabled.".format(user=user_name, path=server_root_path))
-                        else:
-                            logger.error("Web server root directory '{path}' not exists. Web server functionality "
-                                         "disabled.".format(path=server_root_path))
+            # check server root path
+            # exists ?
+            webservice_path = config.get('webservice', 'webservice_path', fallback='')
+            if webservice_path:
+                logger.debug("Webservice path set to '{path}'.".format(path=webservice_path))
+                if os.path.exists(webservice_path):
+                    # check for permissions
+                    if os.access(webservice_path, os.R_OK):
+                        logger.debug(
+                            "Webservice path '{path}' permission ok.".format(path=webservice_path))
+                        # if all checks passed, then we set the variable
+                        self._webservice_path = webservice_path
                     else:
-                        logger.error("No server root-path set. Web server functionality disabled.")
+                        user_name = pwd.getpwuid(os.getuid()).pw_name
+                        logger.error(
+                            "User '{user}' has no read permissions for path '{path}'. Webservice functionality for "
+                            "audio files disabled.".format(user=user_name, path=webservice_path))
                 else:
-                    logger.debug("Integrated web-server functionality not enabled in config.")
+                    logger.warning("Webservice path '{path}' not exists. Webservice functionality for audio "
+                                 "files disabled.".format(path=webservice_path))
+            else:
+                logger.warning("No webservice path set. Webservice functionality for audio files disabled.")
+
+            if self._webservice_path:
+                webservice_ip = config.get('webservice', 'webservice_ip', fallback='')
+
+                if not webservice_ip:
+                    logger.debug("Webservice IP not set, trying to detect the local ip automatically ...")
+                    webservice_ip = utils.get_lan_ip()
+                    if webservice_ip is None:
+                        logger.warning("Could not detect local ip address automatically!")
+
+                if webservice_ip is None:
+                    logger.warning("No webservice IP set. Webservice functionality for audio files disabled.")
+                else:
+                    logger.debug("Webservice IP set to {ip}".format(ip=webservice_ip))
+
+                self._webservice_url = "http://{ip}:{port}".format(ip=webservice_ip, port=self._port)
+
+            self._quota = config.getint('webservice', 'quota', fallback=definitions.DEFAULT_QUOTA)
+            logger.debug("Quota set to {quota} mb".format(quota=self._quota))
+
+            local_tts = config.getboolean('webservice', 'local_google_tts', fallback=False)
+
+            if local_tts:
+                # check if webservice is running
+                if self._webservice_path is None:
+                    logger.warning("Local TTS mode was set to True, but the webservice is not properly "
+                                   "configured. TTS will be streamed directly.")
+                    local_tts = False
+                else:
+                    # check write permissions
+                    if not os.access(self._webservice_path, os.W_OK):
+                        logger.warning("Local TTS mode was set to True, but the webservice path is not writeable for "
+                                       "current user. TTS will be streamed directly.")
+                        local_tts = False
+                    else:
+                        logger.debug("Write permissions ok for tts on path {path}".format(path=self._webservice_path))
+
+            self._tts_local_mode = local_tts
+            logger.debug('Local Google TTS mode set to {mode}.'.format(mode=self._tts_local_mode))
+
+        else:
+            logger.error("Section [webservice] not found in configuration file.")
+            exit()
 
     def start(self):
 
@@ -237,8 +232,8 @@ class SonosBroker(object):
 
         logger.info("Sonos Broker v{version}".format(version=definitions.VERSION))
         time.sleep(1)
-        self._sonos_service = SonosServerService(self._host, self._port, self._server_url, self._save_path,
-                                                 self._quota, self._tts_local_mode, self._webservice_root_path)
+        self._sonos_service = SonosServerService(self._host, self._port, self._webservice_url, self._webservice_path,
+                                                 self._quota, self._tts_local_mode)
 
     def stop(self, *args):
         logger.debug('Shutting down Sonos Broker ...')
@@ -273,7 +268,6 @@ def scan():
         except Exception as ex:
             print('unknown error')
             print(ex)
-
 
 if __name__ == '__main__':
     argparser = argparse.ArgumentParser()

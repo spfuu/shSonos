@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from lib_sonos import utils
 from soco.compat import quote_url
 import queue
 from soco.data_structures import DidlItem, to_didl_string
@@ -10,7 +11,6 @@ import threading
 import time
 import json
 from lib_sonos import udp_broker
-from lib_sonos import utils
 from soco.snapshot import Snapshot
 from soco.music_services import MusicService
 from lib_sonos import definitions
@@ -27,16 +27,17 @@ _sonos_lock = threading.Lock()
 event_queue = queue.Queue()
 
 class SonosSpeaker(object):
-    tts_enabled = False
+    tts_local_mode = False
     local_folder = ''
-    remote_folder = ''
+    local_url = ''
+    quota = 0
 
     @classmethod
-    def set_tts(self, local_folder, remote_folder, quota, tts_enabled):
+    def set_tts(self, local_folder, local_url, quota, tts_local_mode):
         SonosSpeaker.local_folder = local_folder
-        SonosSpeaker.remote_folder = remote_folder
+        SonosSpeaker.local_url = local_url
         SonosSpeaker.quota = quota
-        SonosSpeaker.tts_enabled = tts_enabled
+        SonosSpeaker.tts_local_mode = tts_local_mode
 
     def __init__(self, soco):
         info = soco.get_speaker_info(timeout=5)
@@ -1300,7 +1301,7 @@ class SonosSpeaker(object):
                     if self.volume != volume:
                         self.set_volume(volume, trigger_action=True, group_command=group_command)
 
-                    self.play_uri(uri)
+                    self.soco.play_uri(uri)
 
                     self.stop_tts.wait(timeout=120)  # wait max 120sec
                     self.stop_tts.clear()
@@ -1310,6 +1311,7 @@ class SonosSpeaker(object):
                     self.set_stop(1, trigger_action=True)
                     logger.debug("Speech: Restoring snapshot")
 
+                    time.sleep(1)
                     # Restore the sonos device back to it's previous state
                     snap.restore()
 
@@ -1329,19 +1331,24 @@ class SonosSpeaker(object):
                 except Exception as err:
                     print(err)
 
-    def play_tts(self, tts, volume, language='en', group_command=False, fade_in=False):
+    def play_tts(self, tts, volume, language='en', group_command=False, fade_in=False, force_stream_mode=False):
         # we do not need any code here to get the zone coordinator.
         # The play_snippet function does the necessary work.
 
-        if not SonosSpeaker.tts_enabled:
-            logger.warning("Google TTS disabled. Check your config.")
-            return
+        local_mode = SonosSpeaker.tts_local_mode
+        # override if stream is set to True
+        if force_stream_mode:
+            local_mode = False
 
-        filename = utils.save_google_tts(SonosSpeaker.local_folder, tts, language, SonosSpeaker.quota)
+        # default mode: give the prepared url directly to our loudspeaker
+        if not local_mode:
+            url = utils.stream_google_tts(tts, language)
+        else:
+            filename = utils.save_google_tts(SonosSpeaker.local_folder, tts, language, SonosSpeaker.quota)
 
-        if SonosSpeaker.local_folder.endswith('/'):
-            SonosSpeaker.local_folder = SonosSpeaker.local_folder[:-1]
-        url = '{}/{}'.format(SonosSpeaker.remote_folder, filename)
+            if SonosSpeaker.local_folder.endswith('/'):
+                SonosSpeaker.local_folder = SonosSpeaker.local_folder[:-1]
+            url = '{}/{}'.format(SonosSpeaker.local_url, filename)
 
         self.play_snippet(url, volume, group_command, fade_in)
 

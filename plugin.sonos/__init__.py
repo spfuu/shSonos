@@ -31,7 +31,7 @@ import fcntl
 import struct
 import requests
 
-EXPECTED_BROKER_VERSION = "1.0b2"
+EXPECTED_BROKER_VERSION = "1.0b5"
 logger = logging.getLogger('')
 sonos_speaker = {}
 
@@ -369,8 +369,10 @@ class Sonos():
                             force_stream_mode = child()
                         if child._name.lower() == fade_item_name.lower():
                             fade_in = child()
-                    cmd = self._command.play_tts(uid, value, language, volume, group_command, force_stream_mode,
-                                                 fade_in)
+                        if child._name.lower() == fade_item_name.lower():
+                            fade_in = child()
+                    cmd = self._command.play_tts(uid, value, language, volume, group_command, fade_in,
+                                                 force_stream_mode)
 
                 if command == 'load_sonos_playlist':
                     clear_item_name = '{}.clear_queue'.format(item._name)

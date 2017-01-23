@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 # -*- coding: utf-8 -*-
 import base64
 import ctypes
+import hashlib
 import json
 import os
 import platform
@@ -15,7 +16,6 @@ import urllib.request
 import logging
 import sys
 from lib_sonos.tts import gTTS
-
 
 if os.name != "nt":
     import fcntl
@@ -30,6 +30,7 @@ except ImportError:
 
 logger = logging.getLogger('sonos_broker')
 
+
 class WeakMethod:
     def __init__(self, inst, method_name):
         self.proxy = weakref.proxy(inst)
@@ -37,6 +38,7 @@ class WeakMethod:
 
     def __call__(self, *args):
         return getattr(self.proxy, self.method_name)(*args)
+
 
 def read_in_chunks(file_object, chunk_size=1024):
     """Lazy function (generator) to read a file piece by piece.
@@ -46,6 +48,7 @@ def read_in_chunks(file_object, chunk_size=1024):
         if not data:
             break
         yield data
+
 
 def get_mime_type_by_filetype(file_path):
     try:
@@ -70,6 +73,7 @@ def get_mime_type_by_filetype(file_path):
     except Exception as err:
         logger.warning(err)
         return None
+
 
 def really_unicode(in_string):
     """
@@ -136,14 +140,6 @@ def get_free_space_mb(folder):
         return int(round(st.f_bavail * st.f_frsize / 1024 / 1024, 0))
 
 
-def check_directory_permissions(local_share):
-    if not os.path.exists(local_share):
-        print('Local share \'{}\' does not exists!'.format(local_share))
-        return False
-
-    return os.access(local_share, os.W_OK) and os.access(local_share, os.R_OK)
-
-
 def get_folder_size(folder):
     total_size = 0
     for dirpath, dirnames, filenames in os.walk(folder):
@@ -154,8 +150,8 @@ def get_folder_size(folder):
 
 
 def stream_google_tts(tts_string, tts_language):
-    tts = gTTS(text=tts_string, lang=tts_language)
-    tts.stream()
+    return gTTS(text=tts_string, lang=tts_language).stream_url()
+
 
 def save_google_tts(local_share, tts_string, tts_language, quota):
     size = int(get_folder_size(local_share) / 1024 / 1024)
@@ -167,9 +163,13 @@ def save_google_tts(local_share, tts_string, tts_language, quota):
         tts_language = 'en'
         tts_string = 'Cannot save file. File size quota exceeded!'
 
+    m = hashlib.md5()
+    m.update('{}_{}'.format(tts_language, tts_string).encode('utf-8'))
+    file_name = m.hexdigest()
+
     tts = gTTS(text=tts_string, lang=tts_language)
-    base64_name = base64.urlsafe_b64encode('{}__{}'.format(tts_language, tts_string).encode('utf-8')).decode('ascii', '')
-    fname = '{}.mp3'.format(base64_name)
+
+    fname = '{}.mp3'.format(file_name)
     abs_fname = os.path.join(local_share, fname)
 
     # check if file exists, no need to browse google tts
@@ -243,28 +243,13 @@ def debug_log_commands(ip, arguments):
     logger.debug("arguments: {arguments} | ip: {ip}".format(arguments=', '.join(arguments), ip=ip))
 
 
-def get_interface_ip(ifname):
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    return socket.inet_ntoa(fcntl.ioctl(s.fileno(), 0x8915, struct.pack('256s', ifname[:15].encode('utf-8')))[20:24])
-
-
-def get_lan_ip_fallback():
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        s.connect(('<broadcast>', 0))
-        return s.getsockname()[0]
-    except Exception as err:
-        logger.critical(err)
-        return None
-
 def dump_attributes(obj):
     attrs = vars(obj)
     attributes = ', '.join("%s: %s" % item for item in attrs.items() if not item[0].startswith('_'))
     return attributes
 
-def ip_address_is_valid(address):
 
+def ip_address_is_valid(address):
     """
     Tests if an ip address is valid.
     http://stackoverflow.com/questions/4011855/regexp-to-check-if-an-ip-is-valid
@@ -279,6 +264,7 @@ def ip_address_is_valid(address):
     else:
         return address.count('.') == 3
 
+
 def check_int(s):
     if isinstance(s, int):
         return True
@@ -289,23 +275,21 @@ def check_int(s):
 
 def get_lan_ip():
     try:
-        ip = socket.gethostbyname(socket.gethostname())
-        if ip.startswith("127.") and os.name != "nt":
-            interfaces = ["eth0", "eth1", "eth2", "wlan0", "wlan1", "wifi0", "ath0", "ath1", "ppp0"]
-            for ifname in interfaces:
-                try:
-                    ip = get_interface_ip(ifname)
-                    break
-                except IOError:
-                    pass
-    except socket.gaierror:
-        return get_lan_ip_fallback()
-    return ip
+        import socket
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.settimeout(5)
+        s.connect(("google.com", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except:
+        return None
 
 # #######################################################################################################################
 '''
 Notification list from http://stackoverflow.com/questions/13259179/list-callbacks
 '''
+
 
 def callback_method(func):
     def notify(self, *args, **kwargs):
@@ -327,7 +311,7 @@ class NotifyList(list):
     __delitem__ = callback_method(list.__delitem__)
     __setitem__ = callback_method(list.__setitem__)
     __iadd__ = callback_method(list.__iadd__)
-    #__imul__ = callback_method(list.__imul__)
+    # __imul__ = callback_method(list.__imul__)
 
     # Take care to return a new NotifyList if we slice it.
     if _pyversion < 3:
@@ -360,4 +344,3 @@ class NotifyList(list):
                 return cb
         else:
             return None
-

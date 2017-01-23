@@ -1,5 +1,15 @@
 ## Release
 
+v1.0b5  (2017-01-23)
+
+    --  Attention: cleaned-up configuration file. Please re-configure your Sonos Broker installation
+    --  GoogleTTS: files now stored with md5 sum of tts_language and tts_string to reduce the 
+        filename length
+    --  GoogleTTS: now works in streaning mode per default, no web service is needed.
+    --  GoogleTTS: the local ip address for the streaming url will be detected automatically (by default)
+    --  play_tts: (optional) attribute 'force_stream_mode' (re)-added to Sonos Broker and Command 
+        line tool
+    
 v1.0b4  (2017-01-22)
 
     -- bug: endless loop while trying to play a track from a non-existing url
@@ -2072,6 +2082,7 @@ No special parameter needed.
 | fade_in | optional | 0 or 1 | If True, the volume for the resumed track / radio fades in |
 | volume | optional | -1 - 100 | The snippet volume. If -1 (default) the current volume is used.  After the snippet was played, the prevoius volume value is set. |
 | group_command | optional | 0 or 1 | If 'True', the command is executed for all zone members of the speaker. This affects only the parameter 'volume'.|
+| force_stream_mode | optional | 0 or 1 | If 'True', Google TTS is streamed directly without storing the track locally. This overrides the Broker settings.|
 
 ######Example
     JSON format:
@@ -2082,7 +2093,8 @@ No special parameter needed.
             'tts': 'Die Temperatur im Wohnzimmer beträgt 2 Grad Celsius.'
             'language': 'de',
             'volume': 30,
-            'group_command': 1
+            'group_command': 1,
+            'force_stream_mode': 0
         }   
     }
 

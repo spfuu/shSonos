@@ -1,7 +1,12 @@
-This sub-project is a client implementation fpr the Sonos Broker. It is a plugin for the 
-Smarthome.py framework (https://github.com/mknx/smarthome).
+This sub-project is a client implementation for the Sonos Broker. It is a plugin for the 
+SmarthomeNG framework (https://github.com/smarthomeNG).
 
 ##Release
+
+v1.0b5  (2017-01-23)
+
+    -- play_tts: attribute 'force_stream_mode' (re)-added
+    -- version string updated
 
 v1.0b2  (2017-01-15)
 
@@ -233,6 +238,10 @@ Edit file with this sample of mine:
                 value = 'de'
     
             [[[group_command]]]
+                type = bool
+                value = 0
+            
+            [[[force_stream_mode]]]
                 type = bool
                 value = 0
     

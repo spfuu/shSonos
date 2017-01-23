@@ -349,14 +349,14 @@ class SonosServerService(object):
     _sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     _sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
 
-    def __init__(self, host, port, server_url, local_folder, quota, tts_enabled, webservice_path):
+    def __init__(self, host, port, server_url, webservice_path, quota, tts_local_mode):
         self.lock = Lock()
         self.host = host
         self.port = port
 
         self.webservice = SimpleHttpServer(self.host, self.port, webservice_path)
         SonosSpeaker.event_queue = queue.Queue()
-        SonosSpeaker.set_tts(local_folder, server_url, quota, tts_enabled)
+        SonosSpeaker.set_tts(webservice_path, server_url, quota, tts_local_mode)
 
         self.sonos_events_thread = SonosEventThread()
         self.sonos_speakers_thread = GetSonosSpeakerThread()
