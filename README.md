@@ -260,51 +260,21 @@ This service is also helpful for the Google TTS functionality.
 
 ## Google TTS Support
 
-Sonos broker features the Google Text-To-Speech API. You can play any text limited to 100 chars.
+Sonos Broker features the Google Text-To-Speech API. You can play any text limited to 100 chars.
 
 
 #### Prerequisite:
 
-- local / remote mounted folder or share with read/write access
-- http access to this local folder (e.g. /var/www)
+- internet connection
 - settings configured in sonos-broker configuration file (default: /etc/default/sonos-broker)
-- running a webservice
 
 #### Internals
 
-If a text is given to the google tts function, the Sonos Broker makes a http request to the Google API. The response is 
-stored as a mp3-file to a local / remote folder. 
-    
-Before the request is made, the broker checks whether a file exists with the same name. The file name of a tts-file 
-is always:  BASE64(<tts_txt>_<tts_language>).mp3. You can set a file quota in the config file. This limits the amount 
-of disk space the broker can use to save tts files. If the quota exceeds, you will receive a message. By default the 
-quota is set to 100 mb.
-
-    [google_tts]
-    quota = 200
-
-By default, Google TTS support is disabled. To enable the service, add following line to your sonos-broker 
-configuration:
-
-    [google_tts]
-    enable = true
-
-You have to set the local save path (where the mp3 is stored) and an accessible url. If're using the integrated
-webservice, 'save_path' and 'root_path' in the \[webservice\] section should be the same value.     
-The server url must point to a webservice that handles the Sonos speaker requests, e.g. a nginx or apache server. By 
-enabling the integrated webservice, this is done by the Sonos Broker.
- 
-    [google_tts]
-    save_path = /var/www/tts
-    server_url = http://192.168.0.2/tts
-
-This is an example of a google_tts section in Sonos Broker configuration file:
-
-    [google_tts]
-    enable=true
-    quota=200
-    save_path = /var/www/tts
-    server_url = http://192.168.0.2:12900/tts
+If a text is given to the google tts function, the Sonos Broker makes a http request to the Google API and the tts 
+string will be played by your Sonos loudspeakers. Additionally, you can set-up the Broker to store the request as a
+mp3 file. This is a kind of local caching: if a tts string is requested which is already stored as a mp3 file, this
+file will be served to the Sonos speakers. To enable this feature, you have to configure the webservice feature of 
+the Sonos Broker. Have a look at the configuration file for more details [/etc/default/sonos-broker]
 
 
 ## Implementation:
