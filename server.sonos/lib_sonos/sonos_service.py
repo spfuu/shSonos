@@ -189,7 +189,7 @@ class SonosEventThread:
         speakers = []
         while not self.stop.wait(1):
             try:
-                event = SonosSpeaker.event_queue.get(True, 0.5)
+                event = SonosSpeaker.event_queue.get()
                 if event is None:
                     return
 
@@ -212,13 +212,12 @@ class SonosEventThread:
                     print("No sonos speaker found for subscription {}".format(event.sid.lower()))
                     continue
 
-                with sonos_speaker._sonos_lock:
-                    try:
-                        speaker = weakref.proxy(sonos_speaker.sonos_speakers[uid])
-                        if speaker not in speakers:
-                            speakers.append(speaker)
-                    except KeyError:
-                        pass  # speaker maybe removed from another thread
+                try:
+                    speaker = weakref.proxy(sonos_speaker.sonos_speakers[uid])
+                    if speaker not in speakers:
+                        speakers.append(speaker)
+                except KeyError:
+                    pass  # speaker maybe removed from another thread
 
                 if event.service.service_type == 'ZoneGroupTopology':
                     speaker.set_zone_coordinator()
@@ -251,7 +250,7 @@ class SonosEventThread:
         # stop tts from restarting the track
         if 'restart_pending' in variables:
             if variables['restart_pending'] == "1":
-               speaker.stop_tts.set()
+                speaker.stop_tts.set()
 
         # stop tts thread if an transport error occurred
         if "transport_error_description" in variables:
@@ -328,6 +327,9 @@ class SonosEventThread:
 
         if 'mute' in variables:
             speaker.mute = int(variables['mute']['Master'])
+
+        if 'nightmode' in variables:
+            speaker.nightmode = int(variables['nightmode'])
 
         if 'bass' in variables:
             speaker.bass = int(variables['bass'])

@@ -31,7 +31,7 @@ import fcntl
 import struct
 import requests
 
-EXPECTED_BROKER_VERSION = "1.0b5"
+EXPECTED_BROKER_VERSION = "1.0b6"
 logger = logging.getLogger('')
 sonos_speaker = {}
 
@@ -301,6 +301,10 @@ class Sonos():
                                 break
                         cmd = self._command.treble(uid, value, group_command)
 
+                if command == 'nightmode':
+                    if isinstance(value, bool):
+                        cmd = self._command.nightmode(uid, value)
+
                 if command == 'loudness':
                     if isinstance(value, bool):
                         group_item_name = '{}.group_command'.format(item._name)
@@ -557,6 +561,7 @@ class SonosSpeaker():
         self.treble = []
         self.loudness = []
         self.playmode = []
+        self.nightmode = []
         self.alarms = []
         self.tts_local_mode = []
         self.wifi_state = []
@@ -849,6 +854,16 @@ class SonosCommand:
         }
 
     @staticmethod
+    def nightmode(uid, value):
+        return {
+            'command': 'set_nightmode',
+            'parameter': {
+                'nightmode': int(value),
+                'uid': '{uid}'.format(uid=uid)
+            }
+        }
+
+    @staticmethod
     def sonos_playlists(uid):
         return {
             'command': 'sonos_playlists',
@@ -938,32 +953,14 @@ class SonosCommand:
 # UTIL FUNCTIONS
 #######################################################################
 
-def get_interface_ip(ifname):
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    return socket.inet_ntoa(fcntl.ioctl(s.fileno(), 0x8915, struct.pack('256s', ifname[:15].encode('utf-8')))[20:24])
-
-
 def get_lan_ip():
     try:
-        ip = socket.gethostbyname(socket.gethostname())
-        if ip.startswith("127.") and os.name != "nt":
-            interfaces = ["eth0", "eth1", "eth2", "wlan0", "wlan1", "wifi0", "ath0", "ath1", "ppp0"]
-            for ifname in interfaces:
-                try:
-                    ip = get_interface_ip(ifname)
-                    break
-                except IOError:
-                    pass
-        return ip
-    except Exception as err:
-        return get_lan_ip_fallback()
-
-def get_lan_ip_fallback():
-    try:
+        import socket
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        s.connect(('<broadcast>', 0))
-        return s.getsockname()[0]
-    except Exception as err:
-        logger.critical(err)
+        s.settimeout(5)
+        s.connect(("google.com", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except:
         return None

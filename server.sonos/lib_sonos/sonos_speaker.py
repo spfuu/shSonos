@@ -41,7 +41,7 @@ class SonosSpeaker(object):
 
     def __init__(self, soco):
         info = soco.get_speaker_info(timeout=5)
-
+        self._snippet_queue_lock = threading.Lock()
         self.stop_tts = threading.Event()
         self._fade_in = False
         self._balance = 0
@@ -78,12 +78,13 @@ class SonosSpeaker(object):
         self._sub_zone_group = None
         self._sub_alarm = None
         self._sub_system_prop = None
+        self._sub_device_prop = None
         self._properties_hash = None
         self._zone_coordinator = None
         self._additional_zone_members = ''
-        self._snippet_queue_lock = threading.Lock()
         self._volume = self.soco.volume
         self._bass = self.soco.bass
+        self._nightmode = self.soco.night_mode
         self._treble = self.soco.treble
         self._loudness = self.soco.loudness
         self._playmode = self.soco.play_mode
@@ -922,6 +923,31 @@ class SonosSpeaker(object):
         else:
             self.soco.previous()
 
+    ### NIGHTMODE ######################################################################################################
+
+    def get_nightmode(self):
+        if self._nightmode is None:
+            return 0
+        return int(self._nightmode)
+
+    def set_nightmode(self, value, trigger_action=False):
+        night_mode = 0
+        try:
+            if bool(value):
+                night_mode = 1
+            else:
+                night_mode = 0
+        except:
+            pass
+        if self._nightmode == night_mode:
+            return
+
+        if trigger_action:
+            self.soco.night_mode = night_mode
+
+        self._nightmode = night_mode
+        self.dirty_property('nightmode')
+
     ### PARTYMODE ######################################################################################################
 
     def partymode(self):
@@ -1165,6 +1191,7 @@ class SonosSpeaker(object):
         self.dirty_music_metadata()
 
         self.dirty_property(
+            'nightmode',
             'sonos_playlists',
             'household_id',
             'display_version',
@@ -1287,6 +1314,7 @@ class SonosSpeaker(object):
                     # Take a snapshot of the current sonos device state, we will want
                     # to roll back to this when we are done
                     logger.debug("Speech: Taking snapshot")
+
                     snap = Snapshot(self.soco)
                     snap.snapshot()
 
@@ -1301,18 +1329,28 @@ class SonosSpeaker(object):
                     if self.volume != volume:
                         self.set_volume(volume, trigger_action=True, group_command=group_command)
 
-                    self.soco.play_uri(uri)
-
+                    time.sleep(0.5)
+                    self.soco.play_uri(uri, title="Google TTS")
                     self.stop_tts.wait(timeout=120)  # wait max 120sec
                     self.stop_tts.clear()
+                    time.sleep(0.5)
+
+                    # testing play_snippet stop for stereo pair
+                    for speaker in self._zone_members:
+                        try:
+                            logger.debug("tts force stop trigger for speaker {speaker}".format(speaker=speaker.uid))
+                            res = speaker.soco.stop()
+                            logger.debug("{uid}: stop result = {res}".format(uid=speaker.soco.uid, res=res))
+                            speaker.stop_tts.clear()
+                        except Exception as err:
+                            logger.debug("{uid} error: {err}".format(uid=speaker.soco.uid, err=err))
 
                     logger.debug("Speech: Stopping speech")
                     # Stop the stream playing
-                    self.set_stop(1, trigger_action=True)
+                    self.soco.stop()
                     logger.debug("Speech: Restoring snapshot")
 
-                    time.sleep(1)
-                    # Restore the sonos device back to it's previous state
+                    # Restore the Sonos device back to it's previous state
                     snap.restore()
 
                     for member in self.zone_members:
@@ -1572,3 +1610,4 @@ class SonosSpeaker(object):
     max_volume = property(get_maxvolume, set_maxvolume)
     track_position = property(get_trackposition, set_trackposition)
     wifi_state = property(get_wifi_state, set_wifi_state)
+    nightmode = property(get_nightmode, set_nightmode)

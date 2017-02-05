@@ -1211,6 +1211,63 @@ class GetTrackUri(JsonCommandBase):
         finally:
             return self._status, self._response
 
+### NIGHTMODE ##########################################################################################################
+
+class SetNightmode(JsonCommandBase):
+    def __init__(self, parameter):
+        super().__init__(parameter)
+
+    def run(self):
+        try:
+            logger.debug(
+                'COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
+                                                                         attributes=utils.dump_attributes(
+                                                                             self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
+            if self.nightmode not in [0, 1, True, False, '1', '0']:
+                raise Exception('Nightmode has to be 0|1 or True|False !')
+
+            nightmode = int(self.nightmode)
+
+            sonos_speaker.sonos_speakers[self.uid].set_nightmode(nightmode, trigger_action=True)
+            self._status = True
+        except requests.ConnectionError:
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
+                format(uid=self.uid)
+        except AttributeError as err:
+            self._response = JsonCommandBase.missing_param_error(err)
+        except Exception as err:
+            self._response = err
+        finally:
+            return self._status, self._response
+
+class GetNightmode(JsonCommandBase):
+    def __init__(self, parameter):
+        super().__init__(parameter)
+
+    def run(self):
+        try:
+            logger.debug(
+                'COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
+                                                                         attributes=utils.dump_attributes(
+                                                                             self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
+            sonos_speaker.sonos_speakers[self.uid].dirty_property('nightmode')
+            sonos_speaker.sonos_speakers[self.uid].send()
+            self._status = True
+        except requests.ConnectionError:
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
+                format(uid=self.uid)
+        except AttributeError as err:
+            self._response = JsonCommandBase.missing_param_error(err)
+        except Exception as err:
+            self._response = err
+        finally:
+            return self._status, self._response
 
 ### LED ################################################################################################################
 

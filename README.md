@@ -1,5 +1,10 @@
 ## Release
 
+v1.0b6  (2017-02-05)
+
+    -- some GoogleTTS improvements
+    -- command 'nightmode' added (only for supported speakers)
+    
 v1.0b5  (2017-01-23)
 
     --  Attention: cleaned-up configuration file. Please re-configure your Sonos Broker installation
@@ -402,6 +407,8 @@ Click on the links below to get a detailed command descriptions and their usage.
 ###### [set_balance](#s_balance)
 ###### [get_loudness](#g_loudness)
 ###### [set_loudness](#s_loudness)
+###### [get_nightmode](#g_nightmode)
+###### [set_nightmode](#s_nightmode)
 ###### [get_led](#g_led)
 ###### [set_led](#s_led)
 ###### [get_playmode](#g_playmode)
@@ -1310,6 +1317,72 @@ No special parameter needed.
     { 
         ...
         "loudness": 0|1, 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+    
+    The response is only sent if the new value is different from the old value.
+
+----
+#### <a name="g_loudness">get_nightmode
+ Gets the current nightmode setting from a Sonos speaker. The nightmode feature is only avaliable for certain Sonos
+ speakers, e.g. the Sonos Playbar. For all other speakers, this value should always be 0. 
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'nightmode'-status changes.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_nightmode',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        "nightmode": 0|1, 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+
+----
+#### <a name="s_loudness">set_nightmode
+ Sets the nightmode option for a Sonos speaker. If the Sonos speaker does not support this feature, an error message
+ is thrown.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| nightmode | required | 0 or 1 | The nightmode to be set. |
+
+######Example
+    JSON format:
+    {
+        'command': 'set_nightmode',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410',
+            'nightmode': 1
+        }   
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    { 
+        ...
+        "nightmode": 0|1, 
         "uid": "rincon_b8e93730d19801410",
         ...
     }

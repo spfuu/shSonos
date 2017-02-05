@@ -3,6 +3,12 @@ SmarthomeNG framework (https://github.com/smarthomeNG).
 
 ##Release
 
+v1.0b6  (2017-02-05)
+    
+    -- command 'nightmode' added 
+    -- version string updated to v1.0b6
+    -- attribute 'is_coordiantor' in example has now the right value
+    
 v1.0b5  (2017-01-23)
 
     -- play_tts: attribute 'force_stream_mode' (re)-added
@@ -396,7 +402,14 @@ Edit file with this sample of mine:
             [[[group_command]]]
                 type = bool
                 value = 0
-    
+        
+        [[nightmode]]
+            type = bool
+            enforce_updates = True
+            visu_acl = rw
+            sonos_recv = nightmode
+            sonos_send = nightmode
+        
         [[playmode]]
             type = str
             enforce_updates = True

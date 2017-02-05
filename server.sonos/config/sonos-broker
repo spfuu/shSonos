@@ -43,7 +43,7 @@
 # Webservice root path. The directory must exists and readable (better writeable) for the current user. This path is
 # used for storing Google TTS files if the option 'local_goolge_tts' is set to 'true'. You can also store all your own
 # audio snippets files there and play them with the 'play_snippet' command. If you leave this parameter empty, the
-# webservice functionality is disabled on startup. Default: empty / deactvated
+# webservice functionality is disabled on startup. Default: empty / deactivated
 
 # webservice_path =
 #-------------------------------------

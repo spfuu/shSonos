@@ -270,6 +270,7 @@ class SonosSpeakerCmd(cmd.Cmd):
         self.max_volume = None
         self.additional_zone_members = None
         self.bass = None
+        self.nightmode = None
         self.treble = None
         self.loudness = None
         self.playmode = None
@@ -430,6 +431,31 @@ class SonosSpeakerCmd(cmd.Cmd):
             print("unknown argument")
             return
         print("bass: {}".format(self.bass))
+
+    def help_nightmode(self):
+        print("nighmode: Gets the current nightmode option.")
+        print("nightmode [get]: Forces the Broker to retrieve the speakers nightmode option.")
+        print("nightmode [set]: Sets the nightmode option (only for supported Sonos speakers (like Playbar).")
+
+    def do_nightmode(self, line):
+        line = line.lower()
+        if not line:
+            pass
+        elif line == "get":
+            self.commands.get_nightmode(self.uid)
+        elif line == "set":
+            default_nightmode = self.nightmode
+            nightmode = input(normalize_output("Nightmode", "0|1", default_nightmode))
+            if nightmode is None:
+                nightmode = default_nightmode
+            if nightmode not in ['0', '1']:
+                nightmode = 0
+            self.commands.set_nightmode(self.uid, nightmode)
+        else:
+            print("unknown argument")
+            return
+        print("nightmode: {}".format(self.nightmode))
+
 
     def help_treble(self):
         print("treble: Gets the current 'treble' value.")
@@ -1643,6 +1669,28 @@ class Commands():
                 }
             }
         )
+
+    def set_nightmode(self, uid, nightmode):
+        return self.send(
+            {
+                'command': 'set_nightmode',
+                'parameter': {
+                    'uid': uid.lower(),
+                    'nightmode': int(nightmode),
+                }
+            }
+        )
+
+    def get_nightmode(self, uid):
+        return self.send(
+            {
+                'command': 'get_nightmode',
+                'parameter': {
+                    'uid': uid.lower(),
+                }
+            }
+        )
+
 
     def is_coordinator(self, uid):
         return self.send(
