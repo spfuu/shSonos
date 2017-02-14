@@ -26,7 +26,7 @@ smartVISU >=v2.8 (http://www.smartvisu.de/)
 
 ##### IMPORTANT
 It is highly recommended that you use the same Sonos item structure as shown in the 
-[Sonos plugin example](https://github.com/pfischi/shSonos/blob/master/plugin.sonos/examples/sonos.conf). This item
+[Sonos plugin example](https://github.com/pfischi/shSonos/blob/develop/plugin.sonos/examples/sonos.conf). This item
 structure always matches the requirements for the Sonos widget. You can edit ```sonos.html``` if you have your own 
 structure. 
 
