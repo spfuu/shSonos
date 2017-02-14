@@ -1,104 +1,158 @@
-/**
-* -----------------------------------------------------------------------------
-* @package     smartVISU
-* @author      pfischi@gmx.de
-* @copyright   2014
-* @license     GPL [http://www.gnu.de]
-* -----------------------------------------------------------------------------
-*/
+{% macro player(id, gad) %}
+  {% set uid                = uid(page, id) %}
+  {% set cover              = '.track_album_art' %}
+  {% set artist             = '.track_artist' %}
+  {% set title              = '.track_title' %}
+  {% set radio_station      = '.radio_station' %}
+  {% set album              = '.track_album' %}
+  {% set play               = '.play' %}
+  {% set previous           = '.previous' %}
+  {% set next               = '.next' %}
+  {% set volume             = '.volume' %}
+  {% set mute               = '.mute' %}
+  {% set playlist_position  = '.playlist_position' %}
+  {% set transport_actions  = '.transport_actions' %}
+  {% set track_uri          = '.track_uri' %}
+  {% set streamtype         = '.streamtype' %}
+  {% set cover_default      = 'pages/base/pics/sonos_empty.jpg' %}
+  {% import "sonos.html" as pfischi_sonos %}
+  {% import "basic.html" as basic %}
 
-/**
-* Standard Multimedia Player
-*
-* @param unique id for this widget
-* @param the gad/item for play/pause
-* @param the gad/item for stopping the music (optional)
-* @param the gad/item for previous playlist title
-* @param the gad/item for next playlist title
-* @param the gad/item for volume_up (optional)
-* @param the gad/item for volume_down (optional)
-* @param the gad/item for the volume (optional)
-* @param the gad/item to mute the music (optional)
-* @param the gad/item for album cover
-* @param the gad/item for the song title (optional)
-* @param the gad/item for the song artist (optional)
+  {% block my_javascripts %}
+      <script type="text/javascript" src="widgets/sonos.js"></script>
+      <link rel="stylesheet" href="widgets/sonos.css" type="text/css"/>
+  {% endblock %}
 
-*
-* @author Axel Otterstätter
-*/
-{% macro music(id, gad_play, gad_stop, gad_prev, gad_next, gad_vol_up, gad_vol_down, gad_volume, gad_mute, gad_cover, gad_artist, gad_title) %}
-	{% import "basic.html" as basic %}
-	{% import "sonos.html" as sonos %}
-
-    <style type="text/css">
-        #r0c0 { text-align: left; width: 50px; height: 40px; }
-        #r0c1 { text-align: left; /* width: 50px; */ height: 40px; }
-        #r0c2 { text-align: center; }
-        #r0c3 { text-align: right; /* width: 50px; */ height: 40px; }
-        #r0c4 { text-align: right; /* width: 50px; */ height: 40px; }
-
-    </style>
-
-    <div>
-        <table style="width: 100%;">
-            <tr>
-                <td id="r0c0">
-                    {{ basic.button(id~'vol_up', gad_vol_up, gad_cover, icon0~'audio_volume_high.png', 0) }}
-                </td>
-                <td id="r0c1"></td>
-                <td id="r0c2">
-                    <div class="title">{% if gad_artist %}{{ basic.value(id~'artist', gad_artist) }} &nbsp;-&nbsp; {% endif %}
-                        {% if gad_title %}{{ basic.value(id~'title', gad_title) }}{% endif %}</div>
-                </td>
-                <td id="r0c3" />
-                <td id="r0c4" />
-            </tr>
-            <tr>
-                <td/>
-                    {{ basic.tank(id~'vol_tank', gad_volume, 0, 100, 2, 'cylinder', '#f90' ) }}
-                </td>
-                <td/>
-                <td>
-					{{ sonos.cover(id~'cover', gad_cover) }}
-                </td>
-                <td/>
-                <td/>
-            </tr>
-            <tr></tr>
-            <tr>
-                <td>
-                    {{ basic.button(id~'vol_down', gad_vol_down, '', icon0~'audio_volume_low.png', 0) }}
-                </td>
-                <td>
-                    {{ basic.dual(id~'mute', gad_mute, icon1~'audio_volume_mute.png', icon0~'audio_volume_mute.png', 1, 0) }}
-                </td>
-                <td style="margin-left: 5px">
-                    <div data-role="controlgroup" data-type="horizontal">
-                        {{ basic.button(id~'prev', gad_prev, 'back', icon0~'control_arrow_left.png', 0) }}
-                        {% if gad_rew %} {{ basic.button(id~'rew', gad_rew, 'rew', icon0~'audio_rew.png', 0) }} {% endif %}
-                        {{ basic.dual(id~'play', gad_play, icon1~'audio_pause.png', icon0~'audio_play.png') }}
-                        {% if gad_stop %} {{ basic.button(id~'stop', gad_stop, 'stop', icon0~'audio_stop.png', 1) }} {% endif %}
-                        {% if gad_ff %} {{ basic.button(id~'ff', gad_ff, 'ff', icon0~'audio_ff.png', 1) }} {% endif %}
-                        {{ basic.button(id~'next', gad_next, 'next', icon0~'control_arrow_right.png', 1) }}
+  <div class="pfischi">
+      <div id="{{ uid }}" class="sonos">
+        <table>
+          <tr>
+            <td class="td-cover">
+              <div>
+                {{ pfischi_sonos.cover(uid~'cover', gad~cover, cover_default) }}
+              </div>
+            </td>
+            <td>
+              <table>
+                <tr>
+                  <tr><td>&nbsp;</td></tr>
+                  <td>
+                    {{ pfischi_sonos.title(uid~'title', gad~title, gad~radio_station, gad~track_uri, gad~streamtype) }}
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    {{ pfischi_sonos.artist(uid~'artist', gad~artist, gad~title, gad~streamtype) }}
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    {{ pfischi_sonos.album(uid~'album', gad~album) }}
+                  </td>
+                  <tr><td>&nbsp;</td></tr>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr><td>&nbsp;</td></tr>
+          <tr>
+            <td colspan="2" class="control">
+              <table>
+                <tr>
+                  <td />
+                  <td />
+                  <td>
+                    <div class="previous">
+                     {{ pfischi_sonos.music_control(uid~'previous', gad~transport_actions, gad~previous, 'Previous', 'audio_rew.svg', 'audio_rew.svg', 'audio_rew.svg', 1, 1, 'icon0', 'icon0', '#555555') }}
+                   </div>
+                  </td>
+                  <td>
+                    <div class="play">
+                      {{ pfischi_sonos.music_control(uid~'play', gad~transport_actions, gad~play, 'Play', 'audio_pause.svg', 'audio_play.svg', 'audio_play.svg', 1, 0, 'icon1', 'icon0', '#555555') }}
                     </div>
-                </td>
-                <td style="text-align: center; /* width: 10px */"></td>
-            </tr>
+                  </td>
+                  <td>
+                    <div class="next">
+                      {{ pfischi_sonos.music_control(uid~'next', gad~transport_actions, gad~next, 'Next', 'audio_ff.svg', 'audio_ff.svg', 'audio_ff.svg', 1, 1, 'icon0', 'icon0', '#555555') }}
+                    </div>
+                  </td>
+                  <td />
+                  <td />
+                </tr>
+              </table>
+            </td>
+            <tr>
+              <td colspan="2" class="volume">
+                <table>
+                  <tr>
+                    <td>
+                      <div class="mute">
+                        {{ basic.switch(uid~'mute', gad~mute, 'audio_volume_mute.svg', 'audio_volume_low.svg', "1", "0") }}
+                      </div>
+                    </td>
+                    <td class="slider">
+                      {{ basic.slider(uid~'volume', gad~volume, 0, 100, 1) }}
+                    </td>
+                    <td>
+                      <div class="playlist">
+                        <a href="#popup_playlists" data-rel="popup">
+                          <img class="icon icon0" style = "fill:icon0; stroke:icon0;" src="{{ icon0 }}audio_playlist.svg" />
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+          </tr>
         </table>
-    </div>
+      </div>
+  </div>
+
+  <div id="popup_playlists" data-role="popup" style="width:280px; height:200px;">
+    <a href="#" data-rel="back" data-role="button" data-icon="delete" data-iconpos="notext" class="ui-btn-right">Close</a>
+      More to come here ...
+  </div>
 
 {% endmacro %}
 
-/**
-* Displays the cover-art
-*
-* @param unique id for this widget
-* @param the path/url to the image
-*
-* @author Roland Unterholzer
-*/
-{% macro cover(id, src) %}
+{% macro music_control(id, possible_actions, item, action, pic_on, pic_off, pic_inactive, val_on, val_off, color_on, color_off, color_inactive) %}
+	{% set uid = uid(page, id) %}
+	{% import "basic.html" as basic %}
 
-	<img id="{{ uid(page, id) }}" data-widget="sonos.cover" data-item="{{ src }}" src="{{ src|default('pages/base/pics/trans.png') }}" />
+		<span id="{{ uid }}"
+      data-widget="pfischi.music_control"
+      data-item="{{ possible_actions }}, {{ item }}"
+      data-send="{{ item }}"
+			data-val-on="{{ val_on }}"
+      data-val-off="{{ val_off }}"
+      data-pic-on="{{ pic_on|deficon('control_on_off.svg') }}"
+      data-pic-off="{{ pic_off|deficon('control_on_off.svg') }}"
+      data-pic-inactive="{{ pic_inactive|deficon('control_on_off.svg') }}"
+      data-action="{{ action }}"
+      data-active="true"
+			class="switch icon">
+				<a>
+          <a>
+            {{ basic._icon(pic_off|deficon('control_on_off.svg'), color_off|default('icon1'), uid ~ '-active-off') }}
+            {{ basic._icon(pic_on|deficon('control_on_off.svg'), color_on|default('icon1'), uid ~ '-active-on', 'hide') }}
+  					{{ basic._icon(pic_inactive|deficon('control_on_off.svg'), color_inactive|default('icon0'), uid ~ '-inactive', 'hide') }}
+				</a>
+		</span>
 
+{% endmacro %}
+
+{% macro artist(uid, artist, title, streamtype) %}
+  <div class="artist" id="{{ uid }}" data-widget="pfischi_sonos.artist" data-item="{{ artist }}, {{ title }}, {{ streamtype }}" />
+{% endmacro %}
+
+{% macro title(uid, title, radio_station, track_uri, streamtype) %}
+  <div class="title" id="{{ uid }}" data-widget="pfischi_sonos.title" data-item="{{ title }}, {{ radio_station }}, {{ track_uri }}, {{ streamtype }}"/>
+{% endmacro %}
+
+{% macro cover(uid, cover, cover_default) %}
+  <img class="cover" id="{{ uid }}" data-widget="pfischi_sonos.cover" data-item="{{ cover }}" data-cover="{{ cover_default }}" src="{{ cover_default }}" />
+{% endmacro %}
+
+{% macro album(uid, album) %}
+  <div class="album" id="{{ uid }}" data-widget="pfischi_sonos.album" data-item="{{ album }}" />
 {% endmacro %}

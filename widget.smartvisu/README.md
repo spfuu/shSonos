@@ -1,4 +1,9 @@
 ##Release
+
+v0.3    2017-02-14
+
+    -- complete rewrite of widget for Sonos Broker >= 1.0
+
 v0.2    2014-12-05
     
     --  fixed issue, that a cover was not shown correctly
