@@ -1,22 +1,23 @@
 ##Release
 
-v0.3    2017-02-14
+v0.3    (2017-02-14)
 
     -- complete rewrite of widget for Sonos Broker >= 1.0
 
-v0.2    2014-12-05
-    
+v0.2    (2014-12-05)
+
     --  fixed issue, that a cover was not shown correctly
 
-v0.1.1  2014-07-09
-   
-    --   if no album cover is given, a transparent png is shown
+v0.1.1  (2014-07-09)
 
-v0.1    2014-07-08
+    --  if no album cover is given, a transparent png is shown
+
+v0.1    (2014-07-08)
 
     --  first release
 
-### Requirements:
+---
+### Requirements
 
 Sonos Broker server min. v1.0b7 (https://github.com/pfischi/shSonos)
 Sonos Plugin for smarthome.py (https://github.com/pfischi/shSonos/tree/master/plugin.sonos)
@@ -27,7 +28,8 @@ It is highly recommended that you use the same Sonos item structure as shown in 
 [Sonos plugin example](https://github.com/pfischi/shSonos/blob/master/plugin.sonos/examples/sonos.conf). This item
 structure always matches the requirements for the Sonos widget. You can edit ```sonos.html``` if you have your own 
 structure. 
-  
+
+---
 ### Integration in smartVISU
 
 Copy **sonos.html**, **sonos.js** and **sonos.css** to your smartVISU widget directory, e.g.
@@ -61,3 +63,4 @@ Edit your page where you want to display the widget and add the following code s
 ```
 
 Rename ```Sonos.Kueche``` to your Sonos item name in SmarthomeNG.
+---
