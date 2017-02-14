@@ -61,6 +61,4 @@ Edit your page where you want to display the widget and add the following code s
 {% endblock %}
 
 ```
-
 Rename ```Sonos.Kueche``` to your Sonos item name in SmarthomeNG.
----
