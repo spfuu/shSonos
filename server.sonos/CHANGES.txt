@@ -1,3 +1,10 @@
+v1.0b7  (2017-02-14)
+
+    -- command "transport_actions" to Sonos Broker and Sonos command line tool
+        -- this options shows all possible actions for the current track (e.g. Next, Stop, Play ...)
+    -- bug: Spotify Radio was handled as a normal radio station and should be fixed
+
+
 v1.0b6  (2017-02-05)
 
     -- some GoogleTTS improvements

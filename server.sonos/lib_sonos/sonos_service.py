@@ -21,7 +21,7 @@ import logging
 from time import sleep
 from soco import discover
 from threading import Lock
-from soco.data_structures import DidlAudioBroadcast
+from soco.data_structures import DidlAudioBroadcast, DidlMusicTrack
 from soco.services import zone_group_state_shared_cache
 from lib_sonos import utils
 
@@ -252,6 +252,9 @@ class SonosEventThread:
             if variables['restart_pending'] == "1":
                 speaker.stop_tts.set()
 
+        if 'current_transport_actions' in variables:
+            speaker.transport_actions = variables['current_transport_actions']
+
         # stop tts thread if an transport error occurred
         if "transport_error_description" in variables:
             speaker.stop_tts.set()
@@ -291,11 +294,8 @@ class SonosEventThread:
                     # get current track info, if new track is played or resumed to get track_uri, track_album_art
                     speaker.get_trackposition(force_refresh=True)
 
-        if 'enqueued_transport_uri_meta_data' in variables:
-            if isinstance(variables['enqueued_transport_uri_meta_data'], DidlAudioBroadcast):
-                SonosServerService.set_radio_data(speaker, variables)
-            else:
-                SonosServerService.set_music_data(speaker, variables)
+        SonosServerService.set_music_data(speaker, variables)
+
 
     def handle_AlarmClock_event(self, speaker, variables):
         """
@@ -458,83 +458,74 @@ class SonosServerService(object):
             pass
 
     @staticmethod
-    def set_radio_data(speaker, variables):
-
-        speaker.streamtype = "radio"
-        speaker.track_duration = "00:00:00"
-        speaker.radio_station = ''
-        speaker.radio_show = ''
-
-        radio_station_title = variables['enqueued_transport_uri_meta_data']
-        radio_data = variables['current_track_meta_data']
-
-        if hasattr(radio_station_title, 'title'):
-            speaker.radio_station = radio_station_title.title
-
-        if hasattr(radio_data, 'radio_show'):
-            # the format of a radio_show item seems to be this format:
-            # <radioshow><,p123456> --> rstrip ,p....
-            radio_show = radio_data.radio_show
-            if radio_show:
-                radio_show = radio_show.split(',p', 1)
-                if len(radio_show) > 1:
-                    speaker.radio_show = radio_show[0]
-
-        if hasattr(radio_data, 'album_art_uri'):
-            speaker.track_album_art = ''
-            album_art = radio_data.album_art_uri
-            if album_art:
-                if not album_art.startswith(('http:', 'https:')):
-                    album_art = 'http://' + speaker.ip + ':1400' + album_art
-                speaker.track_album_art = album_art
-
-        if hasattr(radio_data, 'stream_content'):
-            ignore_title_string = ('ZPSTR_BUFFERING', 'ZPSTR_BUFFERING', 'ZPSTR_CONNECTING', 'x-sonosapi-stream')
-            artist = ''
-            title = ''
-
-            stream_content = radio_data.stream_content
-
-            if stream_content:
-                if not stream_content.startswith(ignore_title_string):
-                    # if radio, in most cases the following format is used: artist - title
-                    # if stream_content is not null, radio is assumed
-
-                    artist, title = title_artist_parser(speaker.radio_station if speaker.radio_station else '',
-                                                        stream_content)
-            speaker.track_artist = artist
-            speaker.track_title = title
-
-    @staticmethod
     def set_music_data(speaker, variables):
-        speaker.streamtype = "music"
-        speaker.radio_show = ''
-        speaker.radio_station = ''
 
         if 'current_track_duration' in variables:
             speaker.track_duration = variables['current_track_duration']
 
-        ml_track = variables['current_track_meta_data']
-        if ml_track:
-            if hasattr(ml_track, 'album_art_uri'):
-                if ml_track.album_art_uri:
-                    if not ml_track.album_art_uri.startswith(('http:', 'https:')):
-                        album_art_uri = 'http://' + speaker.ip + ':1400' + ml_track.album_art_uri
-                    speaker.track_album_art = album_art_uri
-            else:
-                speaker.track_album_art = ''
+        music_data = variables['current_track_meta_data']
+        if music_data:
+            track_album_art = ''
+            track_album = ''
+            track_title = ''
+            track_artist = ''
 
-            if hasattr(ml_track, 'album'):
-                speaker.track_album = ml_track.album
-            else:
-                speaker.track_album = ''
+            if hasattr(music_data, 'album_art_uri'):
+                if music_data.album_art_uri:
+                    if not music_data.album_art_uri.startswith(('http:', 'https:')):
+                        track_album_art = 'http://' + speaker.ip + ':1400' + music_data.album_art_uri
 
-            if hasattr(ml_track, 'title'):
-                speaker.track_title = ml_track.title
-            else:
-                speaker.title = ''
+            if hasattr(music_data, 'album'):
+                track_album = music_data.album
 
-            if hasattr(ml_track, 'creator'):
-                speaker.track_artist = ml_track.creator
+            if hasattr(music_data, 'title'):
+                track_title = music_data.title
+
+            if hasattr(music_data, 'creator'):
+                track_artist = music_data.creator
+
+            if not isinstance(variables['current_track_meta_data'], DidlMusicTrack):
+                # radio stream
+                speaker.streamtype = "radio"
+                speaker.track_duration = "00:00:00"
+                speaker.radio_station = ''
+                speaker.radio_show = ''
+
+                radio_station_title = variables['enqueued_transport_uri_meta_data']
+
+                if hasattr(radio_station_title, 'title'):
+                    speaker.radio_station = radio_station_title.title
+
+                if hasattr(music_data, 'radio_show'):
+                    # the format of a radio_show item seems to be this format:
+                    # <radioshow><,p123456> --> rstrip ,p....
+                    radio_show = music_data.radio_show
+                    if radio_show:
+                        radio_show = radio_show.split(',p', 1)
+                        if len(radio_show) > 1:
+                            speaker.radio_show = radio_show[0]
+
+                if hasattr(music_data, 'stream_content'):
+                    ignore_title_string = ('ZPSTR_BUFFERING', 'ZPSTR_BUFFERING', 'ZPSTR_CONNECTING', 'x-sonosapi-stream')
+                    track_artist = ''
+                    track_title = ''
+
+                    stream_content = music_data.stream_content
+
+                    if stream_content:
+                        if not stream_content.startswith(ignore_title_string):
+                            # if radio, in most cases the following format is used: artist - title
+                            # if stream_content is not null, radio is assumed
+
+                            track_artist, track_title = title_artist_parser(speaker.radio_station if speaker.radio_station
+                                                                            else '', stream_content)
             else:
-                speaker.track_artist = ''
+                speaker.streamtype = "music"
+                speaker.radio_show = ''
+                speaker.radio_station = ''
+
+            speaker.track_artist = track_artist
+            speaker.track_title = track_title
+            speaker.track_album_art = track_album_art
+            speaker.track_album = track_album
+

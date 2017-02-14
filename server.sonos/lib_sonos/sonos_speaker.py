@@ -55,6 +55,7 @@ class SonosSpeaker(object):
         self._mute = 0
         self._track_uri = ''
         self._track_album = ''
+        self._transport_actions = ''
         self._track_duration = "00:00:00"
         self._track_position = "00:00:00"
         self._streamtype = ''
@@ -104,7 +105,7 @@ class SonosSpeaker(object):
 
         self.dirty_all()
 
-    ### SoCo instance ##################################################################################################
+    # SoCo instance ####################################################################################################
 
     @property
     def soco(self):
@@ -115,25 +116,25 @@ class SonosSpeaker(object):
         """
         return self._soco
 
-    ### MODEL ##########################################################################################################
+    # MODEL ############################################################################################################
 
     @property
     def model(self):
         return self._model
 
-    ### MODEL NUMBER####################################################################################################
+    # MODEL NUMBER######################################################################################################
 
     @property
     def model_number(self):
         return self._model_number
 
-    ### DISPLAY VERSION #################################################################################################
+    # DISPLAY VERSION ##################################################################################################
 
     @property
     def display_version(self):
         return self._display_version
 
-    ### METADATA #######################################################################################################
+    # METADATA #########################################################################################################
 
     @property
     def metadata(self):
@@ -145,7 +146,7 @@ class SonosSpeaker(object):
             return
         self._metadata = value
 
-    # ## zone_coordinator #######################################################################################
+    # zone_coordinator #################################################################################################
 
     @property
     def zone_coordinator(self):
@@ -157,7 +158,7 @@ class SonosSpeaker(object):
             return True
         return False
 
-    # ## EVENTS #########################################################################################################
+    # EVENTS ###########################################################################################################
 
     @property
     def sub_device_properties(self):
@@ -183,37 +184,37 @@ class SonosSpeaker(object):
     def sub_alarm(self):
         return self._sub_alarm
 
-    # ## SERIAL #########################################################################################################
+    # SERIAL ###########################################################################################################
 
     @property
     def serial_number(self):
         return self._serial_number
 
-    ### SOFTWARE VERSION ###############################################################################################
+    # SOFTWARE VERSION #################################################################################################
 
     @property
     def software_version(self):
         return self._software_version
 
-    ### HARDWARE VERSION ###############################################################################################
+    # HARDWARE VERSION #################################################################################################
 
     @property
     def hardware_version(self):
         return self._hardware_version
 
-    ### HOUSEHOLD ID ###################################################################################################
+    # HOUSEHOLD ID #####################################################################################################
 
     @property
     def household_id(self):
         return self._household_id
 
-    ### MAC ADDRESS ####################################################################################################
+    # MAC ADDRESS ######################################################################################################
 
     @property
     def mac_address(self):
         return self._mac_address
 
-    ### LED ############################################################################################################
+    # LED ##############################################################################################################
 
     def get_led(self):
         return self._led
@@ -229,7 +230,7 @@ class SonosSpeaker(object):
         self._led = value
         self.dirty_property('led')
 
-    ### BASS ###########################################################################################################
+    # BASS #############################################################################################################
 
     def get_bass(self):
         return self._bass
@@ -246,7 +247,7 @@ class SonosSpeaker(object):
         self._bass = value
         self.dirty_property('bass')
 
-    ### TREBLE #########################################################################################################
+    # TREBLE ###########################################################################################################
 
     def get_treble(self):
         return self._treble
@@ -263,7 +264,7 @@ class SonosSpeaker(object):
         self._treble = treble
         self.dirty_property('treble')
 
-    ### LOUDNESS #######################################################################################################
+    # LOUDNESS #########################################################################################################
 
     def get_loudness(self):
         return int(self._loudness)
@@ -280,7 +281,7 @@ class SonosSpeaker(object):
         self._loudness = value
         self.dirty_property('loudness')
 
-    ### PLAYMODE #######################################################################################################
+    # PLAYMODE #########################################################################################################
 
     def get_playmode(self):
         if not self.is_coordinator:
@@ -307,7 +308,7 @@ class SonosSpeaker(object):
             for speaker in self._zone_members:
                 speaker.dirty_property('playmode')
 
-    ### ZONE NAME ######################################################################################################
+    # ZONE NAME ########################################################################################################
 
     @property
     def zone_name(self):
@@ -317,7 +318,7 @@ class SonosSpeaker(object):
             return self.zone_coordinator.zone_name
         return self._zone_name
 
-    ### ZONE ICON ######################################################################################################
+    # ZONE ICON ########################################################################################################
 
     @property
     def zone_icon(self):
@@ -327,7 +328,7 @@ class SonosSpeaker(object):
             return self.zone_coordinator.zone_icon
         return self._zone_icon
 
-    ### ZONE MEMBERS ###################################################################################################
+    # ZONE MEMBERS #####################################################################################################
 
     @property
     def zone_members(self):
@@ -355,6 +356,7 @@ class SonosSpeaker(object):
         return self._ip
 
     # BALANCE ##########################################################################################################
+
     def get_balance(self):
         return self._balance
 
@@ -373,7 +375,7 @@ class SonosSpeaker(object):
         self._balance = balance
         self.dirty_property('balance')
 
-    ### VOLUME #########################################################################################################
+    # VOLUME ###########################################################################################################
 
     def get_volume(self):
         return self._volume
@@ -395,7 +397,7 @@ class SonosSpeaker(object):
         self._volume = volume
         self.dirty_property('volume')
 
-    ### VOLUME UP#######################################################################################################
+    # VOLUME UP ########################################################################################################
 
     def volume_up(self, group_command=False):
         """
@@ -414,7 +416,7 @@ class SonosSpeaker(object):
             vol = 100
         self.set_volume(vol, trigger_action=True)
 
-    ### VOLUME DOWN ####################################################################################################
+    # VOLUME DOWN ######################################################################################################
 
     def volume_down(self, group_command=False):
 
@@ -435,7 +437,7 @@ class SonosSpeaker(object):
             vol = 0
         self.set_volume(vol, trigger_action=True)
 
-    ### MAX VOLUME #####################################################################################################
+    # MAX VOLUME #######################################################################################################
 
     def get_maxvolume(self):
 
@@ -471,13 +473,13 @@ class SonosSpeaker(object):
             self._max_volume = m_volume
         self.dirty_property('max_volume')
 
-    ### UID ############################################################################################################
+    # UID ##############################################################################################################
 
     @property
     def uid(self):
         return self._uid.lower()
 
-    ### MUTE ###########################################################################################################
+    # MUTE #############################################################################################################
 
     def get_mute(self):
         return self._mute
@@ -503,7 +505,7 @@ class SonosSpeaker(object):
         self._mute = value
         self.dirty_property('mute')
 
-    ### TRACK_URI ######################################################################################################
+    # TRACK_URI ########################################################################################################
 
     @property
     def track_uri(self):
@@ -518,14 +520,34 @@ class SonosSpeaker(object):
         if self._track_uri == value:
             return
         self._track_uri = value
+        # it seems, that Sonos not fire some events when cleaning a playlist
+        # one event that is fired is track_uri
+        # an empty track_uri signals an empty list
+
+        if self._track_uri == "":
+            self.clear_sonos_metadata()
+
         self.dirty_property('track_uri')
 
         # dirty properties for all zone members, if coordinator
         if self.is_coordinator:
             for speaker in self._zone_members:
+                if self.track_uri == "":
+                    speaker.clear_sonos_metadata()
                 speaker.dirty_property('track_uri')
 
-    ### TRACK DURATION #################################################################################################
+    def clear_sonos_metadata(self):
+        self.track_album_art = ""
+        self.track_artist = ""
+        self.track_title = ""
+        self.playlist_position = 0
+        self.playlist_total_tracks = 0
+        self.track_album = ""
+        self.radio_show = ""
+        self.radio_station = ""
+        self.track_duration = ""
+
+    # TRACK DURATION ###################################################################################################
 
     @property
     def track_duration(self):
@@ -549,7 +571,7 @@ class SonosSpeaker(object):
             for speaker in self._zone_members:
                 speaker.dirty_property('track_duration')
 
-    ### TRACK POSITION #################################################################################################
+    # TRACK POSITION ###################################################################################################
 
     def get_trackposition(self, force_refresh=False):
         """
@@ -594,7 +616,7 @@ class SonosSpeaker(object):
             for speaker in self._zone_members:
                 speaker.dirty_property('track_position')
 
-    ### PLAYLIST POSITION ##############################################################################################
+    # PLAYLIST POSITION ################################################################################################
 
     @property
     def playlist_position(self):
@@ -617,7 +639,7 @@ class SonosSpeaker(object):
             for speaker in self._zone_members:
                 speaker.dirty_property('playlist_position')
 
-    ### PLAYLIST TOTAL NUMBER TRACKS ###################################################################################
+    # PLAYLIST TOTAL NUMBER TRACKS #####################################################################################
 
     @property
     def playlist_total_tracks(self):
@@ -638,7 +660,7 @@ class SonosSpeaker(object):
             for speaker in self._zone_members:
                 speaker.dirty_property('playlist_total_tracks')
 
-    ### STREAMTYPE #####################################################################################################
+    # STREAMTYPE #######################################################################################################
 
     @property
     def streamtype(self):
@@ -660,7 +682,7 @@ class SonosSpeaker(object):
             for speaker in self._zone_members:
                 speaker.dirty_property('streamtype')
 
-    ### STOP ###########################################################################################################
+    # STOP #############################################################################################################
 
     def get_stop(self):
         if not self.is_coordinator:
@@ -697,7 +719,7 @@ class SonosSpeaker(object):
             for speaker in self._zone_members:
                 speaker.dirty_property('pause', 'play', 'stop')
 
-    ### PLAY ###########################################################################################################
+    # PLAY #############################################################################################################
 
     def get_play(self):
         if not self.is_coordinator:
@@ -734,7 +756,7 @@ class SonosSpeaker(object):
             for speaker in self._zone_members:
                 speaker.dirty_property('pause', 'play', 'stop')
 
-    ### PAUSE ##########################################################################################################
+    # PAUSE ############################################################################################################
 
     def get_pause(self):
         if not self.is_coordinator:
@@ -771,7 +793,7 @@ class SonosSpeaker(object):
             for speaker in self._zone_members:
                 speaker.dirty_property('pause', 'play', 'stop')
 
-    ### TRACK ALBUM ####################################################################################################
+    # TRACK ALBUM ######################################################################################################
 
     @property
     def track_album(self):
@@ -793,7 +815,29 @@ class SonosSpeaker(object):
             for speaker in self._zone_members:
                 speaker.dirty_property('track_album')
 
-    ### RADIO STATION ##################################################################################################
+    # TRANSPORT ACTIONS ################################################################################################
+
+    @property
+    def transport_actions(self):
+        if not self.is_coordinator:
+            logger.debug("forwarding transport_actions getter to coordinator with uid {uid}".
+                         format(uid=self.zone_coordinator.uid))
+            return self.zone_coordinator.transport_actions
+        return self._transport_actions
+
+    @transport_actions.setter
+    def transport_actions(self, value):
+        if self._transport_actions == value:
+            return
+        self._transport_actions = value
+        self.dirty_property('transport_actions')
+
+        # dirty properties for all zone members, if coordinator
+        if self.is_coordinator:
+            for speaker in self._zone_members:
+                speaker.dirty_property('transport_actions')
+
+    # RADIO STATION ####################################################################################################
 
     @property
     def radio_station(self):
@@ -815,7 +859,7 @@ class SonosSpeaker(object):
             for speaker in self._zone_members:
                 speaker.dirty_property('radio_station')
 
-    ### RADIO SHOW #####################################################################################################
+    # RADIO SHOW #######################################################################################################
 
     @property
     def radio_show(self):
@@ -836,7 +880,7 @@ class SonosSpeaker(object):
             for speaker in self._zone_members:
                 speaker.dirty_property('radio_show')
 
-    ### TRACK ALBUM ART ################################################################################################
+    # TRACK ALBUM ART ##################################################################################################
 
     @property
     def track_album_art(self):
@@ -857,7 +901,7 @@ class SonosSpeaker(object):
             for speaker in self._zone_members:
                 speaker.dirty_property('track_album_art')
 
-    ### TRACK TITLE ####################################################################################################
+    # TRACK TITLE ######################################################################################################
 
     @property
     def track_title(self):
@@ -880,7 +924,7 @@ class SonosSpeaker(object):
             for speaker in self._zone_members:
                 speaker.dirty_property('track_title')
 
-    ### TRACK ARTIST ###################################################################################################
+    # TRACK ARTIST #####################################################################################################
 
     @property
     def track_artist(self):
@@ -903,7 +947,7 @@ class SonosSpeaker(object):
             for speaker in self._zone_members:
                 speaker.dirty_property('track_artist')
 
-    ### NEXT ###########################################################################################################
+    # NEXT #############################################################################################################
 
     def next(self):
         if not self.is_coordinator:
@@ -913,7 +957,7 @@ class SonosSpeaker(object):
         else:
             self.soco.next()
 
-    ### PREVIOUS #######################################################################################################
+    # PREVIOUS #########################################################################################################
 
     def previous(self):
         if not self.is_coordinator:
@@ -923,7 +967,7 @@ class SonosSpeaker(object):
         else:
             self.soco.previous()
 
-    ### NIGHTMODE ######################################################################################################
+    # NIGHTMODE ########################################################################################################
 
     def get_nightmode(self):
         if self._nightmode is None:
@@ -948,7 +992,7 @@ class SonosSpeaker(object):
         self._nightmode = night_mode
         self.dirty_property('nightmode')
 
-    ### PARTYMODE ######################################################################################################
+    # PARTYMODE ########################################################################################################
 
     def partymode(self):
 
@@ -959,7 +1003,7 @@ class SonosSpeaker(object):
 
         self.soco.partymode()
 
-    ### JOIN ###########################################################################################################
+    # JOIN #############################################################################################################
 
     def join(self, join_uid):
 
@@ -995,7 +1039,7 @@ class SonosSpeaker(object):
         time.sleep(sec_to_wait)
         self.set_play(play, trigger_action=True)
 
-    ### CURRENT STATE ##################################################################################################
+    # CURRENT STATE ####################################################################################################
 
     def current_state(self, group_command=False):
 
@@ -1009,7 +1053,7 @@ class SonosSpeaker(object):
             for speaker in self._zone_members:
                 speaker.current_state(group_command=False)
 
-    ### WIFI STATE #####################################################################################################
+    # WIFI STATE #######################################################################################################
 
     def get_wifi_state(self, force_refresh=False):
         """
@@ -1083,7 +1127,7 @@ class SonosSpeaker(object):
         self._wifi_state = value
         self.dirty_property('wifi_state')
 
-    ### LAOD SONOS PLAYLIST ############################################################################################
+    # LOAD SONOS PLAYLIST ##############################################################################################
 
     def load_sonos_playlist(self, sonos_playlist_name, play_after_insert=False, clear_queue=False):
         try:
@@ -1098,7 +1142,7 @@ class SonosSpeaker(object):
         except Exception:
             raise Exception("No Sonos playlist found with title '{title}'.".format(title=sonos_playlist_name))
 
-    ### Clear Queue ####################################################################################################
+    # Clear Queue ######################################################################################################
 
     def clear_queue(self):
         """
@@ -1107,7 +1151,7 @@ class SonosSpeaker(object):
         """
         self.soco.clear_queue()
 
-    ### Play TuneIn Radio ##############################################################################################
+    # Play TuneIn Radio ################################################################################################
 
     def play_tunein(self, station_name):
 
@@ -1143,7 +1187,7 @@ class SonosSpeaker(object):
                                                      ('CurrentURI', uri), ('CurrentURIMetaData', meta)])
             self.soco.play()
 
-    ### Sonos Playlists ################################################################################################
+    # Sonos Playlists ##################################################################################################
 
     @property
     def sonos_playlists(self):
@@ -1171,6 +1215,7 @@ class SonosSpeaker(object):
             'track_uri',
             'track_duration',
             'track_album',
+            'transport_actions',
             'stop',
             'play',
             'pause',
@@ -1253,6 +1298,7 @@ class SonosSpeaker(object):
             self._pause = False
             self._track_title = ''
             self._track_artist = ''
+            self._transport_actions = ''
             self._track_duration = "00:00:00"
             self._track_position = "00:00:00"
             self._playlist_position = 0

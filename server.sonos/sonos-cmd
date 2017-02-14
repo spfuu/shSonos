@@ -277,6 +277,7 @@ class SonosSpeakerCmd(cmd.Cmd):
         self.alarms = None
         self.is_coordinator = False
         self.balance = None
+        self.transport_actions = None
 
     def do_EOF(self, *args):
         """
@@ -761,6 +762,21 @@ class SonosSpeakerCmd(cmd.Cmd):
             return
         print("volume: {}".format(self.volume))
         print("max_volume: {}".format(self.max_volume))
+
+    def help_transport_actions(self):
+        print("transport_actions: Gets the current transport actions for the current track.")
+        print("transport_actions [get]: Forces the Broker to retrieve the transport actions for the current track.")
+
+    def do_transport_actions(self, line):
+        line = line.lower()
+        if not line:
+            pass
+        elif line == "get":
+            self.commands.get_transport_actions(self.uid)
+        else:
+            print("unknown argument")
+            return
+        print("transport_actions: {}".format(self.transport_actions))
 
     def help_track_url(self):
         print("track_url: Gets the current track url.")
@@ -1773,6 +1789,17 @@ class Commands():
                 }
             }
         )
+
+    def get_transport_actions(self, uid):
+        return self.send(
+            {
+                'command': 'get_transport_actions',
+                'parameter': {
+                    'uid': uid.lower(),
+                }
+            }
+        )
+
 
     def unjoin(self, uid, play=0):
         return self.send(

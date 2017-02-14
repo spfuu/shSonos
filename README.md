@@ -1,5 +1,11 @@
 ## Release
 
+v1.0b7  (2017-02-14)
+
+    -- command "transport_actions" to Sonos Broker and Sonos command line tool
+        -- this options shows all possible actions for the current track (e.g. Next, Stop, Play ...)
+    -- bug: Spotify Radio was handled as a normal radio station and should be fixed
+
 v1.0b6  (2017-02-05)
 
     -- some GoogleTTS improvements
@@ -349,6 +355,7 @@ In almost any cases, you'll get the appropriate response in the following JSON f
         "track_position": "00:00:00",
         "track_title": "Das Baby im Schafspelz",
         "track_uri": "x-sonos-spotify:spotify%3atrack%3a3xCk8npVehdV55KuPdjrmZ?sid=9&flags=32",
+        "transport_actions": "Set,Stop,Pause,Play,Next"
         "treble": 0,
         "uid": "rincon_000e58c3892e01410",
         "volume": 8,
@@ -420,6 +427,7 @@ Click on the links below to get a detailed command descriptions and their usage.
 ###### [get_track_artist](#g_track_artist)
 ###### [get_track_album_art](#g_track_album_art)
 ###### [get_track_uri](#g_track_uri)
+###### [get_transport_actions](#g_transport_actions)
 ###### [get_playlist_position](#g_playlist_position)
 ###### [get_playlist_total_tracks](#g_playlist_total_tracks)
 ###### [get_radio_station](#g_radio_station)
@@ -1585,6 +1593,7 @@ No special parameter needed.
     
     The response is only sent if the new value is different from the old value.
 
+----
 #### <a name="g_track_album">get_track_album
  Returns the album title of the currently played track.
  In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
@@ -1615,6 +1624,7 @@ No special parameter needed.
         ...
     }
 
+----
 #### <a name="g_track_title">get_track_title
  Returns the title of the currently played track.
  In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
@@ -1645,6 +1655,7 @@ No special parameter needed.
         ...
     }
 
+----
 #### <a name="g_track_artist">get_track_artist
  Returns the artist of the currently played track.
  In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
@@ -1675,6 +1686,7 @@ No special parameter needed.
         ...
     }
 
+----
 #### <a name="g_track_album_art">get_track_album_art
  Returns the album-cover url of the currently played track.
  In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
@@ -1705,6 +1717,7 @@ No special parameter needed.
         ...
     }
 
+----
 #### <a name="g_track_uri">get_track_uri
  Returns the track url of the currently played track.
  In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
@@ -1736,7 +1749,39 @@ No special parameter needed.
     }
     
     All URIs can be passed to the play_uri and play_snippet functions.
+    
+----
+#### <a name="g_transport_actions">get_transport_actions
+ Returns the available transport actions for the current track. This could be useful for a UI to display certain
+ control items (or not).
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'transport_actions'-status changes.
 
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_transport_actions',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        "transport_actions": "Set,Stop,Pause,Play,Next",
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+    
 ----
 #### <a name="g_playlist_position">get_playlist_position
  Returns the position of the currently played track in the playlist.
@@ -2220,47 +2265,52 @@ No special parameter needed.
 ######UDP Response sent to subscribed clients:
     JSON format:
     {
-        "additional_zone_members": "",
-        "alarms": "",
-        "balance": 0,
+        "additional_zone_members": "rincon_112ef9e4892e00001",
+        "alarms": {
+            "32": {
+                "Duration": "02:00:00",
+                "Enabled": false,
+                "IncludedLinkZones": false,
+                "PlayMode": "SHUFFLE_NOREPEAT",
+                "Recurrence": "DAILY",
+                "StartTime": "07:00:00",
+                "Volume": 25
+            }
+        },
         "bass": 0,
-        "display_version": "6.0",
-        "hardware_version": "1.8.1.2-2",
-        "household_id": "Sonos_Ef8RhcyY1ijYDDFp1I3GitguTP",
-        "ip": "192.168.0.11",
-        "is_coordinator": true,
+        "hardware_version": "1.8.3.7-2",
+        "ip": "192.168.0.4",
         "led": 1,
         "loudness": 1,
-        "mac_address": "B8-E9-37-38-E1-72",
+        "mac_address": "10:1F:21:C3:77:1A",
         "max_volume": -1,
-        "model": "Sonos PLAY:3",
-        "model_number": "S3",
-        "mute": 0,
-        "pause": 1,
+        "model": "Sonos PLAY:1",
+        "mute": "0",
+        "pause": 0,
         "play": 0,
         "playlist_position": "1",
         "playlist_total_tracks": "10",
         "playmode": "normal",
         "radio_show": "",
         "radio_station": "",
-        "serial_number": "B8-E9-37-38-E1-72:5",
-        "software_version": "31.3-22220",
-        "sonos_playlists": "Morning,Evening,U2",
+        "serial_number": "00-0E-58-C3-89-2E:7",
+        "software_version": "27.2-80271",
+        "sonos_playlists": "DepecheMode,my_fav-list2,my-fav-list2",
         "status": true,
-        "stop": 0,
+        "stop": 1,
         "streamtype": "music",
-        "track_album_art": "http://192.168.0.11:1400/getaa?s=1&u=x-sonos-http%3atr%253a119434742.mp3%3fsid%3d2%26flags%3d8224%26sn%3d1",
-        "track_artist": "Was ist Was",
-        "track_duration": "0:02:22",
+        "track_album": "Feuerwehrmann Sam 02",
+        "track_album_art": "http://192.168.0.4:1400/getaa?s=1&u=x-sonos-spotify%3aspotify%253atrack%253a3xCk8npVehdV55KuPdjrmZ%3fsid%3d9%26flags%3d32",
+        "track_artist": "Feuerwehrmann Sam & Clemens Gerhard",
+        "track_duration": "0:10:15",
         "track_position": "00:00:00",
-        "track_title": "Europa - Teil 10",
-        "track_uri": "x-sonos-http:tr%3a119434742.mp3?sid=2&flags=8224&sn=1",
+        "track_title": "Das Baby im Schafspelz",
+        "track_uri": "x-sonos-spotify:spotify%3atrack%3a3xCk8npVehdV55KuPdjrmZ?sid=9&flags=32",
+        "transport_actions": "Set,Stop,Pause,Play,Next"
         "treble": 0,
-        "tts_local_mode": false,
-        "uid": "rincon_b8e91111d11111400",
-        "volume": 17,
-        "wifi_state": 1,
-        "zone_icon": "/img/icon-S3.png",
+        "uid": "rincon_000e58c3892e01410",
+        "volume": 8,
+        "zone_icon": "x-rincon-roomicon:bedroom",
         "zone_name": "Kinderzimmer"
     }
     

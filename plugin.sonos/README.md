@@ -3,6 +3,11 @@ SmarthomeNG framework (https://github.com/smarthomeNG).
 
 ##Release
 
+v1.0b7  (2017-02-10)
+    
+    -- command 'transport_actions' added 
+    -- version string updated to v1.0b7
+    
 v1.0b6  (2017-02-05)
     
     -- command 'nightmode' added 
@@ -30,15 +35,6 @@ v0.9    (2016-11-20)
     -- add new property 'playlist_total_tracks'
     -- change expected Sonos Broker version to 0.9
 
-v0.8.2  (2016-11-14)
-
-    -- change expected Sonos Broker version to 0.8.2
- 
-v0.8.1  (2016-11-14)
-
-    -- switching versioning to the current Sonos Broker version
-    -- change expected Sonos Broker version to 0.8.1
-    
    
 ## Requirements:
 
@@ -474,6 +470,11 @@ Edit file with this sample of mine:
             type = bool
             enforce_updates = True
             sonos_send = clear_queue
+         
+        [[transport_actions]]
+            type = str
+            sonos_recv = transport_actions
+    
         
         
  This sonos.conf file implements most of the commands to interact with the Sonos Broker. Please follow the detailed
