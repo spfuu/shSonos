@@ -3,49 +3,30 @@ SmarthomeNG framework (https://github.com/smarthomeNG).
 
 ##Release
 
-v1.0b7  (2017-02-10)
-    
-    -- command 'transport_actions' added 
-    -- version string updated to v1.0b7
-    
-v1.0b6  (2017-02-05)
-    
+v1.0    (2017-02-15)
+
+    -- command 'transport_actions' added
     -- command 'nightmode' added 
-    -- version string updated to v1.0b6
-    -- attribute 'is_coordiantor' in example has now the right value
-    
-v1.0b5  (2017-01-23)
-
     -- play_tts: attribute 'force_stream_mode' (re)-added
-    -- version string updated
-
-v1.0b2  (2017-01-15)
-
-    -- version string updated to v1.0b2
-    
-v1.0b1  (2017-01-02)
-    
     -- added attribute 'play' to 'unjoin'
         -- resumes the last played track / radio before join to another group
-    -- change expected Sonos Broker version to v1.0b1
-
-v0.9    (2016-11-20)
-    
     -- added missing 'track_album' property
     -- add new property 'playlist_total_tracks'
-    -- change expected Sonos Broker version to 0.9
+    -- attribute 'is_coordiantor' in example has now the right value
+    -- version string updated
+    -- change expected Sonos Broker version to v1.0
 
    
 ## Requirements:
 
-  sonos_broker server v1.0b1
+  Sonos Broker v1.0
   (https://github.com/pfischi/shSonos)
 
-  SmarthomeNG 
+  SmarthomeNG 1.3 
   (https://github.com/smarthomeNG/smarthome)
 
 
-## Integration in Smarthome.py
+## Integration in SmarthomeNG
 
 Go to /usr/smarthome/etc and edit plugins.conf and add ths entry:
 
@@ -61,9 +42,7 @@ the same system.
 The ***refresh*** parameter specifies, how often the broker is requested for sonos status updates (default: 120s).
 Normally, all changes to the speakers will be triggered automatically to the plugin.
 
-Go to /usr/smarthome/items
-    
-Create a file named sonos.conf.
+Go to /usr/smarthome/items. Create a file named sonos.conf or copy the sonos.conf from the examples folder.
   
 Edit file with this sample of mine:
   
@@ -94,15 +73,27 @@ Edit file with this sample of mine:
     
         [[volume]]
             type = num
-            enforce_updates = True
-            visu_acl = rw
             sonos_recv = volume
             sonos_send = volume
+            eval_trigger = .volume_dpt3.volume_dpt3_helper
+            eval = sh..volume_dpt3.volume_dpt3_helper()
     
             [[[group_command]]]
                 type = bool
                 value = 0
     
+            [[[volume_dpt3]]]
+                type = list
+                enforce_updates = True
+                sonos_volume_dpt3 = foo
+                sonos_vol_step = 2
+                sonos_vol_time = 1
+    
+                [[[[volume_dpt3_helper]]]]
+                    type = num
+                    sonos_volume_dpt3_helper = foo
+                    eval = value if value>0 else 0
+        
         [[max_volume]]
             type = num
             enforce_updates = True
@@ -487,6 +478,49 @@ Edit file with this sample of mine:
   
     http://<sonos_server_ip:port>/client/list
 
+## Volume DPT3 support
+
+If you take look at the ```volume``` item in your Sonos items configuration you should find something like this:
+```
+[[volume]]
+        type = num
+        sonos_recv = volume
+        sonos_send = volume
+        eval_trigger = .volume_dpt3.volume_dpt3_helper
+        eval = sh..volume_dpt3.volume_dpt3_helper()
+
+        [[[group_command]]]
+            type = bool
+            value = 0
+
+        [[[volume_dpt3]]]
+            type = list
+            enforce_updates = True
+            sonos_volume_dpt3 = foo
+            sonos_vol_step = 2
+            sonos_vol_time = 1
+
+            [[[[volume_dpt3_helper]]]]
+                type = num
+                sonos_volume_dpt3_helper = foo
+                eval = value if value>0 else 0
+
+```
+If you want to use a dim-like functionality to control the volume (e.g. with a button), you can edit the 
+```volume_dpt3``` item. ***sonos_vol_step*** (default: 2) defines the volume step for up and down, ***sonos_vol_time*** 
+(default: 1) the time between the steps. Both values are optional, if not set, the default value is used. A real-world
+example could look like this:
+```
+[[[volume_dpt3]]]
+            type = list
+            knx_dpt = 3
+            knx_listen = 7/0/0
+            enforce_updates = True
+            sonos_volume_dpt3 = foo
+            sonos_vol_step = 3
+            sonos_vol_time = 1
+```
+
 ## Group behaviour
 
  If two or more speakers are in the same zone, most of the commands are automatically executed for all zone
@@ -585,34 +619,4 @@ discover()
 
 ## smartVISU Integration
 
-more information here: https://github.com/pfischi/shSonos/tree/develop/widget.smartvisu
-
-
-## Logic examples
-
-To run this plugin with a logic, here is my example:
-    
-Go to /usr/smarthome/logics and create a self-named file (e.g. sonos.py)
-Edit this file and place your logic here:
-    
-    
-    #!/usr/bin/env python
-    #
-
-    if sh.ow.ibutton():
-        sh.sonos.mute(1)
-    else:
-        sh.sonos.mute(0)
-
-    
-  Last step: go to /usr/smarthome/etc and edit logics.conf
-  Add a section for your logic:
-    
-    # logic
-    [sonos_logic]
-        filename = sonos.py
-        watch_item = ow.ibutton
-    
-    
-In this small example, the sonos speaker with uid RINCON_000E58D5892E11230 is muted when the iButton is connected
-to an iButton Probe.
+More information here: https://github.com/pfischi/shSonos/tree/develop/widget.smartvisu
