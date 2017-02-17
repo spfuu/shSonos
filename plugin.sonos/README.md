@@ -483,28 +483,23 @@ Edit file with this sample of mine:
 If you take look at the ```volume``` item in your Sonos items configuration you should find something like this:
 ```
 [[volume]]
-        type = num
-        sonos_recv = volume
-        sonos_send = volume
-        eval_trigger = .volume_dpt3.volume_dpt3_helper
-        eval = sh..volume_dpt3.volume_dpt3_helper()
+    type = num
+    sonos_recv = volume
+    sonos_send = volume
 
-        [[[group_command]]]
-            type = bool
-            value = 0
+    [[[group_command]]]
+        type = bool
+        value = 0
 
-        [[[volume_dpt3]]]
-            type = list
-            enforce_updates = True
-            sonos_volume_dpt3 = foo
-            sonos_vol_step = 2
-            sonos_vol_time = 1
+    [[[volume_dpt3]]]
+        type = list
+        sonos_volume_dpt3 = foo
+        sonos_vol_step = 2
+        sonos_vol_time = 1
 
-            [[[[volume_dpt3_helper]]]]
-                type = num
-                sonos_volume_dpt3_helper = foo
-                eval = value if value>0 else 0
-
+        [[[[helper]]]]
+            type = num
+            sonos_send = volume
 ```
 If you want to use a dim-like functionality to control the volume (e.g. with a button), you can edit the 
 ```volume_dpt3``` item. ***sonos_vol_step*** (default: 2) defines the volume step for up and down, ***sonos_vol_time*** 
@@ -512,14 +507,18 @@ If you want to use a dim-like functionality to control the volume (e.g. with a b
 example could look like this:
 ```
 [[[volume_dpt3]]]
-            type = list
-            knx_dpt = 3
-            knx_listen = 7/0/0
-            enforce_updates = True
-            sonos_volume_dpt3 = foo
-            sonos_vol_step = 3
-            sonos_vol_time = 1
+    type = list
+    knx_dpt = 3
+    knx_listen = 7/0/0
+    sonos_volume_dpt3 = foo
+    sonos_vol_step = 2
+    sonos_vol_time = 1
+ 
+    [[[[helper]]]]
+        type = num
+        sonos_send = volume
 ```
+Don't change the items name, otherwise the function will not work.
 
 ## Group behaviour
 

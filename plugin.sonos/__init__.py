@@ -7,10 +7,12 @@ import re
 import threading
 import json
 import requests
+import time
 from lib.model.smartplugin import SmartPlugin
 
 EXPECTED_BROKER_VERSION = "1.0"
 sonos_speaker = {}
+
 
 class UDPDispatcher(lib.connection.Server):
     def __init__(self, ip, port, sh):
@@ -52,8 +54,7 @@ class UDPDispatcher(lib.connection.Server):
 
 
 class Sonos(SmartPlugin):
-
-    PLUGIN_VERSION = "1.2.0.1"
+    PLUGIN_VERSION = "1.3.0.1"
     ALLOW_MULTIINSTANCE = False
 
     def __init__(self, sh, listen_host='0.0.0.0', listen_port=9999, broker_url=None, refresh=120):
@@ -79,7 +80,7 @@ class Sonos(SmartPlugin):
             self._broker_url = "http://{ip}:12900".format(ip=self._lan_ip)
             if self._broker_url:
                 self._logger.warning("No broker url given, assuming current ip and default broker port: {url}".
-                               format(url=self._broker_url))
+                                     format(url=self._broker_url))
             else:
                 self._logger.error("Could not detect broker url !!!")
                 return
@@ -95,12 +96,12 @@ class Sonos(SmartPlugin):
         try:
             if EXPECTED_BROKER_VERSION != broker_version:
                 self._logger.warning("This plugin is desgined to work with Sonos Broker version {version}. "
-                               "Your plugin version is probably out-of-date or too new. "
-                               "Please update your plugin and/or the Sonos Broker Server".format(
+                                     "Your plugin version is probably out-of-date or too new. "
+                                     "Please update your plugin and/or the Sonos Broker Server".format(
                     version=EXPECTED_BROKER_VERSION))
         except Exception:
             self._logger.warning("Unknown Sonos broker version string '{version_string}.'".
-                         format(version_string=broker_version))
+                                 format(version_string=broker_version))
 
         self._listen_host = listen_host
         self._listen_port = listen_port
@@ -147,7 +148,10 @@ class Sonos(SmartPlugin):
     def _resolve_uid(self, item):
         uid = None
 
-        parent_item = item.return_parent()
+        if 'volume_dpt3.helper' in item._name:
+            parent_item = item.return_parent().return_parent().return_parent()
+        else:
+            parent_item = item.return_parent()
         if (parent_item is not None) and ('sonos_uid' in parent_item.conf):
             uid = parent_item.conf['sonos_uid'].lower()
         else:
@@ -203,6 +207,7 @@ class Sonos(SmartPlugin):
         return None
 
     def _handle_volume_dpt3(self, item, caller=None, source=None, dest=None):
+        self._logger.debug(caller)
         if caller != 'Sonos':
 
             volume_helper = None
@@ -212,15 +217,20 @@ class Sonos(SmartPlugin):
                 self._logger.warning("Sonos: no parent volume item found for volume_dpt3 item!")
                 return
 
+            dpt3_helper_name = '{}.helper'.format(item._name)
+
             for child in item.return_children():
-                if self.has_iattr(child.conf, 'sonos_volume_dpt3_helper'):
+                if child._name == dpt3_helper_name:
                     volume_helper = child
 
             if volume_helper is None:
-                self._logger.warning("Sonos: no child volume helper item found for volume_dpt3 item!")
+                self._logger.warning("Sonos: no child helper item found for volume_dpt3 item!")
                 return
 
-            volume_helper(volume_item())
+            self._logger.debug("#########################################")
+
+            volume_helper(volume_item() + 1, 'sonos_fade')
+            volume_helper(volume_item() + 1, 'sonos_fade')
 
             vol_step = int(item.conf['sonos_vol_step'])
             vol_time = int(item.conf['sonos_vol_time'])
@@ -234,11 +244,10 @@ class Sonos(SmartPlugin):
                     # down
                     volume_helper.fade(0, vol_step, vol_time)
             else:
-                volume_helper(int(volume_item() + 1), 'sonos_fade')
+                volume_helper(int(volume_helper() + 1), 'sonos_fade')
 
                 if volume_helper() >= 0:
-                    volume_helper(int(volume_item() - 1), 'sonos_fade')
-
+                    volume_helper(int(volume_helper() - 1), 'sonos_fade')
 
     def parse_logic(self, logic):
         pass
@@ -482,9 +491,9 @@ class Sonos(SmartPlugin):
                             if child._name.lower() == persistent_item_name.lower():
                                 if value != 0 and persistent == 1:
                                     self._logger.warning("command wifi_state: persistent parameter with value '1' will"
-                                                   "only affect wifi_state with value '1' (the wifi interface will"
-                                                   "remain deactivated after reboot). Ignoring 'persistent' "
-                                                   "parameter.")
+                                                         "only affect wifi_state with value '1' (the wifi interface will"
+                                                         "remain deactivated after reboot). Ignoring 'persistent' "
+                                                         "parameter.")
                                 else:
                                     persistent = child()
                                 break
@@ -507,12 +516,12 @@ class Sonos(SmartPlugin):
 
             if response.status_code == 200:
                 self._logger.info("Sonos: Message %s %s successfully sent - %s %s" %
-                            (self._broker_url, payload, response.status_code, response.reason))
+                                  (self._broker_url, payload, response.status_code, response.reason))
                 return response.text.replace(html_start, "", 1).replace(html_end, "", 1)
 
             else:
                 self._logger.warning("Sonos: Could not send message %s %s - %s %s" %
-                               (self._broker_url, payload, response.status_code, response.text))
+                                     (self._broker_url, payload, response.status_code, response.text))
                 return None
         except Exception as e:
             self._logger.warning(
@@ -527,11 +536,11 @@ class Sonos(SmartPlugin):
             response = conn.getresponse()
             if response.status == 200:
                 self._logger.info("Sonos: Message %s %s successfully sent - %s %s" %
-                            (self._broker_url, cmd, response.status, response.reason))
+                                  (self._broker_url, cmd, response.status, response.reason))
                 data = response.read()
             else:
                 self._logger.warning("Sonos: Could not send message %s %s - %s %s" %
-                               (self._broker_url, cmd, response.status, response.reason))
+                                     (self._broker_url, cmd, response.status, response.reason))
             conn.close()
             return data
 
@@ -543,7 +552,7 @@ class Sonos(SmartPlugin):
 
     def load_sonos_playlist(self, uid, sonos_playlist, play_after_insert=0, clear_queue=0):
         return self._send_cmd(SonosCommand.load_sonos_playlist(uid, sonos_playlist, play_after_insert,
-                                                                        clear_queue))
+                                                               clear_queue))
 
     def get_favorite_radiostations(self, start_item=0, max_items=50):
         return self._send_cmd_response(SonosCommand.favradio(start_item, max_items))
@@ -606,8 +615,8 @@ class SonosSpeaker():
         self.sonos_playlists = []
         self.transport_actions = []
 
-class SonosCommand:
 
+class SonosCommand:
     @staticmethod
     def subscribe(ip, port):
         return {
@@ -907,7 +916,7 @@ class SonosCommand:
             'command': 'sonos_playlists',
             'parameter': {
                 'uid': uid.lower(),
-                }
+            }
         }
 
     @staticmethod
@@ -966,7 +975,7 @@ class SonosCommand:
         display_option = display_option.lower()
         if display_option not in ['none', 'itunes', 'wmp']:
             _logger.warning("refresh_media_library: invalid 'display_option' value '{val}'. Value has to be 'none', "
-                           "'itunes' or 'wmp'. Using default value 'none'.".format(val=display_option))
+                            "'itunes' or 'wmp'. Using default value 'none'.".format(val=display_option))
             display_option = 'none'
         return {
             'command': 'refresh_media_library',
