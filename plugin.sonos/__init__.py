@@ -238,10 +238,10 @@ class Sonos(SmartPlugin):
                     volume_helper.fade(vol_max, vol_step, vol_time)
                 else:
                     # down
-                    volume_helper.fade(0, vol_step, vol_time)
+                    volume_helper.fade(0-vol_step, vol_step, vol_time)
             else:
-                volume_helper(int(volume_helper() + 1), 'sonos_fade')
-                volume_helper(int(volume_helper() - 1), 'sonos_fade')
+                volume_helper(int(volume_helper() + 1))
+                volume_helper(int(volume_helper() - 1))
 
     def parse_logic(self, logic):
         pass
@@ -299,6 +299,7 @@ class Sonos(SmartPlugin):
                             if child._name.lower() == group_item_name.lower():
                                 group_command = child()
                                 break
+                        value = 0 if value < 0 else value
                         cmd = self._command.volume(uid, value, group_command)
 
                 if command == 'max_volume':

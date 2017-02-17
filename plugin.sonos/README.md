@@ -75,8 +75,6 @@ Edit file with this sample of mine:
             type = num
             sonos_recv = volume
             sonos_send = volume
-            eval_trigger = .volume_dpt3.volume_dpt3_helper
-            eval = sh..volume_dpt3.volume_dpt3_helper()
     
             [[[group_command]]]
                 type = bool
@@ -84,16 +82,14 @@ Edit file with this sample of mine:
     
             [[[volume_dpt3]]]
                 type = list
-                enforce_updates = True
                 sonos_volume_dpt3 = foo
                 sonos_vol_step = 2
                 sonos_vol_time = 1
-    
-                [[[[volume_dpt3_helper]]]]
-                    type = num
-                    sonos_volume_dpt3_helper = foo
-                    eval = value if value>0 else 0
         
+                [[[[helper]]]]
+                    type = num
+                    sonos_send = volume
+                
         [[max_volume]]
             type = num
             enforce_updates = True
