@@ -227,11 +227,7 @@ class Sonos(SmartPlugin):
                 self._logger.warning("Sonos: no child helper item found for volume_dpt3 item!")
                 return
 
-            self._logger.debug("#########################################")
-
-            volume_helper(volume_item() + 1, 'sonos_fade')
-            volume_helper(volume_item() + 1, 'sonos_fade')
-
+            volume_helper(volume_item())
             vol_step = int(item.conf['sonos_vol_step'])
             vol_time = int(item.conf['sonos_vol_time'])
             vol_max = int(item.conf['sonos_vol_max'])
@@ -245,9 +241,7 @@ class Sonos(SmartPlugin):
                     volume_helper.fade(0, vol_step, vol_time)
             else:
                 volume_helper(int(volume_helper() + 1), 'sonos_fade')
-
-                if volume_helper() >= 0:
-                    volume_helper(int(volume_helper() - 1), 'sonos_fade')
+                volume_helper(int(volume_helper() - 1), 'sonos_fade')
 
     def parse_logic(self, logic):
         pass
