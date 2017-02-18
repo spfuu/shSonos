@@ -1,8 +1,9 @@
 ##Release
 
-v0.3    (2017-02-14)
+v0.3    (2017-02-18)
 
     -- complete rewrite of widget for Sonos Broker >= 1.0
+    -- compatible for SmartVISU 2.8 and 2.9 (untested)
 
 v0.2    (2014-12-05)
 
