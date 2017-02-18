@@ -33,7 +33,7 @@ v1.0    (2017-02-15)
 [7. FAQ](faq)
 
 
-##<a name="req">Requirements:
+##<a name="req"></a>Requirements:
 
   Sonos Broker v1.0
   (https://github.com/pfischi/shSonos)
@@ -42,7 +42,7 @@ v1.0    (2017-02-15)
   (https://github.com/smarthomeNG/smarthome)
 
 
-##<a name="shng">Integration in SmarthomeNG
+##<a name="shng"></a>Integration in SmarthomeNG
 
 Go to /usr/smarthome/etc and edit plugins.conf and add ths entry:
 
@@ -532,7 +532,7 @@ example could look like this:
 ```
 Don't change the items name, otherwise the function will not work.
 
-##<a name="group">Group behaviour
+##<a name="group"></a>Group behaviour
 
  If two or more speakers are in the same zone, most of the commands are automatically executed for all zone
  members. Normally the Sonos API requires to send the command to the zone master. This is done by the Broker
@@ -570,7 +570,7 @@ Don't change the items name, otherwise the function will not work.
     loudness
     balance
 
-##<a name="meth">Methods
+##<a name="meth"></a>Methods
 
 get_favorite_radiostations(<start_item>, <max_items>)
 
@@ -628,11 +628,11 @@ discover()
     sh.sonos.discover()
 
 
-##<a name="visu">smartVISU Integration
+##<a name="visu"></a>smartVISU Integration
 
 More information [--> HERE <--](https://github.com/pfischi/shSonos/tree/develop/widget.smartvisu)
 
-##<a name="faq">FAQ
+##<a name="faq"></a>FAQ
 
 ##### utf-8 codec error
 If you're using Onkelandy's SmarthomeNG Image (and other Linux distros), following error can occurred if you're using 
