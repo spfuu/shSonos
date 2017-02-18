@@ -1,42 +1,19 @@
 ## Release
 
-v1.0b7  (2017-02-14)
+v1.0  (2017-02-18)
 
+    -- Attention: cleaned-up configuration file. Please re-configure your Sonos Broker installation
     -- command "transport_actions" to Sonos Broker and Sonos command line tool
         -- this options shows all possible actions for the current track (e.g. Next, Stop, Play ...)
-    -- bug: Spotify Radio was handled as a normal radio station and should be fixed
-
-v1.0b6  (2017-02-05)
-
-    -- some GoogleTTS improvements
     -- command 'nightmode' added (only for supported speakers)
-    
-v1.0b5  (2017-01-23)
-
-    --  Attention: cleaned-up configuration file. Please re-configure your Sonos Broker installation
-    --  GoogleTTS: files now stored with md5 sum of tts_language and tts_string to reduce the 
-        filename length
-    --  GoogleTTS: now works in streaning mode per default, no web service is needed.
-    --  GoogleTTS: the local ip address for the streaming url will be detected automatically (by default)
-    --  play_tts: (optional) attribute 'force_stream_mode' (re)-added to Sonos Broker and Command 
-        line tool
-    
-v1.0b4  (2017-01-22)
-
+    -- bug: Spotify Radio was handled as a normal radio station and should be fixed
+    -- GoogleTTS improvements
+    -- GoogleTTS: files now stored with md5 sum of tts_language and tts_string to reduce the filename length
+    -- GoogleTTS: now works in streaning mode per default, no web service is needed.
+    -- GoogleTTS: the local ip address for the streaming url will be detected automatically (by default)
+    -- play_tts: (optional) attribute 'force_stream_mode' (re)-added to Sonos Broker and Command line tool
     -- bug: endless loop while trying to play a track from a non-existing url
-
-v1.0b3  (2017-01-19)
-
-    -- much better event based  GoogleTTS handling
-
-v1.0b2  (2017-01-17)
-
     -- bug: wrong path in systemd script
-    -- bug: logging unicode error 
-
-v1.0b1 (2017-01-08)
-    
-    -- integrated webservice to serve audio files for the Sonos speakers
     -- bug: the 'volume' of all zone members will now be restored correctly after playing the snippet
     -- command optional parameter 'play' added to command "unjoin"
         -- with 'play' set to true, the prevoiusly played track (before joining a group) will resumed

@@ -1361,8 +1361,11 @@ class SonosSpeaker(object):
                     # to roll back to this when we are done
                     logger.debug("Speech: Taking snapshot")
 
-                    snap = Snapshot(self.soco)
-                    snap.snapshot()
+                    # was GoogleTTS the last track? do not snapshot
+                    last_station = self.radio_station
+                    if last_station.lower() != "google tts":
+                        snap = Snapshot(self.soco)
+                        snap.snapshot()
 
                     # Get the URI and play it
                     logger.debug("Speech: Playing URI %s" % uri)
@@ -1397,7 +1400,10 @@ class SonosSpeaker(object):
                     logger.debug("Speech: Restoring snapshot")
 
                     # Restore the Sonos device back to it's previous state
-                    snap.restore()
+                    if last_station.lower() != "google tts":
+                        snap.restore()
+                    else:
+                        self.radio_station = ""
 
                     for member in self.zone_members:
                         if member in volumes:

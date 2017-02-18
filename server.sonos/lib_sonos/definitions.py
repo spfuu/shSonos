@@ -16,7 +16,7 @@ NS = {'dc': '{http://purl.org/dc/elements/1.1/}',
 ip_pattern = '^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$'
 
 VERSION_BUILDSTRING = "v1.0b7 (2017-02-14)"
-VERSION = "1.0b7"
+VERSION = "1.0"
 
 DEFAULT_HOST = '0.0.0.0'
 DEFAULT_PORT = 12900
