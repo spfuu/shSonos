@@ -16,8 +16,24 @@ v1.0    (2017-02-15)
     -- version string updated
     -- change expected Sonos Broker version to v1.0
 
-   
-## Requirements:
+## Overview
+
+[1. Requirements](req)
+
+[2. Integration in SmarthomeNG](shng)
+
+[3. Volume DPT3 support](dpt)
+
+[4. Group behavior](group)
+
+[5. Methods](meth)
+
+[6. SmartVISU Integration](visu)
+
+[7. FAQ](faq)
+
+
+##<a name="req">Requirements:
 
   Sonos Broker v1.0
   (https://github.com/pfischi/shSonos)
@@ -26,7 +42,7 @@ v1.0    (2017-02-15)
   (https://github.com/smarthomeNG/smarthome)
 
 
-## Integration in SmarthomeNG
+##<a name="shng">Integration in SmarthomeNG
 
 Go to /usr/smarthome/etc and edit plugins.conf and add ths entry:
 
@@ -474,7 +490,7 @@ Edit file with this sample of mine:
   
     http://<sonos_server_ip:port>/client/list
 
-## Volume DPT3 support
+##<a name="dpt">Volume DPT3 support
 
 If you take look at the ```volume``` item in your Sonos items configuration you should find something like this:
 ```
@@ -516,7 +532,7 @@ example could look like this:
 ```
 Don't change the items name, otherwise the function will not work.
 
-## Group behaviour
+##<a name="group">Group behaviour
 
  If two or more speakers are in the same zone, most of the commands are automatically executed for all zone
  members. Normally the Sonos API requires to send the command to the zone master. This is done by the Broker
@@ -554,7 +570,7 @@ Don't change the items name, otherwise the function will not work.
     loudness
     balance
 
-## Methods
+##<a name="meth">Methods
 
 get_favorite_radiostations(<start_item>, <max_items>)
 
@@ -612,6 +628,22 @@ discover()
     sh.sonos.discover()
 
 
-## smartVISU Integration
+##<a name="visu">smartVISU Integration
 
-More information here: https://github.com/pfischi/shSonos/tree/develop/widget.smartvisu
+More information [--> HERE <--](https://github.com/pfischi/shSonos/tree/develop/widget.smartvisu)
+
+##<a name="faq">FAQ
+
+##### utf-8 codec error
+If you're using Onkelandy's SmarthomeNG Image (and other Linux distros), following error can occurred if you're using 
+non-ASCII characters for Sonos speaker names:
+```
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0xb0 in position 37: invalid start byte
+```
+This happens because the 'stdout' setting of the system is set to an ASCII character set. You can this by entering 
+following command in your console:
+```
+export LC_ALL=de_DE.utf8
+export LANGUAGE=de_DE.utf8
+```
+For more information about 'locales', please follow this [--> LINK <--](https://www.thomas-krenn.com/de/wiki/Locales_unter_Ubuntu_konfigurieren)
