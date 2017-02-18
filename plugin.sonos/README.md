@@ -5,6 +5,7 @@ SmarthomeNG framework (https://github.com/smarthomeNG).
 
 v1.0    (2017-02-15)
 
+    -- dpt3 functionality added for volume item
     -- command 'transport_actions' added
     -- command 'nightmode' added 
     -- play_tts: attribute 'force_stream_mode' (re)-added
@@ -18,19 +19,19 @@ v1.0    (2017-02-15)
 
 ## Overview
 
-[1. Requirements](req)
+[1. Requirements](#req)
 
-[2. Integration in SmarthomeNG](shng)
+[2. Integration in SmarthomeNG](#shng)
 
-[3. Volume DPT3 support](dpt)
+[3. Volume DPT3 support](#dpt)
 
-[4. Group behavior](group)
+[4. Group behavior](#group)
 
-[5. Methods](meth)
+[5. Methods](#meth)
 
-[6. SmartVISU Integration](visu)
+[6. SmartVISU Integration](#visu)
 
-[7. FAQ](faq)
+[7. FAQ](#faq)
 
 
 ##<a name="req"></a>Requirements:
