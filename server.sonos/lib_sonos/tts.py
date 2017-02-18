@@ -2,9 +2,12 @@
 import calendar
 import math
 import time
+
+import logging
 import requests
 import re
 
+logger = logging.getLogger('sonos_broker')
 
 class Token:
     """ Token (Google Translate Token)
@@ -138,8 +141,7 @@ class gTTS:
         'cy' : 'Welsh'
     }
 
-    def __init__(self, text, lang = 'en', debug = False):
-        self.debug = debug
+    def __init__(self, text, lang='en'):
         if lang.lower() not in self.LANGUAGES:
             raise Exception('Language not supported: %s' % lang)
         else:
@@ -168,35 +170,51 @@ class gTTS:
     def save(self, savefile):
         """ Do the Web request and save to `savefile` """
         with open(savefile, 'wb') as f:
-            self.write_to_fp(f)
+            self._write_to_fp(f)
             f.close()
 
-    def write_to_fp(self, fp):
+    def stream_url(self):
+        req = self._prepare_request()
+        params = req.params
+        prep_req = req.prepare()
+        prep_req.prepare_url(req.url, params)
+        return prep_req.url
+
+    def _prepare_request(self):
         """ Do the Web request and save to a file-like object """
         for idx, part in enumerate(self.text_parts):
-            payload = { 'ie' : 'UTF-8',
-                        'q' : part,
-                        'tl' : self.lang,
-                        'total' : len(self.text_parts),
-                        'idx' : idx,
-                        'client' : 'tw-ob',
-                        'textlen' : len(part),
-                        'tk' : self.token.calculate_token(part)}
+            payload = {'ie': 'UTF-8',
+                       'q': part,
+                       'tl': self.lang,
+                       'total': len(self.text_parts),
+                       'idx': idx,
+                       'client': 'tw-ob',
+                       'textlen': len(part),
+                       'tk': self.token.calculate_token(part)}
             headers = {
-                "Referer" : "http://translate.google.com/",
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36"
+                "Referer": "http://translate.google.com/",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                              "Chrome/47.0.2526.106 Safari/537.36"
             }
-            if self.debug: print(payload)
-            try:
-                r = requests.get(self.GOOGLE_TTS_URL, params=payload, headers=headers)
-                if self.debug:
-                    print("Headers: {}".format(r.request.headers))
-                    print("Reponse: {}, Redirects: {}".format(r.status_code, r.history))
-                r.raise_for_status()
-                for chunk in r.iter_content(chunk_size=1024):
-                    fp.write(chunk)
-            except Exception as e:
-                raise
+
+            logger.debug("GoogleTTS: headers parameter: {param}".format(param=headers))
+            logger.debug("GoogleTTS: request parameter: {param}".format(param=payload))
+            return requests.Request(method='GET', url=self.GOOGLE_TTS_URL, headers=headers, params=payload)
+
+    def _write_to_fp(self, fp):
+        try:
+            prepared_request = self._prepare_request().prepare()
+            s = requests.Session()
+            r = s.send(prepared_request)
+            logger.debug("Headers: {}".format(r.request.headers))
+            logger.debug("Reponse: {}, Redirects: {}".format(r.status_code, r.history))
+
+            r.raise_for_status()
+            for chunk in r.iter_content(chunk_size=1024):
+                fp.write(chunk)
+        except Exception as err:
+            logger.error(err)
+            raise err
 
     def _tokenize(self, text, max_size):
         """ Tokenizer on basic roman punctuation """ 

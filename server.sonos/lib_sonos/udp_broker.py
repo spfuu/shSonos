@@ -3,9 +3,9 @@ import logging
 import errno
 import socket
 
-logger = logging.getLogger('')
-registered_clients = {}
+logger = logging.getLogger('sonos_broker')
 
+registered_clients = {}
 
 class UdpBroker():
     @staticmethod

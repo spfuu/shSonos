@@ -14,7 +14,7 @@ from lib_sonos import utils
 from lib_sonos.utils import underscore_to_camel
 from lib_sonos import definitions
 
-logger = logging.getLogger('')
+logger = logging.getLogger('sonos_broker')
 
 
 class MyDecoder(json.JSONDecoder):
@@ -56,7 +56,7 @@ class JsonCommandBase():
         return "Missing parameter '{parameter}'!".format(parameter=s_args[-1])
 
 
-### CLIENT SUBSCRIBE / UNSUBSCRIE ######################################################################################
+# CLIENT SUBSCRIBE / UNSUBSCRIE ########################################################################################
 
 class ClientSubscribe(JsonCommandBase):
     def __init__(self, parameter):
@@ -116,7 +116,7 @@ class ClientUnsubscribe(JsonCommandBase):
             return self._status, self._response
 
 
-### CURRENT STATE ######################################################################################################
+# CURRENT STATE ########################################################################################################
 
 class CurrentState(JsonCommandBase):
     def __init__(self, parameter):
@@ -148,7 +148,7 @@ class CurrentState(JsonCommandBase):
         finally:
             return self._status, self._response
 
-### BALANCE ############################################################################################################
+# BALANCE ##############################################################################################################
 
 class GetBalance(JsonCommandBase):
     def __init__(self, parameter):
@@ -217,7 +217,7 @@ class SetBalance(JsonCommandBase):
         finally:
             return self._status, self._response
 
-### VOLUME #############################################################################################################
+# VOLUME ###############################################################################################################
 
 class GetVolume(JsonCommandBase):
     def __init__(self, parameter):
@@ -286,7 +286,7 @@ class SetVolume(JsonCommandBase):
             return self._status, self._response
 
 
-# ## VOLUME UP ##########################################################################################################
+# VOLUME UP ############################################################################################################
 
 class VolumeUp(JsonCommandBase):
     def __init__(self, parameter):
@@ -322,7 +322,7 @@ class VolumeUp(JsonCommandBase):
             return self._status, self._response
 
 
-### VOLUME DOWN ########################################################################################################
+# VOLUME DOWN ##########################################################################################################
 
 class VolumeDown(JsonCommandBase):
     def __init__(self, parameter):
@@ -358,7 +358,7 @@ class VolumeDown(JsonCommandBase):
             return self._status, self._response
 
 
-### MAX VOLUME #########################################################################################################
+# MAX VOLUME ###########################################################################################################
 
 class GetMaxVolume(JsonCommandBase):
     def __init__(self, parameter):
@@ -432,7 +432,7 @@ class SetMaxVolume(JsonCommandBase):
             return self._status, self._response
 
 
-### MUTE ###############################################################################################################
+# MUTE #################################################################################################################
 
 class GetMute(JsonCommandBase):
     def __init__(self, parameter):
@@ -494,7 +494,7 @@ class SetMute(JsonCommandBase):
             return self._status, self._response
 
 
-### BASS ###############################################################################################################
+# BASS #################################################################################################################
 
 class GetBass(JsonCommandBase):
     def __init__(self, parameter):
@@ -559,7 +559,7 @@ class SetBass(JsonCommandBase):
             return self._status, self._response
 
 
-### TREBLE #############################################################################################################
+# TREBLE ###############################################################################################################
 
 class GetTreble(JsonCommandBase):
     def __init__(self, parameter):
@@ -626,7 +626,7 @@ class SetTreble(JsonCommandBase):
             return self._status, self._response
 
 
-### LOUDNESS ###########################################################################################################
+# LOUDNESS #############################################################################################################
 
 class GetLoudness(JsonCommandBase):
     def __init__(self, parameter):
@@ -696,7 +696,7 @@ class SetLoudness(JsonCommandBase):
             return self._status, self._response
 
 
-### STOP ###############################################################################################################
+# STOP #################################################################################################################
 
 class GetStop(JsonCommandBase):
     def __init__(self, parameter):
@@ -754,7 +754,7 @@ class SetStop(JsonCommandBase):
             return self._status, self._response
 
 
-### PLAYLIST POSITION ##################################################################################################
+# PLAYLIST POSITION ####################################################################################################
 
 class GetPlaylistPosition(JsonCommandBase):
     def __init__(self, parameter):
@@ -782,7 +782,7 @@ class GetPlaylistPosition(JsonCommandBase):
             return self._status, self._response
 
 
-### PLAYLIST TOTAL TRACKS ##############################################################################################
+# PLAYLIST TOTAL TRACKS ################################################################################################
 
 class GetPlaylistTotalTracks(JsonCommandBase):
     def __init__(self, parameter):
@@ -810,7 +810,7 @@ class GetPlaylistTotalTracks(JsonCommandBase):
             return self._status, self._response
 
 
-### PLAY ###############################################################################################################
+# PLAY #################################################################################################################
 
 class GetPlay(JsonCommandBase):
     def __init__(self, parameter):
@@ -868,7 +868,7 @@ class SetPlay(JsonCommandBase):
             return self._status, self._response
 
 
-### PAUSE ##############################################################################################################
+# PAUSE ################################################################################################################
 
 class GetPause(JsonCommandBase):
     def __init__(self, parameter):
@@ -926,7 +926,7 @@ class SetPause(JsonCommandBase):
             return self._status, self._response
 
 
-### RADIO STATION ######################################################################################################
+# RADIO STATION ########################################################################################################
 
 class GetRadioStation(JsonCommandBase):
     def __init__(self, parameter):
@@ -954,7 +954,7 @@ class GetRadioStation(JsonCommandBase):
             return self._status, self._response
 
 
-### RADIO SHOW #########################################################################################################
+# RADIO SHOW ###########################################################################################################
 
 class GetRadioShow(JsonCommandBase):
     def __init__(self, parameter):
@@ -982,7 +982,7 @@ class GetRadioShow(JsonCommandBase):
             return self._status, self._response
 
 
-### PLAYMODE ###########################################################################################################
+# PLAYMODE #############################################################################################################
 
 class GetPlaymode(JsonCommandBase):
     def __init__(self, parameter):
@@ -1046,7 +1046,7 @@ class SetPlaymode(JsonCommandBase):
             return self._status, self._response
 
 
-### ALARMS #############################################################################################################
+# ALARMS ###############################################################################################################
 
 class GetAlarms(JsonCommandBase):
     def __init__(self, parameter):
@@ -1074,7 +1074,7 @@ class GetAlarms(JsonCommandBase):
             return self._status, self._response
 
 
-### TRACK ARTIST #######################################################################################################
+# TRACK ARTIST #########################################################################################################
 
 class GetTrackArtist(JsonCommandBase):
     def __init__(self, parameter):
@@ -1102,7 +1102,7 @@ class GetTrackArtist(JsonCommandBase):
             return self._status, self._response
 
 
-### TRACK TITLE ########################################################################################################
+# TRACK TITLE ##########################################################################################################
 
 class GetTrackTitle(JsonCommandBase):
     def __init__(self, parameter):
@@ -1129,7 +1129,35 @@ class GetTrackTitle(JsonCommandBase):
         finally:
             return self._status, self._response
 
-### TRACK ALBUM ########################################################################################################
+# TRANSPORT ACTIONS ####################################################################################################
+
+class GetTransportActions(JsonCommandBase):
+    def __init__(self, parameter):
+        super().__init__(parameter)
+
+    def run(self):
+        try:
+            logger.debug(
+                'COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
+                                                                         attributes=utils.dump_attributes(
+                                                                             self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
+            sonos_speaker.sonos_speakers[self.uid].dirty_property('transport_actions')
+            sonos_speaker.sonos_speakers[self.uid].send()
+            self._status = True
+        except requests.ConnectionError:
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
+                format(uid=self.uid)
+        except AttributeError as err:
+            self._response = JsonCommandBase.missing_param_error(err)
+        except Exception as err:
+            self._response = err
+        finally:
+            return self._status, self._response
+
+# TRACK ALBUM ##########################################################################################################
 
 class GetTrackAlbum(JsonCommandBase):
     def __init__(self, parameter):
@@ -1156,7 +1184,7 @@ class GetTrackAlbum(JsonCommandBase):
         finally:
             return self._status, self._response
 
-### TRACK ALBUM COVER ##################################################################################################
+# TRACK ALBUM COVER ####################################################################################################
 
 class GetTrackAlbumArt(JsonCommandBase):
     def __init__(self, parameter):
@@ -1184,7 +1212,7 @@ class GetTrackAlbumArt(JsonCommandBase):
             return self._status, self._response
 
 
-### TRACK URI ##########################################################################################################
+# TRACK URI ############################################################################################################
 
 class GetTrackUri(JsonCommandBase):
     def __init__(self, parameter):
@@ -1211,8 +1239,65 @@ class GetTrackUri(JsonCommandBase):
         finally:
             return self._status, self._response
 
+# NIGHTMODE ############################################################################################################
 
-### LED ################################################################################################################
+class SetNightmode(JsonCommandBase):
+    def __init__(self, parameter):
+        super().__init__(parameter)
+
+    def run(self):
+        try:
+            logger.debug(
+                'COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
+                                                                         attributes=utils.dump_attributes(
+                                                                             self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
+            if self.nightmode not in [0, 1, True, False, '1', '0']:
+                raise Exception('Nightmode has to be 0|1 or True|False !')
+
+            nightmode = int(self.nightmode)
+
+            sonos_speaker.sonos_speakers[self.uid].set_nightmode(nightmode, trigger_action=True)
+            self._status = True
+        except requests.ConnectionError:
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
+                format(uid=self.uid)
+        except AttributeError as err:
+            self._response = JsonCommandBase.missing_param_error(err)
+        except Exception as err:
+            self._response = err
+        finally:
+            return self._status, self._response
+
+class GetNightmode(JsonCommandBase):
+    def __init__(self, parameter):
+        super().__init__(parameter)
+
+    def run(self):
+        try:
+            logger.debug(
+                'COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
+                                                                         attributes=utils.dump_attributes(
+                                                                             self)))
+            if self.uid not in sonos_speaker.sonos_speakers:
+                raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
+
+            sonos_speaker.sonos_speakers[self.uid].dirty_property('nightmode')
+            sonos_speaker.sonos_speakers[self.uid].send()
+            self._status = True
+        except requests.ConnectionError:
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
+                format(uid=self.uid)
+        except AttributeError as err:
+            self._response = JsonCommandBase.missing_param_error(err)
+        except Exception as err:
+            self._response = err
+        finally:
+            return self._status, self._response
+
+# LED #################################################################################################################
 
 class SetLed(JsonCommandBase):
     def __init__(self, parameter):
@@ -1283,7 +1368,7 @@ class GetLed(JsonCommandBase):
             return self._status, self._response
 
 
-### NEXT ###############################################################################################################
+# NEXT #################################################################################################################
 
 class Next(JsonCommandBase):
     def __init__(self, parameter):
@@ -1318,7 +1403,7 @@ class Next(JsonCommandBase):
             return self._status, self._response
 
 
-### PREVIOUS ###########################################################################################################
+# PREVIOUS #############################################################################################################
 
 class Previous(JsonCommandBase):
     def __init__(self, parameter):
@@ -1354,7 +1439,7 @@ class Previous(JsonCommandBase):
             return self._status, self._response
 
 
-### TRACK POSITION #####################################################################################################
+# TRACK POSITION #######################################################################################################
 
 class GetTrackPosition(JsonCommandBase):
     def __init__(self, parameter):
@@ -1422,7 +1507,7 @@ class SetTrackPosition(JsonCommandBase):
             return self._status, self._response
 
 
-### PARTYMODE ##########################################################################################################
+# PARTYMODE ############################################################################################################
 
 class Partymode(JsonCommandBase):
     def __init__(self, parameter):
@@ -1450,7 +1535,7 @@ class Partymode(JsonCommandBase):
             return self._status, self._response
 
 
-### JOIN ###############################################################################################################
+# JOIN #################################################################################################################
 
 class Join(JsonCommandBase):
     def __init__(self, parameter):
@@ -1478,7 +1563,7 @@ class Join(JsonCommandBase):
             return self._status, self._response
 
 
-### UNJOIN #############################################################################################################
+# UNJOIN ###############################################################################################################
 
 class Unjoin(JsonCommandBase):
     def __init__(self, parameter):
@@ -1492,7 +1577,16 @@ class Unjoin(JsonCommandBase):
             if self.uid not in sonos_speaker.sonos_speakers:
                 raise Exception('No speaker found with uid \'{uid}\'!'.format(uid=self.uid))
 
-            sonos_speaker.sonos_speakers[self.uid].unjoin()
+            play = False
+            if hasattr(self, 'play'):
+                if self.play in [1, True, '1', 'True', 'yes']:
+                    play = True
+                elif self.play in [0, False, '0', 'False', 'no']:
+                    play = False
+                else:
+                    raise Exception('The parameter \'play\' has to be 0|1 or True|False !')
+
+            sonos_speaker.sonos_speakers[self.uid].unjoin(play)
             self._status = True
 
         except requests.ConnectionError:
@@ -1506,7 +1600,7 @@ class Unjoin(JsonCommandBase):
             return self._status, self._response
 
 
-### CLIENT LIST ########################################################################################################
+# CLIENT LIST ##########################################################################################################
 
 class ClientList(JsonCommandBase):
     def __init__(self, parameter):
@@ -1538,7 +1632,7 @@ class ClientList(JsonCommandBase):
             return self._status, self._response
 
 
-### PLAY URI ###########################################################################################################
+# PLAY URI #############################################################################################################
 
 class PlayUri(JsonCommandBase):
     def __init__(self, parameter):
@@ -1565,7 +1659,7 @@ class PlayUri(JsonCommandBase):
             return self._status, self._response
 
 
-### PLAY TUNEIN RADIO ##################################################################################################
+# PLAY TUNEIN RADIO ####################################################################################################
 
 class PlayTunein(JsonCommandBase):
     def __init__(self, parameter):
@@ -1592,7 +1686,7 @@ class PlayTunein(JsonCommandBase):
             return self._status, self._response
 
 
-### PLAY SNIPPET #######################################################################################################
+# PLAY SNIPPET #########################################################################################################
 
 class PlaySnippet(JsonCommandBase):
     def __init__(self, parameter):
@@ -1647,7 +1741,7 @@ class PlaySnippet(JsonCommandBase):
             return self._status, self._response
 
 
-### PLAY TTS ###########################################################################################################
+# PLAY TTS #############################################################################################################
 
 class PlayTts(JsonCommandBase):
     def __init__(self, parameter):
@@ -1690,14 +1784,21 @@ class PlayTts(JsonCommandBase):
                 if volume not in range(-1, 101, 1):
                     raise Exception('Volume has to be set between -1 and 100!')
 
+            force_stream_mode = False
             if hasattr(self, 'force_stream_mode'):
-                logger.warning("FORCE_STREAM_MOD_OPTION for play_tts is deprecated and ignored.")
+                if self.force_stream_mode in [1, True, '1', 'True', 'yes']:
+                    force_stream_mode = True
+                elif self.force_stream_mode in [0, False, '0', 'False', 'no']:
+                    force_stream_mode = False
+                else:
+                    raise Exception('The parameter \'force_stream_mode\' has to be 0|1 or True|False !')
+
             language = 'en'
             if hasattr(self, 'language'):
                 language = self.language
 
             sonos_speaker.sonos_speakers[self.uid].play_tts(self.tts, volume, language, group_command=group_command,
-                                                            fade_in=fade_in)
+                                                            fade_in=fade_in, force_stream_mode=force_stream_mode)
             self._status = True
         except requests.ConnectionError:
             self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
@@ -1710,7 +1811,7 @@ class PlayTts(JsonCommandBase):
             return self._status, self._response
 
 
-### GET FAVORITE RADIO STATIONS ########################################################################################
+# GET FAVORITE RADIO STATIONS ##########################################################################################
 
 class GetFavoriteRadioStations(JsonCommandBase):
     def __init__(self, parameter):
@@ -1746,7 +1847,7 @@ class GetFavoriteRadioStations(JsonCommandBase):
             return self._status, self._response
 
 
-### GET SONOS BROKER VERSION ###########################################################################################
+# GET SONOS BROKER VERSION #############################################################################################
 
 class SonosBrokerVersion(JsonCommandBase):
     def __init__(self, parameter):
@@ -1766,8 +1867,33 @@ class SonosBrokerVersion(JsonCommandBase):
         finally:
             return self._status, self._response
 
+# ZoneMembers ##########################################################################################################
 
-### IsCoordiantor ######################################################################################################
+class ZoneMembers(JsonCommandBase):
+    def __init__(self, parameter):
+        super().__init__(parameter)
+
+    def run(self):
+        try:
+            logger.debug('COMMAND {classname} -- attributes: {attributes}'.format(classname=self.__class__.__name__,
+                                                                                  attributes=utils.dump_attributes(
+                                                                                      self)))
+            sonos_speaker.sonos_speakers[self.uid].dirty_property('zone_members')
+            sonos_speaker.sonos_speakers[self.uid].send()
+            self._status = True
+
+        except requests.ConnectionError:
+            self._response = 'Unable to process command. Speaker with uid \'{uid}\'seems to be offline.'. \
+                format(uid=self.uid)
+        except AttributeError as err:
+            self._response = JsonCommandBase.missing_param_error(err)
+        except Exception as err:
+            self._response = err
+        finally:
+            return self._status, self._response
+
+
+# IsCoordiantor ########################################################################################################
 
 class IsCoordinator(JsonCommandBase):
     def __init__(self, parameter):
@@ -1836,7 +1962,7 @@ class LoadSonosPlaylist(JsonCommandBase):
         finally:
             return self._status, self._response
 
-### QUEUE ##############################################################################################################
+# QUEUE ################################################################################################################
 
 class ClearQueue(JsonCommandBase):
     def __init__(self, parameter):
@@ -1928,7 +2054,7 @@ class GetSonosPlaylists(JsonCommandBase):
             return self._status, self._response
 
 
-### MEDIA LIBRARY ######################################################################################################
+# MEDIA LIBRARY ########################################################################################################
 
 class RefreshMediaLibrary(JsonCommandBase):
     def __init__(self, parameter):
@@ -1958,7 +2084,7 @@ class RefreshMediaLibrary(JsonCommandBase):
             return self._status, self._response
 
 
-### Wifi State #########################################################################################################
+# Wifi State ###########################################################################################################
 
 class GetWifiState(JsonCommandBase):
     def __init__(self, parameter):

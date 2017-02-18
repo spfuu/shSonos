@@ -1,0 +1,78 @@
+# This is the config file for sonos broker. Adapt and uncomment the lines to your purpose.
+
+#######################################################################################################################
+
+[logging]
+
+#-------------------------------------
+# Sets the log level for the server. WARNING is the default value.
+# Possible values are: debug, info, warning (default), error, critical
+# Default logfile path: /tmp/sonos-broker.log
+
+# loglevel = warning
+# logfile = /tmp/log.txt
+#-------------------------------------
+
+#######################################################################################################################
+
+[sonos_broker]
+
+#-------------------------------------
+# Binding host address. Default: 0.0.0.0 (listening on all interfaces)
+
+# host = 0.0.0.0
+#-------------------------------------
+
+
+#-------------------------------------
+# Server port. Default: 12900
+
+# port = 12900
+#-------------------------------------
+
+#######################################################################################################################
+
+[webservice]
+
+# Sonos Broker starts an own webservice. This is helpful for playing audio snippets and the Google TTS functionality.
+# The server handles these files by their extension. Valid extensions are: aac, mp4, mp3, ogg, wav, web.
+# This doesn't mean a Sonos speaker can playback such a file.
+
+
+#-------------------------------------
+# Webservice root path. The directory must exists and readable (better writeable) for the current user. This path is
+# used for storing Google TTS files if the option 'local_goolge_tts' is set to 'true'. You can also store all your own
+# audio snippets files there and play them with the 'play_snippet' command. If you leave this parameter empty, the
+# webservice functionality is disabled on startup. Default: empty / deactivated
+
+# webservice_path =
+#-------------------------------------
+
+
+#-------------------------------------
+# Specifies the destination url which Sonos Broker refers to the Sonos speakers. This must be the hosts IP address the
+# webservice is running on. If the value is empty, Sonos Broker tries to detect the local IP address automatically.
+# If you're inside a docker container, the automatic detection might fail. In this case you have to set the IP to the
+# docker host IP. Default: empty (automatic detection)
+
+# webservice_ip =
+#-------------------------------------
+
+
+#-------------------------------------
+# Maximum file size quota in megabytes. Up to this size, the Sonos Broker will save files to 'root_path' if
+# 'local_google_tts' is set to true.
+# Default: 200mb
+
+# quota = 200
+#-------------------------------------
+
+
+#-------------------------------------
+# The Google text-to-speech functionality streams the mp3s from Google directly to the sonos speaker. In case the
+# parameter local_google_tts is set to true, the corresponding mp3 will be cached locally instead, so a connection to
+# Google is only necessary in case of un-cached TTS phrases. This speeds up the TTS execution and reduces internet
+# traffic. Default: false
+
+# local_google_tts = false
+#-------------------------------------

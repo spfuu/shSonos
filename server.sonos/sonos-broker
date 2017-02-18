@@ -1,0 +1,295 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# ####################################################################
+# Imports
+# ####################################################################
+import os
+import argparse
+import locale
+import logging
+import logging.handlers
+import configparser
+import signal
+import time
+import pwd
+from lib_sonos import utils
+from lib_sonos import definitions
+from lib_sonos.sonos_service import SonosServerService
+import requests
+
+# ####################################################################
+# GLOBALS
+# ####################################################################
+
+homedir = os.path.dirname(os.path.realpath(__file__))
+logger = logging.getLogger('sonos_broker')
+
+
+class SonosBroker(object):
+    @property
+    def list_only(self):
+        return self._list_only
+
+    @list_only.setter
+    def list_only(self, value):
+        self._list_only = value
+
+    def __init__(self, debug=False, config=None):
+        global homedir
+        global logger
+        self.stopped = False
+        self._debug = debug
+        self._loghandler = None
+        self._host = ''
+        self._port = ''
+        self._tts_local_mode = False
+        self._quota = None
+        self._logfile = None
+        self._port = None
+        self._host = None
+        self._sonos_service = None
+        self._server_active = True
+        self._list_only = False
+        self._config = config
+        self._webservice_path = None
+        self._webservice_url = None
+
+        # ############################################################
+        # Signal Handling
+        # ############################################################
+
+        signal.signal(signal.SIGHUP, self.stop)
+        signal.signal(signal.SIGINT, self.stop)
+        signal.signal(signal.SIGTERM, self.stop)
+
+        config = configparser.ConfigParser()
+
+        if self._config is None:
+            config_path = os.path.join(homedir, definitions.DEFAULT_CFG)
+        else:
+            config_path = self._config
+
+        config.read(config_path)
+
+        # ############################################################
+        # Logging
+        # ############################################################
+
+        if config.has_section('logging'):
+            if config.has_option('logging', 'loglevel'):
+                loglevel = config.get('logging', 'loglevel')
+            else:
+                loglevel = 'warning'
+
+            if self._debug:
+                loglevel = 'debug'
+
+            if config.has_option('logging', 'logfile'):
+                self._logfile = config.get('logging', 'logfile').strip("\"").strip("'")
+            else:
+                self._logfile = definitions.DEFAULT_LOG
+
+            self._logfile = os.path.expanduser(self._logfile)
+            self._logfile = os.path.expandvars(self._logfile)
+
+            if not os.path.isabs(self._logfile):
+                self._logfile = os.path.join(homedir, self._logfile)
+
+            try:
+                if not os.path.exists(os.path.dirname(self._logfile)):
+                    os.makedirs(os.path.dirname(self._logfile))
+            except Exception:
+                logger.error("Couldn't create logfile path '{path}'. Using default path '{default_path}'!".format(
+                    path=os.path.dirname(self._logfile, default_path=definitions.DEFAULT_LOG)))
+
+            numeric_level = getattr(logging, loglevel.upper(), None)
+
+            if not isinstance(numeric_level, int):
+                raise ValueError('Invalid log level: %s' % loglevel)
+
+            logdate = "%Y-%m-%d %H:%M:%S"
+            logformat = "%(asctime)s %(levelname)-8s %(threadName)-12s %(message)s"
+
+            if numeric_level == logging.DEBUG:
+                logdate = None
+                logformat = "%(asctime)s %(levelname)-" \
+                            "8s %(threadName)-12s %(message)s -- %(filename)s:%(funcName)s:%(lineno)d"
+
+            logging.basicConfig(level=numeric_level, format=logformat, datefmt=logdate)
+
+            #############################################################
+            # logfile write test
+            #############################################################
+
+            if self._logfile:
+                os.umask(0o002)
+                try:
+                    with open(self._logfile, 'a') as f:
+                        f.write("Init sonos broker {version}\n".format(version=definitions.VERSION))
+                except IOError as e:
+                    print("Error creating logfile {}: {}".format(self._logfile, e))
+
+                try:
+                    formatter = logging.Formatter(logformat, logdate)
+                    self._loghandler = logging.handlers.TimedRotatingFileHandler(self._logfile, when='midnight',
+                                                                                 backupCount=7, encoding='utf-8')
+                    self._loghandler.setLevel(numeric_level)
+                    self._loghandler.setFormatter(formatter)
+                    if numeric_level == logging.DEBUG:  # clean log
+                        self._loghandler.doRollover()
+                    logger.addHandler(self._loghandler)
+
+                    # set the loglevel for soco framework
+                    logging.getLogger('soco.core').addHandler(self._loghandler)
+                except IOError as e:
+                    print("Error creating logfile {}: {}".format(self._logfile, e))
+
+        ##############################################################
+        # Sonos Broker
+        ##############################################################
+
+        if config.has_section('sonos_broker'):
+            self._host = config.get('sonos_broker', 'host', fallback=definitions.DEFAULT_HOST)
+            self._port = config.getint('sonos_broker', 'port', fallback=definitions.DEFAULT_PORT)
+
+        ##############################################################
+        # Web Service
+        ##############################################################
+
+        if config.has_section('webservice'):
+            # check server root path
+            # exists ?
+            webservice_path = config.get('webservice', 'webservice_path', fallback='')
+            if webservice_path:
+                logger.debug("Webservice path set to '{path}'.".format(path=webservice_path))
+                if os.path.exists(webservice_path):
+                    # check for permissions
+                    if os.access(webservice_path, os.R_OK):
+                        logger.debug(
+                            "Webservice path '{path}' permission ok.".format(path=webservice_path))
+                        # if all checks passed, then we set the variable
+                        self._webservice_path = webservice_path
+                    else:
+                        user_name = pwd.getpwuid(os.getuid()).pw_name
+                        logger.error(
+                            "User '{user}' has no read permissions for path '{path}'. Webservice functionality for "
+                            "audio files disabled.".format(user=user_name, path=webservice_path))
+                else:
+                    logger.warning("Webservice path '{path}' not exists. Webservice functionality for audio "
+                                 "files disabled.".format(path=webservice_path))
+            else:
+                logger.warning("No webservice path set. Webservice functionality for audio files disabled.")
+
+            if self._webservice_path:
+                webservice_ip = config.get('webservice', 'webservice_ip', fallback='')
+
+                if not webservice_ip:
+                    logger.debug("Webservice IP not set, trying to detect the local ip automatically ...")
+                    webservice_ip = utils.get_lan_ip()
+                    if webservice_ip is None:
+                        logger.warning("Could not detect local ip address automatically!")
+
+                if webservice_ip is None:
+                    logger.warning("No webservice IP set. Webservice functionality for audio files disabled.")
+                else:
+                    logger.debug("Webservice IP set to {ip}".format(ip=webservice_ip))
+
+                self._webservice_url = "http://{ip}:{port}".format(ip=webservice_ip, port=self._port)
+
+            self._quota = config.getint('webservice', 'quota', fallback=definitions.DEFAULT_QUOTA)
+            logger.debug("Quota set to {quota} mb".format(quota=self._quota))
+
+            local_tts = config.getboolean('webservice', 'local_google_tts', fallback=False)
+
+            if local_tts:
+                # check if webservice is running
+                if self._webservice_path is None:
+                    logger.warning("Local TTS mode was set to True, but the webservice is not properly "
+                                   "configured. TTS will be streamed directly.")
+                    local_tts = False
+                else:
+                    # check write permissions
+                    if not os.access(self._webservice_path, os.W_OK):
+                        logger.warning("Local TTS mode was set to True, but the webservice path is not writeable for "
+                                       "current user. TTS will be streamed directly.")
+                        local_tts = False
+                    else:
+                        logger.debug("Write permissions ok for tts on path {path}".format(path=self._webservice_path))
+
+            self._tts_local_mode = local_tts
+            logger.debug('Local Google TTS mode set to {mode}.'.format(mode=self._tts_local_mode))
+
+        else:
+            logger.error("Section [webservice] not found in configuration file.")
+            exit()
+
+    def start(self):
+
+        signal.signal(signal.SIGHUP, self.stop)
+        signal.signal(signal.SIGINT, self.stop)
+        signal.signal(signal.SIGTERM, self.stop)
+
+        logger.info("Sonos Broker v{version}".format(version=definitions.VERSION))
+        time.sleep(1)
+        self._sonos_service = SonosServerService(self._host, self._port, self._webservice_url, self._webservice_path,
+                                                 self._quota, self._tts_local_mode)
+
+    def stop(self, *args):
+        logger.debug('Shutting down Sonos Broker ...')
+        logger.debug('unsubscribing from sonos speakers ...')
+        if self._sonos_service is not None:
+            self._sonos_service.unsubscribe_speaker_events()
+            self._sonos_service.terminate_threads()
+        exit()
+
+
+def scan():
+    print('\n\nScanning for Sonos speaker in the network ...')
+    soco_speakers = SonosServerService._discover()
+    suffix = ''
+
+    if len(soco_speakers) > 1:
+        suffix = "s"
+
+    print("Found {} speaker{} in the network.\n".format(len(soco_speakers), suffix))
+
+    for speaker in soco_speakers:
+        try:
+            info = speaker.get_speaker_info(timeout=5)
+            print("\n{}".format(speaker.uid))
+            print("-" * len(speaker.uid))
+            print("\tip   :\t{}".format(speaker.ip_address))
+            print("\tname :\t{}".format(speaker.player_name))
+            print("\tmodel:\t{}\n".format(info['model_name']))
+        except requests.ConnectionError:
+            print("Speaker '{uid}' seems to be offline.".format(uid=speaker.uid))
+            continue
+        except Exception as ex:
+            print('unknown error')
+            print(ex)
+
+if __name__ == '__main__':
+    argparser = argparse.ArgumentParser()
+    subparsers = argparser.add_subparsers(dest="subparser_name")
+    start_parser = subparsers.add_parser(name='start', help="Starts the Sonos Broker. ")
+    start_parser.add_argument('-d', '--debug', help='Debug Mode: Broker starts with verbose output',
+                              action='store_true')
+    start_parser.add_argument('-c', '--config', help='[Optional] path to a config file.', dest='config')
+    list_parser = subparsers.add_parser(name='list', help="Lists all Sonos speaker in the network.")
+
+    args = argparser.parse_args()
+
+    if args.subparser_name == "list":
+        scan()
+
+    elif args.subparser_name == "start":
+        config_path = definitions.DEFAULT_CFG
+        if args.config:
+            config_path = os.path.abspath(args.config)
+        if not os.path.exists(config_path):
+            print("Config file not found [** {path} **]".format(path=os.path.abspath(config_path)))
+            exit()
+        SonosBroker(args.debug, config=config_path).start()
+    else:
+        argparser.print_help()

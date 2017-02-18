@@ -1,0 +1,10 @@
+[Unit]
+Description=Sonos Broker
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/sonos-broker start
+
+[Install]
+WantedBy=default.target

@@ -270,12 +270,14 @@ class SonosSpeakerCmd(cmd.Cmd):
         self.max_volume = None
         self.additional_zone_members = None
         self.bass = None
+        self.nightmode = None
         self.treble = None
         self.loudness = None
         self.playmode = None
         self.alarms = None
         self.is_coordinator = False
         self.balance = None
+        self.transport_actions = None
 
     def do_EOF(self, *args):
         """
@@ -348,6 +350,64 @@ class SonosSpeakerCmd(cmd.Cmd):
             return
         print("balance: {}".format(self.balance))
 
+    def help_join(self):
+        print("join: Gets the current join state (with zone members, zone_name and is_coordinator).")
+        print("join [get]: Gets the current join state (with zone members, zone_name and is_coordinator).")
+        print("join [set]: Joins the speaker to a group.")
+
+    def do_join(self, line):
+        line = line.lower()
+        if not line:
+            pass
+        elif line == "get":
+            pass
+        elif line == "set":
+            uid_to_join = input(normalize_output("Sonos uid to join", "rincon_xxxx", None))
+            if uid_to_join:
+                self.commands.join(self.uid, uid_to_join)
+                sleep(1)
+        else:
+            print("unknown argument")
+            return
+        print("in zone: {0}".format(self.zone_name))
+        print("zone member: {0}".format(self.additional_zone_members))
+        print("is coordinator: {0}".format(self.is_coordinator))
+
+        joined_group = False
+        if self.additional_zone_members:
+            joined_group = True
+        print("joined group: {0}".format(joined_group))
+
+    def help_unjoin(self):
+        print("unjoin: Gets the current join state (with zone members, zone_name and is_coordinator).")
+        print("unjoin [get]: Gets the current join state (with zone members, zone_name and is_coordinator).")
+        print("unjoin [set]: Unjoins the speaker from a group.")
+
+    def do_unjoin(self, line):
+        line = line.lower()
+        if not line:
+            pass
+        elif line == "get":
+            pass
+        elif line == "set":
+            default_play = 0
+            play = input(normalize_output("Play after unjoin", "0|1", default_play))
+            if not play:
+                play = default_play
+            self.commands.unjoin(self.uid, play=play)
+            sleep(1)
+        else:
+            print("unknown argument")
+            return
+        print("in zone: {0}".format(self.zone_name))
+        print("zone member: {0}".format(self.additional_zone_members))
+        print("is coordinator: {0}".format(self.is_coordinator))
+
+        joined_group = False
+        if self.additional_zone_members:
+            joined_group = True
+        print("joined group: {0}".format(joined_group))
+
     def help_bass(self):
         print("bass: Gets the current bass level.")
         print("bass [get]: Forces the Broker to retrieve the speakers bass level.")
@@ -372,6 +432,31 @@ class SonosSpeakerCmd(cmd.Cmd):
             print("unknown argument")
             return
         print("bass: {}".format(self.bass))
+
+    def help_nightmode(self):
+        print("nighmode: Gets the current nightmode option.")
+        print("nightmode [get]: Forces the Broker to retrieve the speakers nightmode option.")
+        print("nightmode [set]: Sets the nightmode option (only for supported Sonos speakers (like Playbar).")
+
+    def do_nightmode(self, line):
+        line = line.lower()
+        if not line:
+            pass
+        elif line == "get":
+            self.commands.get_nightmode(self.uid)
+        elif line == "set":
+            default_nightmode = self.nightmode
+            nightmode = input(normalize_output("Nightmode", "0|1", default_nightmode))
+            if nightmode is None:
+                nightmode = default_nightmode
+            if nightmode not in ['0', '1']:
+                nightmode = 0
+            self.commands.set_nightmode(self.uid, nightmode)
+        else:
+            print("unknown argument")
+            return
+        print("nightmode: {}".format(self.nightmode))
+
 
     def help_treble(self):
         print("treble: Gets the current 'treble' value.")
@@ -678,6 +763,21 @@ class SonosSpeakerCmd(cmd.Cmd):
         print("volume: {}".format(self.volume))
         print("max_volume: {}".format(self.max_volume))
 
+    def help_transport_actions(self):
+        print("transport_actions: Gets the current transport actions for the current track.")
+        print("transport_actions [get]: Forces the Broker to retrieve the transport actions for the current track.")
+
+    def do_transport_actions(self, line):
+        line = line.lower()
+        if not line:
+            pass
+        elif line == "get":
+            self.commands.get_transport_actions(self.uid)
+        else:
+            print("unknown argument")
+            return
+        print("transport_actions: {}".format(self.transport_actions))
+
     def help_track_url(self):
         print("track_url: Gets the current track url.")
         print("track_url [get]: Forces the Broker to retrieve the current track url.")
@@ -857,7 +957,11 @@ class SonosSpeakerCmd(cmd.Cmd):
         if not group_command:
             group_command = 0
 
-        self.commands.play_tts(self.uid, tts, volume, language, fade_in, group_command)
+        force_stream_mode = input(normalize_output("force_stream_mode", "0|1", "0"))
+        if not force_stream_mode:
+            force_stream_mode = 0
+
+        self.commands.play_tts(self.uid, tts, volume, language, fade_in, group_command, force_stream_mode)
 
     def help_is_coordinator(self):
         print("is_coordinator: Returns the status whether the speaker is a group coordinator or not.")
@@ -1117,6 +1221,16 @@ class Commands():
                     'uid': uid.lower(),
                     'volume': volume,
                     'group_command': group_command
+                }
+            }
+        )
+
+    def get_zone_members(self, uid):
+        return self.send(
+            {
+                'command': 'zone_members',
+                'parameter': {
+                    'uid': uid.lower()
                 }
             }
         )
@@ -1556,7 +1670,7 @@ class Commands():
             }
         )
 
-    def play_tts(self, uid, tts, volume, language, fade_in, group_command):
+    def play_tts(self, uid, tts, volume, language, fade_in, group_command, force_stream_mode):
         return self.send(
             {
                 'command': 'play_tts',
@@ -1566,10 +1680,33 @@ class Commands():
                     'volume': volume,
                     'fade_in': fade_in,
                     'group_command': group_command,
-                    'language': language
+                    'language': language,
+                    'force_stream_mode': force_stream_mode
                 }
             }
         )
+
+    def set_nightmode(self, uid, nightmode):
+        return self.send(
+            {
+                'command': 'set_nightmode',
+                'parameter': {
+                    'uid': uid.lower(),
+                    'nightmode': int(nightmode),
+                }
+            }
+        )
+
+    def get_nightmode(self, uid):
+        return self.send(
+            {
+                'command': 'get_nightmode',
+                'parameter': {
+                    'uid': uid.lower(),
+                }
+            }
+        )
+
 
     def is_coordinator(self, uid):
         return self.send(
@@ -1639,6 +1776,39 @@ class Commands():
             {
                 'command': 'sonos_broker_version'
 
+            }
+        )
+
+    def join(self, uid, join_uid):
+        return self.send(
+            {
+                'command': 'join',
+                'parameter': {
+                    'uid': uid.lower(),
+                    'join_uid': join_uid
+                }
+            }
+        )
+
+    def get_transport_actions(self, uid):
+        return self.send(
+            {
+                'command': 'get_transport_actions',
+                'parameter': {
+                    'uid': uid.lower(),
+                }
+            }
+        )
+
+
+    def unjoin(self, uid, play=0):
+        return self.send(
+            {
+                'command': 'unjoin',
+                'parameter': {
+                    'uid': uid.lower(),
+                    'play': play
+                }
             }
         )
 

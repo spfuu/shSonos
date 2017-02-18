@@ -1,6 +1,37 @@
 ## Release
 
-v.0.9 (2016-11-20)
+v1.0  (2017-02-18)
+
+    -- Attention: cleaned-up configuration file. Please re-configure your Sonos Broker installation
+    -- command "transport_actions" to Sonos Broker and Sonos command line tool
+        -- this options shows all possible actions for the current track (e.g. Next, Stop, Play ...)
+    -- command 'nightmode' added (only for supported speakers)
+    -- bug: Spotify Radio was handled as a normal radio station and should be fixed
+    -- GoogleTTS improvements
+    -- GoogleTTS: files now stored with md5 sum of tts_language and tts_string to reduce the filename length
+    -- GoogleTTS: now works in streaning mode per default, no web service is needed.
+    -- GoogleTTS: the local ip address for the streaming url will be detected automatically (by default)
+    -- play_tts: (optional) attribute 'force_stream_mode' (re)-added to Sonos Broker and Command line tool
+    -- bug: endless loop while trying to play a track from a non-existing url
+    -- bug: wrong path in systemd script
+    -- bug: the 'volume' of all zone members will now be restored correctly after playing the snippet
+    -- command optional parameter 'play' added to command "unjoin"
+        -- with 'play' set to true, the prevoiusly played track (before joining a group) will resumed
+    -- changed executable name from "sonos_broker" to "sonos-broker"
+    -- changed command line tool from "sonos_cmd" to "sonos-cmd"
+    -- changed default installation path of sonos_broker.cfg to /etc/default/sonos-broker
+    -- stopping a running Sonos Broker instance is handled a bit more gracefully
+    -- updated setup script
+    -- auto-start scripts for systemd and upstart automatically placed in the appropriate folder by the 
+       installation script  
+    -- 'daemonize' behaviour removed
+    -- unnecessary parameter 'stop' removed
+    -- updated documentation
+    -- added "zone_member" command to Sonos Broker (to retrieve this value actively)
+    -- added commands 'join' and 'unjoin' to Sonos Broker commandline tool
+    -- bug: error when trying to decode non-ascii chars and the systems stdout was no set to utf8
+
+v0.9   (2016-11-20)
 
     -- added missing 'track_album' property
     -- added missing 'track_album' to Sonos-Broker commandline
@@ -13,55 +44,6 @@ v.0.9 (2016-11-20)
     -- changed maximum snippet length to 15 seconds
     -- bugfixed: Sonos Broker user-specific server port was ignored
     -- updated documentation
-    
-v.0.8.2 (2016-11-14)
-
-    -- fixed bug in GoogleTTS
-    
-v.0.8.1 (2016-11-14)
-
-    -- changed commandline arguments to control the Sonos Broker. 
-        Available arguments:
-        
-        start [-d] [-c] [-h] (-d=debug mode, -c=user-specified config file, -h=help)
-        stop
-        list
-
-    -- fixed an issue when executing sonos_broker with '-l' parameter
-    
-v0.8    (2016-11-11)
- 
-    -- **ATTENTION:** commands "get_playlist" and "set_playlist" removed. I decided to stick with 
-       the internal Sonos playlists.
-    -- new implementation Google TTS: Captcha and other issues should now be solved (for this time) 
-    -- **ATTENTION:** parameter "force_stream_mode" removed for command "play_tts" caused by the new 
-       implementation for Google TTS. The possibility for an additional TTS "stream mode" was removed. 
-       (see documentation Google TTS for setup)
-    -- new command "load_sonos_playlist". See documentation for implementation.
-    -- command "sonos_broker_version" added
-    -- command 'clear_queue' added
-    -- command 'play_tunein' added. Play any TuneIn radio station by a given name
-    -- SoCo framework changes (v0.12) with some bugfixes
-    -- removed some unused functions
-    -- fixed error when calling sonos_broker with 'l' (scan only flag)
-    -- small bugfixes
-    -- Deezer tracks and their metadata are handled correctly now
-    -- Sonos-Broker commandline tools has now parameters (type "sonos_cmd -h" for help)
-    
-v0.7    (2016-01-04)
-
-    -- command "discover" added to force a manual scan for Sonos speaker in the network
-    -- command "balance" can now take the optional parameter "group_command"; documentation updated
-    -- property "status" now triggers a value change notification to all connected clients 
-    -- bugfix: setting play, pause, stop could lead to an infinite loop (play-pause-play ...)
-    -- added a valid user-agent for Google TTS requests, this should solve the captcha issue
-    -- property 'model_number' added
-    -- property 'display_version' added
-    -- property 'household_id' added (a unique identifier for all players in a household)
-    -- some changes in SoCo framework
-    -- bugfixes in command-line tool
-    -- command 'balance' (especially for sonos amp and stereo paired sonos speaker) added
-
     
 
 ## Overview
@@ -80,78 +62,86 @@ smart home environment (https://github.com/mknx/smarthome/).
 
 ## Requirements
 
+#### Deleting old files
+
+If're updating the Broker it may be a good idea to delete old files. Please adapt the paths to your system.
+
+```
+sudo rm -rf /usr/local/bin/sonos*
+sudo rm -rf /usr/local/lib/python3.5/site-packages/*sonos*
+sudo rm -rf /usr/local/lib/python3.5/site-packages/soco
+```
+
 #### Server-side
 
 python3.4
 python3 libraries 'requests' and 'xmltodict' 
 
-```
-pip3 install requests
-pip3 install xmltodict
-```
 
 #### Client-side 
 
 Nothing special, just send your commands over http (JSON format) or use the Smarthome.py plugin to control
 the speakers within Smarthome.py.
+You can use the included built-in implementation, the [Sonos Broker commandline tool](#cmd_tool) 
 
 
 ## Installation
 
 #### Setup
 
-Under the github folder "server.sonos/dist/" you'll find the actual release as a tar.gz file.
-Unzip this file with:
+Under the github folder "server.sonos/dist/" you'll find the actual release as a tar.gz file. Here are two ways to 
+install the Sonos Broker:
 
-    tar -xvf sonos_broker_release.tar.gz
+##### 1. pip
 
-(adjust the filename to your needs)
+If python3-pip is installed, you can simply call
 
-Go to the unpacked folder and run setup.py with:
+    python3 -m pip -v install sonos-broker-{release-version}.tar.gz
 
-    sudo python3 setup.py install
+Every dependency should be installed automatically. 
+    
+##### 2. manually 
 
-This command will install all the python packages and places the start script to the python folder
-"/user/local/bin"
+Untar the file with and install it manually. 
 
-Make the file executable and run the sonos_broker with:
+    tar -xvf sonos-broker-{release}.tar.gz
+    cd sonos-broker-{release}
+    sudo python3 setup.py install --force
 
-    chmod +x sonos_broker
-    ./sonos_broker
+If an error occurred, you should try to (re)-install all necessary dependencies:
+  
+    pip3 install requests
+    pip3 install xmltodict
 
-Normally, the script finds the internal ip address of your computer. If not, you have to edit your sonos_broker.cfg.
+Both methods will install ```sonos-broker``` and ```sonos-cmd``` under ```/usr/local/bin``` to make both commands 
+system-wide executable. 
+The default config file is installed under ```/etc/default/sonos-broker``.
+
+The internal ip address should be set up automatically. If not, you have to edit ```/etc/default/sonos-broker```
 
     [sonos_broker]
-    server_ip = x.x.x.x
-
-(x.x.x.x means your ip: run ifconfig - a to find it out)
+    server_ip = x.x.x.x #your ip here
 
 
 #### Configuration / Start options
 
-You can edit the settings of Sonos Broker. Open 'sonos_broker.cfg' with your favorite editor and edit the file.
-All values within the config file should be self-explaining. For Google-TTS options, see the appropriate section in this
-Readme.
+You can edit the settings of Sonos Broker. Open '/etc/default/sonos-broker' (by default) with your favorite editor and 
+edit the file. All values within the config file should be self-explaining. For Google-TTS options, see the appropriate 
+section in this Readme.
 
-If you start the sonos broker with
+You can start the sonos broker with
 ```
 sonos_broker start
 ```
-the server will be automatically daemonized.
 
-You can add the -d (--debug) parameter to hold the process in the foreground.
+You can add the -d (--debug) parameter to get more output
 ```
 sonos_broker start -d
 ```
 
-An user-specified config file can be passed with the '-c' flag
+An user-specified config file can be passed with the '-c' flag. Default: /etc/default/sonos-broker
 ```
-sonos_broker start -c
-```
-
-You can stop the server with
-```
-sonos_broker stop
+sonos_broker start -c /your/config/file/path/here
 ```
 
 To get a short overview of your speakers in the network start the server with
@@ -163,23 +153,39 @@ To get an overview of all parameters type
 ```
 sonos_broker -h
 ```
-or
+and / or
 ```
 sonos_broker {command} -h
 ```
 
-To autostart the service on system boot, please follow the instruction for your linux distribution and put this
-script in the right place.
+After the successful installation with ```sudo python3 setup.py install --force``` an autostart script should be placed 
+automatically in your systems autostart directory. The autostart implementations are integrated for systems based on 
+'SYSTEMD' and 'UPSTART'. 'SYSVINIT' is NOT supported because of there are too many different sysvinit implementations. 
+To control the Broker via the system service control, see the commands below:
+ 
+<b>SYSTEMD:</b>
+```sudo systemctl [start|stop|restart] sonos-broker```
 
-To get some debug output, please edit the sonos_broker.cfg and uncomment this line in the logging section (or use the 
--d start parameter):
+For autostart:
+```sudo systemctl enable sonos-broker```
+
+
+<b>UPSTART:</b>
+```sudo service sonos-broker [start|stop|restart]```
+
+For autostart uncomment following line in ```/etc/init/sonos-broker.conf```:
+```#start on runlevel [2345]```
+
+
+To get some more debug output when running the Broker as a service, please edit the Sonos Broker config file 
+(default: /etc/default/sonos-broker) and uncomment this line in the logging section:
 
     loglevel = debug
 
 You can set the debug level to debug, info, warning, error, critical.
 Additionally, you can specify a file to pipe the debug log to this file.
 
-    logfile = log.txt
+    logfile = /path/to/your/log.txt
 
 
 ## Interactive Command Line
@@ -187,7 +193,7 @@ Additionally, you can specify a file to pipe the debug log to this file.
 You can control the Broker and your speakers without implementing your own client. To start the interactive
 command line (the Broker must be running) type
 ```
-./sonos_cmd
+sonos-cmd
 ```
 in the root folder of the Sonos Broker.
 
@@ -231,54 +237,32 @@ exit
 redirects you to the first command line level.
  
 
+## Integrated webservice for audio files
+
+Sonos Broker integrates an internal webservice to serve audio files for Sonos speakers. You can enable this feature in
+the \[webservice\] section of the Sonos Broker configuration. If enabled, you can store audio files in the configurable
+web root path (valid extensions: aac, mp4, mp3, ogg, wav, web) and they can be played with the 
+[play_snippet](#p_snippet) command. The URL is available via http://SONOS_BROKER_IP:SONOS_BROKER_PORT/. 
+This service is also helpful for the Google TTS functionality.
+
+
 ## Google TTS Support
 
-Sonos broker features the Google Text-To-Speech API. You can play any text limited to 100 chars.
+Sonos Broker features the Google Text-To-Speech API. You can play any text limited to 100 chars.
 
 
 #### Prerequisite:
 
-- local / remote mounted folder or share with read/write access
-- http access to this local folder (e.g. /var/www)
-- settings configured in sonos_broker.conf
+- internet connection
+- settings configured in sonos-broker configuration file (default: /etc/default/sonos-broker)
 
 #### Internals
 
-If a text is given to the google tts function, sonos broker makes a http request to the Google API. The response is 
-stored as a mp3-file to the local / remote folder. 
-    
-Before the request is made ('local mode'), the broker checks whether a file exists
-with the same name. The file name of a tts-file is always:  BASE64(<tts_txt>_<tts_language>).mp3
-You can set a file quota in the config file. This limits the amount of disk space the broker can use to save tts files. 
-If the quota exceeds, you will receive a message. By default the quota is set to 100 mb.
-
-    sonos_broker.cfg:
-
-    [google_tts]
-    quota = 200
-
-By default, Google TTS support is disabled. To enable the service, add following line to sonos_broker.cfg:
-
-    sonos_broker.cfg:
-
-    [google_tts]
-    enable = true
-
-You have to set the local save path (where the mp3 is stored) and the accessible local url:
-
-    sonos_broker.cfg
-
-    [google_tts]
-    save_path =/your/path/here
-    server_url = http://192.168.0.2/tts
-
-This is an example of a google_tts section in the sonos_broker.cfg file:
-
-    [google_tts]
-    enable=true
-    quota=200
-    save_path =/your/path/here
-    server_url = http://192.168.0.2/tts
+If a text is given to the google tts function, the Sonos Broker makes a http request to the Google API and the tts 
+string will be played by your Sonos loudspeakers. Additionally, you can set-up the Broker to store the request as a
+mp3 file. This is a kind of local caching: if a tts string is requested which is already stored as a mp3 file, this
+file will be served to the Sonos speakers. To enable this feature, you have to configure the webservice feature of 
+the Sonos Broker. Have a look at the configuration file for more details [/etc/default/sonos-broker]
 
 
 ## Implementation:
@@ -348,6 +332,7 @@ In almost any cases, you'll get the appropriate response in the following JSON f
         "track_position": "00:00:00",
         "track_title": "Das Baby im Schafspelz",
         "track_uri": "x-sonos-spotify:spotify%3atrack%3a3xCk8npVehdV55KuPdjrmZ?sid=9&flags=32",
+        "transport_actions": "Set,Stop,Pause,Play,Next"
         "treble": 0,
         "uid": "rincon_000e58c3892e01410",
         "volume": 8,
@@ -406,6 +391,8 @@ Click on the links below to get a detailed command descriptions and their usage.
 ###### [set_balance](#s_balance)
 ###### [get_loudness](#g_loudness)
 ###### [set_loudness](#s_loudness)
+###### [get_nightmode](#g_nightmode)
+###### [set_nightmode](#s_nightmode)
 ###### [get_led](#g_led)
 ###### [set_led](#s_led)
 ###### [get_playmode](#g_playmode)
@@ -417,6 +404,7 @@ Click on the links below to get a detailed command descriptions and their usage.
 ###### [get_track_artist](#g_track_artist)
 ###### [get_track_album_art](#g_track_album_art)
 ###### [get_track_uri](#g_track_uri)
+###### [get_transport_actions](#g_transport_actions)
 ###### [get_playlist_position](#g_playlist_position)
 ###### [get_playlist_total_tracks](#g_playlist_total_tracks)
 ###### [get_radio_station](#g_radio_station)
@@ -437,6 +425,7 @@ Click on the links below to get a detailed command descriptions and their usage.
 ###### [get_sonos_playlists](#get_sonos_playlists)
 ###### [load_sonos_playlist](#load_sonos_playlist)
 ###### [refresh_media_library](#ref_lib)
+###### [zone_members](#zone_members)
 ###### [get_wifi_state](#get_wifi)
 ###### [set_wifi_state](#set_wifi)
 ###### [discover](#discover)
@@ -1320,6 +1309,72 @@ No special parameter needed.
     The response is only sent if the new value is different from the old value.
 
 ----
+#### <a name="g_loudness">get_nightmode
+ Gets the current nightmode setting from a Sonos speaker. The nightmode feature is only avaliable for certain Sonos
+ speakers, e.g. the Sonos Playbar. For all other speakers, this value should always be 0. 
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'nightmode'-status changes.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_nightmode',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        "nightmode": 0|1, 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+
+----
+#### <a name="s_loudness">set_nightmode
+ Sets the nightmode option for a Sonos speaker. If the Sonos speaker does not support this feature, an error message
+ is thrown.
+
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+| nightmode | required | 0 or 1 | The nightmode to be set. |
+
+######Example
+    JSON format:
+    {
+        'command': 'set_nightmode',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410',
+            'nightmode': 1
+        }   
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    { 
+        ...
+        "nightmode": 0|1, 
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+    
+    The response is only sent if the new value is different from the old value.
+
+----
 #### <a name="g_led">get_led
  Gets the current led status from a Sonos speaker.
  In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
@@ -1515,6 +1570,7 @@ No special parameter needed.
     
     The response is only sent if the new value is different from the old value.
 
+----
 #### <a name="g_track_album">get_track_album
  Returns the album title of the currently played track.
  In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
@@ -1545,6 +1601,7 @@ No special parameter needed.
         ...
     }
 
+----
 #### <a name="g_track_title">get_track_title
  Returns the title of the currently played track.
  In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
@@ -1575,6 +1632,7 @@ No special parameter needed.
         ...
     }
 
+----
 #### <a name="g_track_artist">get_track_artist
  Returns the artist of the currently played track.
  In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
@@ -1605,6 +1663,7 @@ No special parameter needed.
         ...
     }
 
+----
 #### <a name="g_track_album_art">get_track_album_art
  Returns the album-cover url of the currently played track.
  In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
@@ -1635,6 +1694,7 @@ No special parameter needed.
         ...
     }
 
+----
 #### <a name="g_track_uri">get_track_uri
  Returns the track url of the currently played track.
  In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
@@ -1666,7 +1726,39 @@ No special parameter needed.
     }
     
     All URIs can be passed to the play_uri and play_snippet functions.
+    
+----
+#### <a name="g_transport_actions">get_transport_actions
+ Returns the available transport actions for the current track. This could be useful for a UI to display certain
+ control items (or not).
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'transport_actions'-status changes.
 
+| parameter | required / optional | valid values | description |     
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'get_transport_actions',
+        'parameter': {
+            'uid': 'rincon_b8e93730d19801410'
+        }
+    }
+
+######HTTP Response
+    HTTP 200 OK or Exception with HTTP status 400 and the specific error message.
+    
+######UDP Response sent to subscribed clients:
+    JSON format: 
+    {   
+        ...
+        "transport_actions": "Set,Stop,Pause,Play,Next",
+        "uid": "rincon_b8e93730d19801410",
+        ...
+    }
+    
 ----
 #### <a name="g_playlist_position">get_playlist_position
  Returns the position of the currently played track in the playlist.
@@ -1833,13 +1925,15 @@ No special parameter needed.
 | parameter | required / optional | valid values | description |     
 | :-------- | :------------------ | :----------- | :---------- |
 | uid | required | | The UID of the Sonos speaker. |
+| play | optional | True/False, 0/1 | Should the speaker automatically start playing after unjoin. |
 
 ######Example
     JSON format:
     {
         'command': 'unjoin',
         'parameter': {
-            'uid': 'rincon_b8e93730d19801410'
+            'uid': 'rincon_b8e93730d19801410',
+            'play': False
         }
     }
 
@@ -2053,6 +2147,7 @@ No special parameter needed.
 | fade_in | optional | 0 or 1 | If True, the volume for the resumed track / radio fades in |
 | volume | optional | -1 - 100 | The snippet volume. If -1 (default) the current volume is used.  After the snippet was played, the prevoius volume value is set. |
 | group_command | optional | 0 or 1 | If 'True', the command is executed for all zone members of the speaker. This affects only the parameter 'volume'.|
+| force_stream_mode | optional | 0 or 1 | If 'True', Google TTS is streamed directly without storing the track locally. This overrides the Broker settings.|
 
 ######Example
     JSON format:
@@ -2063,7 +2158,8 @@ No special parameter needed.
             'tts': 'Die Temperatur im Wohnzimmer beträgt 2 Grad Celsius.'
             'language': 'de',
             'volume': 30,
-            'group_command': 1
+            'group_command': 1,
+            'force_stream_mode': 0
         }   
     }
 
@@ -2146,47 +2242,52 @@ No special parameter needed.
 ######UDP Response sent to subscribed clients:
     JSON format:
     {
-        "additional_zone_members": "",
-        "alarms": "",
-        "balance": 0,
+        "additional_zone_members": "rincon_112ef9e4892e00001",
+        "alarms": {
+            "32": {
+                "Duration": "02:00:00",
+                "Enabled": false,
+                "IncludedLinkZones": false,
+                "PlayMode": "SHUFFLE_NOREPEAT",
+                "Recurrence": "DAILY",
+                "StartTime": "07:00:00",
+                "Volume": 25
+            }
+        },
         "bass": 0,
-        "display_version": "6.0",
-        "hardware_version": "1.8.1.2-2",
-        "household_id": "Sonos_Ef8RhcyY1ijYDDFp1I3GitguTP",
-        "ip": "192.168.0.11",
-        "is_coordinator": true,
+        "hardware_version": "1.8.3.7-2",
+        "ip": "192.168.0.4",
         "led": 1,
         "loudness": 1,
-        "mac_address": "B8-E9-37-38-E1-72",
+        "mac_address": "10:1F:21:C3:77:1A",
         "max_volume": -1,
-        "model": "Sonos PLAY:3",
-        "model_number": "S3",
-        "mute": 0,
-        "pause": 1,
+        "model": "Sonos PLAY:1",
+        "mute": "0",
+        "pause": 0,
         "play": 0,
         "playlist_position": "1",
         "playlist_total_tracks": "10",
         "playmode": "normal",
         "radio_show": "",
         "radio_station": "",
-        "serial_number": "B8-E9-37-38-E1-72:5",
-        "software_version": "31.3-22220",
-        "sonos_playlists": "Morning,Evening,U2",
+        "serial_number": "00-0E-58-C3-89-2E:7",
+        "software_version": "27.2-80271",
+        "sonos_playlists": "DepecheMode,my_fav-list2,my-fav-list2",
         "status": true,
-        "stop": 0,
+        "stop": 1,
         "streamtype": "music",
-        "track_album_art": "http://192.168.0.11:1400/getaa?s=1&u=x-sonos-http%3atr%253a119434742.mp3%3fsid%3d2%26flags%3d8224%26sn%3d1",
-        "track_artist": "Was ist Was",
-        "track_duration": "0:02:22",
+        "track_album": "Feuerwehrmann Sam 02",
+        "track_album_art": "http://192.168.0.4:1400/getaa?s=1&u=x-sonos-spotify%3aspotify%253atrack%253a3xCk8npVehdV55KuPdjrmZ%3fsid%3d9%26flags%3d32",
+        "track_artist": "Feuerwehrmann Sam & Clemens Gerhard",
+        "track_duration": "0:10:15",
         "track_position": "00:00:00",
-        "track_title": "Europa - Teil 10",
-        "track_uri": "x-sonos-http:tr%3a119434742.mp3?sid=2&flags=8224&sn=1",
+        "track_title": "Das Baby im Schafspelz",
+        "track_uri": "x-sonos-spotify:spotify%3atrack%3a3xCk8npVehdV55KuPdjrmZ?sid=9&flags=32",
+        "transport_actions": "Set,Stop,Pause,Play,Next"
         "treble": 0,
-        "tts_local_mode": false,
-        "uid": "rincon_b8e91111d11111400",
-        "volume": 17,
-        "wifi_state": 1,
-        "zone_icon": "/img/icon-S3.png",
+        "uid": "rincon_000e58c3892e01410",
+        "volume": 8,
+        "zone_icon": "x-rincon-roomicon:bedroom",
         "zone_name": "Kinderzimmer"
     }
     
@@ -2389,6 +2490,39 @@ This has some disadvantages. Please read the Google TTS section in this document
 ###### UDP Response sent to subscribed clients:
     No UDP response
     
+
+----
+#### <a name="zone_members">zone_members
+ Gets all additional zone members of the group the current speaker is part of. If the speaker is the only member of the
+ group, the response is empty.
+ In most cases, you don't have to execute this command, because all subscribed clients will be notified automatically
+ about 'zone_members'-status changes.
+
+| parameter | required / optional | valid values | description |
+| :-------- | :------------------ | :----------- | :---------- |
+| uid | required | | The UID of the Sonos speaker. |
+
+######Example
+    JSON format:
+    {
+        'command': 'zone_members',
+        'parameter': {
+            'uid': rincon_b8e91111d11111400
+    }
+   
+######HTTP Response
+    HTTP 200 OK
+        or
+    Exception with HTTP status 400 and the specific error message.
+
+###### UDP Response sent to subscribed clients:
+    JSON format: 
+    {
+        ...
+        "zone_members": ["rincon_c4441111d11111400", "rincon_d5ee1111d11111400"]
+        "uid": "rincon_b8e91111d11111400"
+        ...
+    }
 
 ----
 #### <a name="get_wifi">get_wifi_state

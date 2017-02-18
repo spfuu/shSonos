@@ -2,7 +2,7 @@ import logging
 from lib_sonos import sonos_speaker
 from lib_sonos import utils
 
-logger = logging.getLogger('')
+logger = logging.getLogger('sonos_broker')
 
 class SonosLibrary:
 
