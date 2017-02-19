@@ -1166,23 +1166,19 @@ class SonosSpeaker(object):
             self.zone_coordinator.play_tunein_url(station_name)
         else:
 
-            tunein = MusicService('TuneIn')
-            result = tunein.search(category='stations', term=station_name)
+            service = MusicService('TuneIn')
+            result = service.search(category='stations', term=station_name)
             if not result:
                 logger.warning("No radio station found for search string '{term}'.".format(term=station_name))
                 return
 
-            if result['count'] == "1":
-                item_id = result['mediaMetadata']['id']
-            else:
-                item_id = result['mediaMetadata'][0]['id']
-
-            service = MusicService('TuneIn')
-            item_id = quote_url(item_id.encode('utf-8'))
+            item = result[0]
+            meta = to_didl_string(item)
+            id = item.metadata['id']
             account = service.account
-            uri = "x-sonosapi-stream:{0}?sid={1}&sn={2}".format(item_id, service.service_id, account.serial_number)
-            didl = DidlItem(title="DUMMY", parent_id="DUMMY", item_id="DUMMY", desc=service.desc)
-            meta = to_didl_string(didl)
+
+            uri = "x-sonosapi-stream:{0}?sid={1}&sn={2}".format(id, service.service_id, account.serial_number)
+
             self.soco.avTransport.SetAVTransportURI([('InstanceID', 0),
                                                      ('CurrentURI', uri), ('CurrentURIMetaData', meta)])
             self.soco.play()
