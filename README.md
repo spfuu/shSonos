@@ -1,5 +1,10 @@
 ## Release
 
+v1.1  (2017-02-19)
+
+    -- bugfix: play_tunein should working now (after some SoCoc changes)
+    -- SoCo framework update
+
 v1.0  (2017-02-18)
 
     -- Attention: cleaned-up configuration file. Please re-configure your Sonos Broker installation
