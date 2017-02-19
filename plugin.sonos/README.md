@@ -3,8 +3,10 @@ SmarthomeNG framework (https://github.com/smarthomeNG).
 
 ##Release
 
-v1.0    (2017-02-15)
-
+v1.0    (2017-02-18)
+    
+    -- Attention: only compatible with SmarthomeNG
+    -- SmartPlugin functionality added
     -- dpt3 functionality added for volume item
     -- command 'transport_actions' added
     -- command 'nightmode' added 
