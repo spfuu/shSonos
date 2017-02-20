@@ -64,3 +64,9 @@ Edit your page where you want to display the widget and add the following code s
 
 ```
 Rename ```Sonos.Kueche``` to your Sonos item name in SmarthomeNG.
+If your're using another root directory than ```/``` for your SmartVISU installtion, you have to adapt the file
+`sonos.html` and change the following two entries to your needs:
+```
+<script type="text/javascript" src="[YOUR_ROOT_HERE]/widgets/sonos.js"></script>
+<link rel="stylesheet" href="[YOUR_ROOT_HERE]/widgets/sonos.css" type="text/css"/>
+```
