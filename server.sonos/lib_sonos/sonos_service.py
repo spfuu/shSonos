@@ -531,4 +531,3 @@ class SonosServerService(object):
             speaker.track_title = track_title
             speaker.track_album_art = track_album_art
             speaker.track_album = track_album
-
