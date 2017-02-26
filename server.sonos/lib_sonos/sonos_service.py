@@ -442,7 +442,10 @@ class SonosServerService(object):
                 # register events for all speaker, this has to be the last step due to some logics in the event
                 # handling routine
 
+                logger.debug("DISCOVERED +++++++++++++++++++++++++++++++++++++++++++++++++++")
                 for speaker in sonos_speaker.sonos_speakers.values():
+                    logger.debug("discovered speaker: {0}".format(speaker.uid))
+
                     try:
                         speaker.set_zone_coordinator()
                         speaker.set_group_members()

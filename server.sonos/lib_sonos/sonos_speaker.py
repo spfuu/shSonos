@@ -1509,7 +1509,7 @@ class SonosSpeaker(object):
 
         try:
             if self.sub_zone_group is not None:
-                if not self.sub_zone_group.time_left:
+                if self.sub_zone_group.time_left == 0 or not self.sub_zone_group.is_subscribed:
                     try:
                         self._sub_zone_group.unsubscribe()
                     except Exception as err:
@@ -1526,7 +1526,7 @@ class SonosSpeaker(object):
                     pass
 
             if self.sub_av_transport is not None:
-                if not self.sub_av_transport.time_left:
+                if self.sub_av_transport.time_left == 0 or not self.sub_av_transport.is_subscribed:
                     try:
                         self.sub_av_transport.unsubscribe()
                     except Exception as err:
@@ -1542,7 +1542,7 @@ class SonosSpeaker(object):
                     pass
 
             if self.sub_rendering_control is not None:
-                if not self.sub_rendering_control.time_left:
+                if self.sub_zone_group.sub_rendering_control == 0 or not self.sub_zone_group.sub_rendering_control:
                     try:
                         self.sub_rendering_control.unsubscribe()
                     except Exception as err:
@@ -1553,12 +1553,14 @@ class SonosSpeaker(object):
                 try:
                     self._sub_rendering_control = self.soco.renderingControl.subscribe(definitions.SUBSCRIPTION_TIMEOUT,
                                                                                        True, SonosSpeaker.event_queue)
+                    logger.debug("rendering event: proofed timeout: {0}".format(self._sub_rendering_control.timeout))
+
                 except Exception as err:
                     logger.warning(err)
                     pass
 
             if self.sub_alarm is not None:
-                if not self.sub_alarm.time_left:
+                if self.sub_alarm.sub_rendering_control == 0 or not self.sub_alarm.sub_rendering_control:
                     try:
                         self.sub_alarm.unsubscribe()
                     except Exception as err:

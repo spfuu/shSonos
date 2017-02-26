@@ -1,5 +1,9 @@
 ## Release
 
+v1.2b0 (2017-02-26)
+
+    -- small chnages to event handling
+
 v1.1  (2017-02-19)
 
     -- bugfix: play_tunein should working now (after some SoCoc changes)
