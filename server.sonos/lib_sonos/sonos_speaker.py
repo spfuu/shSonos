@@ -1542,7 +1542,7 @@ class SonosSpeaker(object):
                     pass
 
             if self.sub_rendering_control is not None:
-                if self.sub_zone_group.sub_rendering_control == 0 or not self.sub_zone_group.is_subscribed:
+                if self.sub_zone_group.time_left == 0 or not self.sub_zone_group.is_subscribed:
                     try:
                         self.sub_rendering_control.unsubscribe()
                     except Exception as err:
@@ -1560,7 +1560,7 @@ class SonosSpeaker(object):
                     pass
 
             if self.sub_alarm is not None:
-                if self.sub_alarm.sub_rendering_control == 0 or not self.sub_alarm.is_subscribed:
+                if self.sub_alarm.time_left == 0 or not self.sub_alarm.is_subscribed:
                     try:
                         self.sub_alarm.unsubscribe()
                     except Exception as err:
