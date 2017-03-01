@@ -1,6 +1,10 @@
+v1.2b1 (2017-03-01)
+
+    -- small changes to event handling
+
 v1.2b0 (2017-02-26)
 
-    -- small chnages to event handling
+    -- small changes to event handling
 
 v1.1  (2017-02-19)
 

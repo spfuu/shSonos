@@ -567,20 +567,20 @@ class Subscription(object):
         # UNSUBSCRIBE publisher path HTTP/1.1
         # HOST: publisher host:publisher port
         # SID: uuid:subscription UUID
-        headers = {
-            'SID': self.sid
-        }
-        response = requests.request(
-            'UNSUBSCRIBE',
-            self.service.base_url + self.service.event_subscription_url,
-            headers=headers)
-        response.raise_for_status()
+        headers = {'SID': self.sid}
+
+        try:
+            response = requests.request('UNSUBSCRIBE', self.service.base_url + self.service.event_subscription_url,
+                                    headers=headers, timeout=5)
+            response.raise_for_status()
+        except Exception:
+            # could be offline
+            log.info("Could not unsubscribe. Speaker offline?")
+            pass
+
         self.is_subscribed = False
         self._timestamp = None
-        log.info(
-            "Unsubscribed from %s, sid: %s",
-            self.service.base_url + self.service.event_subscription_url,
-            self.sid)
+        log.info("Unsubscribed from %s, sid: %s", self.service.base_url + self.service.event_subscription_url, self.sid)
         # remove queue from event queues and sid to service mappings
         with _sid_to_event_queue_lock:
             try:

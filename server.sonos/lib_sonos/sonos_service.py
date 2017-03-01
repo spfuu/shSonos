@@ -418,6 +418,8 @@ class SonosServerService(object):
                         except Exception:
                             speaker_to_remove.append(uid)
                             continue  # speaker maybe deleted by another thread
+
+                offline_uids = []
                 try:
                     offline_uids = set(list(sonos_speaker.sonos_speakers.keys())) - set(active_uids)
                     offline_uids = set(list(offline_uids) + speaker_to_remove)
