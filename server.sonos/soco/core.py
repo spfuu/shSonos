@@ -486,6 +486,7 @@ class SoCo(_SocoSingletonBase):
         for prefix in ('http://', 'https://'):
             if uri.startswith(prefix):
                 # Replace only the first instance
+                #uri = uri.replace(prefix, 'x-rincon-mp3radio://', 1)
                 uri = uri.replace(prefix, 'x-rincon-mp3radio://', 1)
 
         self.avTransport.SetAVTransportURI([

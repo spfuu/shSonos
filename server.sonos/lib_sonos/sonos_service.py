@@ -186,13 +186,12 @@ class SonosEventThread:
         self.thread.start()
 
     def process_events(self):
-        speakers = []
         while not self.stop.wait(1):
             try:
-                event = SonosSpeaker.event_queue.get()
+                event = SonosSpeaker.event_queue.get(timeout=0.5)
+                speakers = []
                 if event is None:
                     return
-
                 uid = event.sid.lower().rsplit('_sub', 1)
 
                 if not uid:
@@ -234,18 +233,19 @@ class SonosEventThread:
                     self.handle_AlarmClock_event(speaker, event.variables)
 
                 SonosSpeaker.event_queue.task_done()
+                for speaker in speakers:
+                    speaker.send()
 
             except queue.Empty:
                 pass
-            finally:
-                if not SonosSpeaker.event_queue.unfinished_tasks:
-                    for speaker in speakers:
-                        speaker.send()
-                    del speakers[:]
 
         self._running_flag = False
 
     def handle_AVTransport_event(self, speaker, variables):
+
+        print("#########################################################")
+        print(variables)
+        print("#########################################################")
 
         # stop tts from restarting the track
         if 'restart_pending' in variables:

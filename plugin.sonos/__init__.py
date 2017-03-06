@@ -43,11 +43,19 @@ class UDPDispatcher(lib.connection.Server):
                 return
 
             for key, value in sonos.items():
-                instance_var = getattr(sonos_speaker[uid], key)
+                try:
+                    instance_var = getattr(sonos_speaker[uid], key)
 
-                if isinstance(instance_var, list):
-                    for item in instance_var:
-                        item(value, 'Sonos', '')
+                    if isinstance(instance_var, list):
+                        for item in instance_var:
+                            try:
+                                item(value, 'Sonos', '')
+                            except Exception as ex:
+                                self._logger.error(ex)
+                                continue
+                except Exception as ex:
+                    self._logger.error(ex)
+                    continue
 
         except Exception as err:
             self._logger.error("Error parsing sonos broker response!\nError: {}".format(err))

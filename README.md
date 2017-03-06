@@ -1,5 +1,9 @@
 ## Release
 
+v1.2b2 (2017-03-06)
+
+    -- changes to event queuing
+
 v1.2b1 (2017-03-01)
 
     -- small changes to event handling

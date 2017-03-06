@@ -494,10 +494,6 @@ Edit file with this sample of mine:
  You can find an example config in the plugin sub-directory "examples". 
 
 
- To get your sonos speaker id, type this command in your browser (while sonos server is running):
-  
-    http://<sonos_server_ip:port>/client/list
-
 ##<a name="dpt">Volume DPT3 support
 
 If you take look at the ```volume``` item in your Sonos items configuration you should find something like this:
