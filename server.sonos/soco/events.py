@@ -232,7 +232,7 @@ class EventNotifyHandler(BaseHTTPRequestHandler):
             # pass the event details on to the service so it can update its
             # cache.
             # pylint: disable=protected-access
-            #service._update_cache_on_event(event)
+            service._update_cache_on_event(event)
             # Find the right queue, and put the event on it
             with _sid_to_event_queue_lock:
                 try:
