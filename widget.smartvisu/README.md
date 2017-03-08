@@ -1,5 +1,10 @@
 ##Release
 
+v.04    (2017-03-07)
+
+    -- moved the js and css content to visu.js and visu.css
+    -- bug: transport_actions should now work correctly in any cases
+
 v0.3    (2017-02-18)
 
     -- complete rewrite of widget for Sonos Broker >= 1.0
@@ -34,11 +39,15 @@ structure.
 ---
 ### Integration in smartVISU
 
-Copy **sonos.html**, **sonos.js** and **sonos.css** to your smartVISU widget directory, e.g.
+Copy **sonos.html** to your smartVISU pages directory, e.g.
 
 ```
-/var/www/smartvisu/widgets
+/var/www/smartvisu/pages/YOUR_PATH_HERE 
 ```
+
+Change to this directory and append the content of **sonos.js** to ```visu.js``` and **sonos.css** to ```visu.css```.
+Create both file if they do not not exist.
+
 
 Copy **sonos_empty.jpg** to the base pic's folder, e.g.
 ```
@@ -64,14 +73,8 @@ Edit your page where you want to display the widget and add the following code s
 
 ```
 Rename ```Sonos.Kueche``` to your Sonos item name in SmarthomeNG.
-If your're using another root directory than ```/``` for your SmartVISU installtion, you have to adapt the file
-`sonos.html` and change the following three entries to your needs:
+If your're using another root directory than ```/``` for your SmartVISU installation, you have to adapt the file
+`sonos.html` and change the following entry to your needs:
 ```
-{% set cover_default      = '[YOUR_ROOT_HERE]/pages/base/pics/sonos_empty.jpg' %}
-
-...
-<script type="text/javascript" src="[YOUR_ROOT_HERE]/widgets/sonos.js"></script>
-<link rel="stylesheet" href="[YOUR_ROOT_HERE]/widgets/sonos.css" type="text/css"/>
-...
-
+{% set cover_default      = '[YOUR_WBE_ROOT_HERE]/pages/base/pics/sonos_empty.jpg' %}
 ```

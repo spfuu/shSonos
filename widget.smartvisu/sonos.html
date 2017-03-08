@@ -14,14 +14,9 @@
   {% set transport_actions  = '.transport_actions' %}
   {% set track_uri          = '.track_uri' %}
   {% set streamtype         = '.streamtype' %}
-  {% set cover_default      = '/pages/base/pics/sonos_empty.jpg' %}
+  {% set cover_default      = 'pages/base/pics/sonos_empty.jpg' %}
   {% import "sonos.html" as pfischi_sonos %}
   {% import "basic.html" as basic %}
-
-  {% block my_javascripts %}
-      <script type="text/javascript" src="/widgets/sonos.js"></script>
-      <link rel="stylesheet" href="/widgets/sonos.css" type="text/css"/>
-  {% endblock %}
 
   <div class="pfischi">
       <div id="{{ uid }}" class="sonos">
@@ -130,7 +125,8 @@
       data-pic-inactive="{{ pic_inactive|deficon('control_on_off.svg') }}"
       data-action="{{ action }}"
       data-active="true"
-			class="switch icon">
+      data-val="0"
+      class="switch icon">
 				<a>
           <a>
             {{ basic._icon(pic_off|deficon('control_on_off.svg'), color_off|default('icon1'), uid ~ '-active-off') }}
