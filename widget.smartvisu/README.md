@@ -46,7 +46,7 @@ Copy **sonos.html** to your smartVISU pages directory, e.g.
 ```
 
 Change to this directory and append the content of **sonos.js** to ```visu.js``` and **sonos.css** to ```visu.css```.
-Create both file if they do not not exist.
+Create both files if they do not not exist.
 
 
 Copy **sonos_empty.jpg** to the base pic's folder, e.g.
