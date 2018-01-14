@@ -1,6 +1,8 @@
-# This project is deprecated. The Broker is now integrated in the Sonos plugin of the SmarthomeNG framework
+## This project is deprecated. The Broker is now integrated in the Sonos plugin of the SmarthomeNG framework
 
-<a href="https://github.com/smarthomeNG/plugins/tree/develop/sonos" target="_blank">Sonos on SmarthomeNG</a>
+
+**<a href="https://github.com/smarthomeNG/plugins/tree/develop/sonos" target="_blank">Sonos on SmarthomeNG</a>**
+
 
 
 
